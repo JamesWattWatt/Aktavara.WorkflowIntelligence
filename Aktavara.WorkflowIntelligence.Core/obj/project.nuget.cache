@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "0cxmIFsMjD4=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\james.watt\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.8\\microsoft.extensions.dependencyinjection.abstractions.10.0.8.nupkg.sha512",
+    "C:\\Users\\james.watt\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.8\\microsoft.extensions.logging.abstractions.10.0.8.nupkg.sha512"
+  ],
+  "logs": []
+}

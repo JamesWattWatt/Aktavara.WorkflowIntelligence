@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Aktavara.WorkflowIntelligence.Api/Aktavara.WorkflowIntelligence.Api.csproj" />
+  <Project Path="Aktavara.WorkflowIntelligence.Cli/Aktavara.WorkflowIntelligence.Cli.csproj" />
+  <Project Path="Aktavara.WorkflowIntelligence.Core/Aktavara.WorkflowIntelligence.Core.csproj" />
+  <Project Path="Aktavara.WorkflowIntelligence.Tests/Aktavara.WorkflowIntelligence.Tests.csproj" />
+</Solution>
