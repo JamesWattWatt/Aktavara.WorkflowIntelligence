@@ -14,7 +14,8 @@ public class ActivityEventNormalizerTests
     {
         var mockLogger = new Mock<ILogger<ActivityEventNormalizer>>();
         var xmlExtractor = new AktaXmlExtractor(new Mock<ILogger<AktaXmlExtractor>>().Object);
-        _normalizer = new ActivityEventNormalizer(xmlExtractor, mockLogger.Object);
+        var jsonExtractor = new AktaJsonExtractor(new Mock<ILogger<AktaJsonExtractor>>().Object);
+        _normalizer = new ActivityEventNormalizer(xmlExtractor, jsonExtractor, mockLogger.Object);
     }
 
     #region Search Records Tests

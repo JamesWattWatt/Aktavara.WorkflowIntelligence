@@ -1,0 +1,435 @@
+[2026-06-08 11:13:20] istvan.vencz (17): Request: Search records
+Input:
+<?xml version="1.0" encoding="utf-16"?>
+<TypedSearchExpressionItem xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ItemType>SingleType</ItemType>
+  <TypeId>132</TypeId>
+  <TypeKind>Path</TypeKind>
+  <SearchStageId>0</SearchStageId>
+  <SearchConditions />
+</TypedSearchExpressionItem>
+Input:
+<?xml version="1.0" encoding="utf-16"?>
+<PageInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <StartRow>1</StartRow>
+  <Rows>100</Rows>
+  <Sorting xsi:type="RecordAlphabeticalSorting">
+    <ChildSortOrderAlphabetical>false</ChildSortOrderAlphabetical>
+  </Sorting>
+  <EndReached>true</EndReached>
+</PageInfo>
+
+[2026-06-08 11:13:20] istvan.vencz (17): Response: Search records
+Output:
+<?xml version="1.0" encoding="utf-16"?>
+<PageInfo xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <StartRow>1</StartRow>
+  <Rows>100</Rows>
+  <Sorting xsi:type="RecordAlphabeticalSorting">
+    <ChildSortOrderAlphabetical>false</ChildSortOrderAlphabetical>
+  </Sorting>
+  <EndReached>true</EndReached>
+</PageInfo>
+Output:
+<?xml version="1.0" encoding="utf-16"?>
+<ArrayOfAktaRecord xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <AktaRecord>
+    <TypeKind>Path</TypeKind>
+    <TypeId>132</TypeId>
+    <RecordId>657</RecordId>
+    <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+    <RecordState>Unchanged</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">657</AttributeValue>
+        <AttributeId>767</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">N2-N3</AttributeValue>
+        <AttributeId>768</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+  </AktaRecord>
+  <AktaRecord>
+    <TypeKind>Path</TypeKind>
+    <TypeId>132</TypeId>
+    <RecordId>658</RecordId>
+    <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+    <RecordState>Unchanged</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">658</AttributeValue>
+        <AttributeId>767</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">N3-N4</AttributeValue>
+        <AttributeId>768</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+  </AktaRecord>
+  <AktaRecord>
+    <TypeKind>Path</TypeKind>
+    <TypeId>132</TypeId>
+    <RecordId>659</RecordId>
+    <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+    <RecordState>Unchanged</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">659</AttributeValue>
+        <AttributeId>767</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">N4-N5</AttributeValue>
+        <AttributeId>768</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+  </AktaRecord>
+  <AktaRecord>
+    <TypeKind>Path</TypeKind>
+    <TypeId>132</TypeId>
+    <RecordId>637</RecordId>
+    <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+    <RecordState>Unchanged</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">637</AttributeValue>
+        <AttributeId>767</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">Istvan1</AttributeValue>
+        <AttributeId>768</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+  </AktaRecord>
+</ArrayOfAktaRecord>
+
+[2026-06-08 11:13:25] istvan.vencz (17): Request: Open workspace Path
+Input:
+<?xml version="1.0" encoding="utf-16"?>
+<AktaRecord xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <TypeKind>Path</TypeKind>
+  <TypeId>132</TypeId>
+  <RecordId>658</RecordId>
+  <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+  <RecordState>Unchanged</RecordState>
+  <Properties>
+    <RecordProperty>
+      <AttributeValue xsi:type="xsd:int">658</AttributeValue>
+      <AttributeId>767</AttributeId>
+    </RecordProperty>
+    <RecordProperty>
+      <AttributeValue xsi:type="xsd:string">N3-N4</AttributeValue>
+      <AttributeId>768</AttributeId>
+    </RecordProperty>
+  </Properties>
+  <StageId>-1</StageId>
+</AktaRecord>
+
+[2026-06-08 11:13:25] istvan.vencz (17): Response: Open workspace Path
+Output:
+<?xml version="1.0" encoding="utf-16"?>
+<PathWkData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Path>
+    <TypeKind>Path</TypeKind>
+    <TypeId>132</TypeId>
+    <RecordId>658</RecordId>
+    <LastChangedDate>2025-10-31T07:55:29</LastChangedDate>
+    <RecordState>Unchanged</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">658</AttributeValue>
+        <AttributeId>767</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">N3-N4</AttributeValue>
+        <AttributeId>768</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+    <EndKey1>0</EndKey1>
+    <EndKey2>0</EndKey2>
+    <TagTypeId>-1</TagTypeId>
+    <Elements>
+      <AktaEdgeElement>
+        <StartVertex>
+          <Record xsi:type="AktaRecord">
+            <TypeKind>Node</TypeKind>
+            <TypeId>2</TypeId>
+            <RecordId>4057</RecordId>
+            <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+            <RecordState>Unchanged</RecordState>
+            <Properties>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:int">4057</AttributeValue>
+                <AttributeId>4</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>268</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:string">NE311</AttributeValue>
+                <AttributeId>6</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:string">Aktavara</AttributeValue>
+                <AttributeId>7</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:string">192.30.63.3</AttributeValue>
+                <AttributeId>8</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>114</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>269</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>272</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>273</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>457</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:int">1</AttributeValue>
+                <AttributeId>-987654</AttributeId>
+              </RecordProperty>
+            </Properties>
+            <StageId>-1</StageId>
+          </Record>
+          <Key>0</Key>
+          <X>132</X>
+          <Y>300</Y>
+          <ParentLevel>0</ParentLevel>
+        </StartVertex>
+        <EndVertex>
+          <Record xsi:type="AktaRecord">
+            <TypeKind>Node</TypeKind>
+            <TypeId>2</TypeId>
+            <RecordId>4058</RecordId>
+            <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+            <RecordState>Unchanged</RecordState>
+            <Properties>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:int">4058</AttributeValue>
+                <AttributeId>4</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>268</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:string">NE4</AttributeValue>
+                <AttributeId>6</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:string">Aktavara</AttributeValue>
+                <AttributeId>7</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:string">192.30.63.4</AttributeValue>
+                <AttributeId>8</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>114</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>269</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>272</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>273</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeId>457</AttributeId>
+              </RecordProperty>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:int">1</AttributeValue>
+                <AttributeId>-987654</AttributeId>
+              </RecordProperty>
+            </Properties>
+            <StageId>-1</StageId>
+          </Record>
+          <Key>2</Key>
+          <X>372</X>
+          <Y>349</Y>
+          <ParentLevel>0</ParentLevel>
+        </EndVertex>
+        <Edge xsi:type="AktaEdgeConnector">
+          <Record xsi:type="AktaRecord">
+            <TypeKind>Connector</TypeKind>
+            <TypeId>0</TypeId>
+            <RecordId>1102</RecordId>
+            <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+            <RecordState>Unchanged</RecordState>
+            <Properties>
+              <RecordProperty>
+                <AttributeValue xsi:type="xsd:int">1102</AttributeValue>
+                <AttributeId>0</AttributeId>
+              </RecordProperty>
+            </Properties>
+            <StageId>-1</StageId>
+          </Record>
+          <Key>1</Key>
+          <X>0</X>
+          <Y>0</Y>
+        </Edge>
+      </AktaEdgeElement>
+    </Elements>
+  </Path>
+  <Notes />
+  <PathTags />
+  <Footer>
+    <Note>
+      <NoteId>395</NoteId>
+      <Kind>Footer</Kind>
+      <Text>&lt;Double-click to edit&gt;</Text>
+      <Flags>None</Flags>
+      <Appearance>
+        <FontStyle>Underline</FontStyle>
+        <FontSize>0</FontSize>
+        <TextAlignment>None</TextAlignment>
+      </Appearance>
+      <Rect>
+        <X>157</X>
+        <Y>481</Y>
+        <Width>300</Width>
+        <Height>99</Height>
+      </Rect>
+    </Note>
+    <DisplayOption>WorkspaceAndPrint</DisplayOption>
+  </Footer>
+  <History>
+    <CreatedAt>2025-10-31T07:54:53</CreatedAt>
+    <CreatedBy>istvan.vencz</CreatedBy>
+    <LastModifiedAt>2025-10-31T07:55:29</LastModifiedAt>
+    <LastModifiedBy>istvan.vencz</LastModifiedBy>
+  </History>
+  <RecordGroups />
+  <TagRecords />
+</PathWkData>
+
+[2026-06-08 11:13:56] istvan.vencz (17): Request: Save records
+Input:
+<?xml version="1.0" encoding="utf-16"?>
+<ArrayOfAktaRecord xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <AktaRecord>
+    <TypeKind>Node</TypeKind>
+    <TypeId>2</TypeId>
+    <RecordId>4058</RecordId>
+    <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+    <RecordState>Modified</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">4058</AttributeValue>
+        <AttributeId>4</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>268</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">NE411</AttributeValue>
+        <AttributeId>6</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">Aktavara</AttributeValue>
+        <AttributeId>7</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">192.30.63.4</AttributeValue>
+        <AttributeId>8</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>114</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>269</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>272</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>273</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>457</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">1</AttributeValue>
+        <AttributeId>-987654</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+  </AktaRecord>
+</ArrayOfAktaRecord>
+Input:
+<?xml version="1.0" encoding="utf-16"?>
+<boolean>false</boolean>
+
+[2026-06-08 11:13:57] istvan.vencz (17): Response: Save records
+Output:
+<?xml version="1.0" encoding="utf-16"?>
+<ArrayOfAktaRecord xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <AktaRecord>
+    <TypeKind>Node</TypeKind>
+    <TypeId>2</TypeId>
+    <RecordId>4058</RecordId>
+    <LastChangedDate>0001-01-01T00:00:00</LastChangedDate>
+    <RecordState>Unchanged</RecordState>
+    <Properties>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">4058</AttributeValue>
+        <AttributeId>4</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>268</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">NE411</AttributeValue>
+        <AttributeId>6</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">Aktavara</AttributeValue>
+        <AttributeId>7</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:string">192.30.63.4</AttributeValue>
+        <AttributeId>8</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>114</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>269</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>272</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>273</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeId>457</AttributeId>
+      </RecordProperty>
+      <RecordProperty>
+        <AttributeValue xsi:type="xsd:int">1</AttributeValue>
+        <AttributeId>-987654</AttributeId>
+      </RecordProperty>
+    </Properties>
+    <StageId>-1</StageId>
+  </AktaRecord>
+</ArrayOfAktaRecord>
+Output:
+
+Output:
+<?xml version="1.0" encoding="utf-16"?>
+<boolean>true</boolean>
+

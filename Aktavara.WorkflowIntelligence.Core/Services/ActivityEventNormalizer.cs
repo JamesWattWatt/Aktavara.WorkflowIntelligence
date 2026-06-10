@@ -6,11 +6,12 @@ namespace Aktavara.WorkflowIntelligence.Core.Services;
 
 /// <summary>
 /// Normalizes raw activity log entries into structured activity events.
-/// Handles action-specific extraction, XML parsing, and request/response correlation.
+/// Handles action-specific extraction, XML/JSON parsing, and request/response correlation.
 /// </summary>
 public class ActivityEventNormalizer : IActivityEventNormalizer
 {
     private readonly IAktaXmlExtractor _xmlExtractor;
+    private readonly IAktaJsonExtractor _jsonExtractor;
     private readonly IRecordDiffService _diffService;
     private readonly ILogger<ActivityEventNormalizer> _logger;
 
@@ -19,15 +20,20 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
     {
         { "Search records", EventType.SearchRecords },
         { "Open workspace Path", EventType.OpenWorkspace },
-        { "Save records", EventType.SaveRecords }
+        { "Open workspace Diagram", EventType.OpenWorkspace },
+        { "Save records", EventType.SaveRecords },
+        { "Save workspace Diagram", EventType.SaveRecords },
+        { "SavePathWsData", EventType.SaveRecords }
     };
 
     public ActivityEventNormalizer(
         IAktaXmlExtractor xmlExtractor,
+        IAktaJsonExtractor jsonExtractor,
         ILogger<ActivityEventNormalizer> logger,
         IRecordDiffService? diffService = null)
     {
         _xmlExtractor = xmlExtractor;
+        _jsonExtractor = jsonExtractor;
         _logger = logger;
         _diffService = diffService ?? new RecordDiffService(new Microsoft.Extensions.Logging.Abstractions.NullLogger<RecordDiffService>());
     }
@@ -52,14 +58,24 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
         {
             var entry = rawEntries[i];
 
-            if (entry.ActionName.Equals("Open workspace Path", StringComparison.OrdinalIgnoreCase) &&
+            if ((entry.ActionName.Equals("Open workspace Path", StringComparison.OrdinalIgnoreCase) ||
+                 entry.ActionName.Equals("Open workspace Diagram", StringComparison.OrdinalIgnoreCase)) &&
                 entry.Direction == EventType.RequestInitiated &&
                 entry.RawXmlPayloads.Count > 0)
             {
                 try
                 {
-                    var pathWorkspace = _xmlExtractor.ExtractPathWorkspace(entry.RawXmlPayloads[0]);
-                    if (pathWorkspace != null)
+                    var payload = entry.RawXmlPayloads[0];
+                    var payloadType = PayloadTypeDetector.Detect(payload);
+
+                    PathWorkspaceSnapshot? pathWorkspace = payloadType switch
+                    {
+                        PayloadType.Json => _jsonExtractor.ExtractPathWorkspace(payload),
+                        PayloadType.Xml => _xmlExtractor.ExtractPathWorkspace(payload),
+                        _ => null
+                    };
+
+                    if (pathWorkspace?.PathRecord != null)
                     {
                         // Store path and all nodes
                         recordSnapshots[pathWorkspace.PathRecord.RecordId] = pathWorkspace.PathRecord;
@@ -130,8 +146,15 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
 
         try
         {
-            var xml = entry.RawXmlPayloads[0];
-            var records = _xmlExtractor.ExtractRecords(xml);
+            var payload = entry.RawXmlPayloads[0];
+            var payloadType = PayloadTypeDetector.Detect(payload);
+
+            IReadOnlyList<AktaRecordSnapshot> records = payloadType switch
+            {
+                PayloadType.Json => _jsonExtractor.ExtractRecords(payload),
+                PayloadType.Xml => _xmlExtractor.ExtractRecords(payload),
+                _ => Array.Empty<AktaRecordSnapshot>()
+            };
 
             // Look for search expression in records
             foreach (var record in records)
@@ -157,17 +180,11 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                     // Determine RecordKind from Kind property
                     if (kindProp?.Value is string kindStr)
                     {
-                        evt.RecordKind = kindStr switch
-                        {
-                            "Path" => RecordKind.Path,
-                            "Node" => RecordKind.Node,
-                            "Connector" => RecordKind.Connector,
-                            _ => RecordKind.Other
-                        };
+                        evt.RecordKind = AktavaraTypeHelper.ToRecordKind(kindStr);
                     }
 
                     evt.Evidence.Add($"Search {evt.RecordKind ?? RecordKind.Other} of type {evt.TypeId ?? "unknown"}");
-                    evt.Metadata["xml_payload"] = xml;
+                    evt.Metadata["payload"] = payload;
 
                     events.Add(evt);
                 }
@@ -196,12 +213,19 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
 
         try
         {
-            var xml = entry.RawXmlPayloads[0];
-            var pathWorkspace = _xmlExtractor.ExtractPathWorkspace(xml);
+            var payload = entry.RawXmlPayloads[0];
+            var payloadType = PayloadTypeDetector.Detect(payload);
 
-            if (pathWorkspace == null)
+            PathWorkspaceSnapshot? pathWorkspace = payloadType switch
             {
-                _logger.LogDebug("No path workspace found in open workspace entry");
+                PayloadType.Json => _jsonExtractor.ExtractPathWorkspace(payload),
+                PayloadType.Xml => _xmlExtractor.ExtractPathWorkspace(payload),
+                _ => null
+            };
+
+            if (pathWorkspace?.PathRecord == null)
+            {
+                _logger.LogDebug("No path workspace or path record found in open workspace entry");
                 return events;
             }
 
@@ -264,8 +288,15 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
 
         try
         {
-            var xml = entry.RawXmlPayloads[0];
-            var records = _xmlExtractor.ExtractRecords(xml);
+            var payload = entry.RawXmlPayloads[0];
+            var payloadType = PayloadTypeDetector.Detect(payload);
+
+            IReadOnlyList<AktaRecordSnapshot> records = payloadType switch
+            {
+                PayloadType.Json => _jsonExtractor.ExtractRecords(payload),
+                PayloadType.Xml => _xmlExtractor.ExtractRecords(payload),
+                _ => Array.Empty<AktaRecordSnapshot>()
+            };
 
             // Look for records being saved
             foreach (var record in records)
@@ -275,13 +306,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                     continue;
 
                 // Determine RecordKind from TypeKind
-                var recordKind = record.TypeKind switch
-                {
-                    "Path" => RecordKind.Path,
-                    "Node" => RecordKind.Node,
-                    "Connector" => RecordKind.Connector,
-                    _ => RecordKind.Other
-                };
+                var recordKind = AktavaraTypeHelper.ToRecordKind(record.TypeKind);
 
                 var evt = new ActivityEvent
                 {
@@ -327,7 +352,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
 
                 evt.Evidence.Add($"Saving {evt.RecordKind} record {evt.RecordId} (State: {evt.RecordState})");
 
-                evt.Metadata["xml_payload"] = xml;
+                evt.Metadata["payload"] = payload;
 
                 // Try to correlate with response
                 CorrelateWithResponse(evt, entry, allEntries, entryIndex);

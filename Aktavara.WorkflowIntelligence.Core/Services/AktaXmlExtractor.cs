@@ -29,6 +29,10 @@ public class AktaXmlExtractor : IAktaXmlExtractor
         if (string.IsNullOrWhiteSpace(xml))
             return Array.Empty<AktaRecordSnapshot>();
 
+        // Skip simple boolean results
+        if (IsSimpleBooleanResult(xml))
+            return Array.Empty<AktaRecordSnapshot>();
+
         try
         {
             var doc = XDocument.Parse(xml);
@@ -53,7 +57,7 @@ public class AktaXmlExtractor : IAktaXmlExtractor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error extracting records from XML");
+            _logger.LogDebug(ex, "Could not extract records from payload (may be a boolean result or non-XML content)");
             return Array.Empty<AktaRecordSnapshot>();
         }
     }
@@ -121,6 +125,10 @@ public class AktaXmlExtractor : IAktaXmlExtractor
         if (string.IsNullOrWhiteSpace(xml))
             return null;
 
+        // Skip simple boolean results
+        if (IsSimpleBooleanResult(xml))
+            return null;
+
         try
         {
             var doc = XDocument.Parse(xml);
@@ -131,7 +139,7 @@ public class AktaXmlExtractor : IAktaXmlExtractor
 
             if (pathWkElement == null)
             {
-                _logger.LogWarning("No PathWkData element found in XML");
+                _logger.LogDebug("No PathWkData element found in XML");
                 return null;
             }
 
@@ -233,7 +241,7 @@ public class AktaXmlExtractor : IAktaXmlExtractor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error extracting path workspace from XML");
+            _logger.LogDebug(ex, "Could not extract path workspace from payload");
             return null;
         }
     }
@@ -280,6 +288,24 @@ public class AktaXmlExtractor : IAktaXmlExtractor
             _logger.LogError(ex, "Error extracting boolean result from XML");
             return null;
         }
+    }
+
+    /// <summary>
+    /// Checks if the XML payload is a simple boolean result that should be handled by ExtractBooleanResult instead.
+    /// </summary>
+    private static bool IsSimpleBooleanResult(string xml)
+    {
+        var trimmed = xml.Trim();
+
+        // Check for simple boolean elements like <boolean>true</boolean> or <Result>false</Result>
+        return trimmed.StartsWith("<boolean>", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.StartsWith("<result>", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.StartsWith("<success>", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.StartsWith("<issuccess>", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.StartsWith("<isvalid>", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.StartsWith("<valid>", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+               trimmed.Equals("false", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
