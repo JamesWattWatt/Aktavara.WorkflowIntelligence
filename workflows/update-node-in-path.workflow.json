@@ -1,0 +1,108 @@
+{
+  "workflowId": "update-node-in-path",
+  "name": "Update node in path",
+  "description": "User searches for a specific path, opens it, finds and selects a node, modifies its properties, and saves the changes. This is a fundamental path maintenance workflow.",
+  "category": "path-operations",
+  "version": "1.0",
+  "status": "Active",
+  "tags": ["path-operations", "node-management", "edit-workflow"],
+  "minimumConfidenceThreshold": 0.6,
+  "createdBy": "system",
+  "createdDate": "2026-06-10T00:00:00Z",
+  "lastModifiedDate": "2026-06-10T00:00:00Z",
+  "metadata": {
+    "domain": "Path Workspace",
+    "complexity": "Medium",
+    "estimatedDuration": "5-10 minutes"
+  },
+  "activitySignature": [
+    {
+      "eventType": "SearchRecords",
+      "recordKind": "Path",
+      "required": false,
+      "weight": 0.15,
+      "description": "User searches for a specific path to work on (optional)",
+      "missingPenalty": 0.05
+    },
+    {
+      "eventType": "OpenWorkspace",
+      "recordKind": "Path",
+      "workspaceKind": "Path",
+      "required": true,
+      "weight": 0.35,
+      "description": "User opens a path workspace for editing (required)",
+      "missingPenalty": 0.25
+    },
+    {
+      "eventType": "SaveRecords",
+      "recordKind": "Node",
+      "required": true,
+      "weight": 0.35,
+      "description": "User saves a modified node within the path (required)",
+      "missingPenalty": 0.25
+    },
+    {
+      "eventType": "SaveRecords",
+      "recordKind": "Path",
+      "required": false,
+      "weight": 0.15,
+      "description": "User saves the path after node modifications (supporting)",
+      "missingPenalty": 0.10
+    }
+  ],
+  "states": [
+    {
+      "stateId": "path_workspace_open",
+      "name": "Path Workspace Opened",
+      "description": "The path workspace has been opened and is ready for node editing.",
+      "requiredEvidence": ["OpenWorkspace"],
+      "sequence": 0,
+      "isTerminal": false,
+      "nextStateId": "node_saved",
+      "helpGuideId": "guide-open-path",
+      "metadata": {}
+    },
+    {
+      "stateId": "node_saved",
+      "name": "Node Changes Saved",
+      "description": "A node within the path has been modified and saved.",
+      "requiredEvidence": ["OpenWorkspace", "SaveRecords"],
+      "sequence": 1,
+      "isTerminal": true,
+      "nextStateId": null,
+      "helpGuideId": "guide-save-node-changes",
+      "metadata": {
+        "completion": "workflow_complete",
+        "detectedRecordKind": "Node"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "actionId": "save-node-changes",
+      "name": "Save Node Changes",
+      "description": "Save the currently modified node to the path",
+      "executionMode": "Automatic",
+      "availableInStateId": "node_modified",
+      "metadata": {
+        "hotkey": "Ctrl+S"
+      }
+    },
+    {
+      "actionId": "discard-changes",
+      "name": "Discard Changes",
+      "description": "Discard the current node modifications",
+      "executionMode": "Prompt",
+      "availableInStateId": "node_modified",
+      "metadata": {
+        "hotkey": "Escape"
+      }
+    }
+  ],
+  "helpGuideIds": [
+    "guide-open-path",
+    "guide-select-node",
+    "guide-edit-node-properties",
+    "guide-save-changes"
+  ]
+}

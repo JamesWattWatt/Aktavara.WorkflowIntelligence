@@ -138,6 +138,78 @@ public class WorkflowDefinition
     /// Determines if this workflow is active and available for use.
     /// </summary>
     public bool IsActive => Status == WorkflowStatus.Active;
+
+    /// <summary>
+    /// Validates that required fields are present and properly configured.
+    /// </summary>
+    /// <returns>List of validation errors; empty if valid.</returns>
+    public List<string> Validate()
+    {
+        var errors = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(WorkflowId))
+            errors.Add("WorkflowId is required and cannot be empty.");
+
+        if (string.IsNullOrWhiteSpace(Name))
+            errors.Add("Name is required and cannot be empty.");
+
+        if (ActivitySignature.Count == 0)
+            errors.Add("At least one activity signature rule is required.");
+
+        if (MinimumConfidenceThreshold < 0.0 || MinimumConfidenceThreshold > 1.0)
+            errors.Add("MinimumConfidenceThreshold must be between 0.0 and 1.0.");
+
+        // Validate that at least one rule is required
+        if (ActivitySignature.Count > 0)
+        {
+            var requiredRules = ActivitySignature.Where(r => r.Required).ToList();
+            if (requiredRules.Count == 0)
+                errors.Add("At least one activity signature rule must be marked as required.");
+        }
+
+        // Validate states
+        if (States.Count > 0)
+        {
+            var stateIds = new HashSet<string>();
+            var hasInitial = false;
+
+            foreach (var state in States)
+            {
+                if (string.IsNullOrWhiteSpace(state.StateId))
+                    errors.Add("All states must have a StateId.");
+                else if (!stateIds.Add(state.StateId))
+                    errors.Add($"Duplicate state ID: {state.StateId}");
+
+                if (state.Sequence == 0)
+                    hasInitial = true;
+            }
+
+            if (!hasInitial && States.Count > 0)
+                errors.Add("At least one state should have sequence 0 to serve as the initial state.");
+
+            // Validate NextStateIds reference valid states
+            foreach (var state in States)
+            {
+                if (!string.IsNullOrEmpty(state.NextStateId) && !stateIds.Contains(state.NextStateId))
+                    errors.Add($"State '{state.StateId}' references non-existent next state: {state.NextStateId}");
+            }
+        }
+
+        // Validate that weights are reasonable
+        if (ActivitySignature.Count > 0)
+        {
+            var totalWeight = ActivitySignature.Sum(r => r.Weight);
+            if (totalWeight < 0.5 || totalWeight > 10.0)
+                errors.Add("Total weight of all signature rules should typically be between 0.5 and 10.0 for balanced matching.");
+        }
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Determines if this workflow definition is valid.
+    /// </summary>
+    public bool IsValid() => Validate().Count == 0;
 }
 
 /// <summary>

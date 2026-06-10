@@ -75,13 +75,13 @@ public class AssistantContextPacket
     /// Gets the best matching workflow candidate if any.
     /// </summary>
     public WorkflowMatchResult? GetBestWorkflowMatch() =>
-        WorkflowCandidates.OrderByDescending(w => w.Confidence).FirstOrDefault();
+        WorkflowCandidates.OrderByDescending(w => w.ConfidenceScore).FirstOrDefault();
 
     /// <summary>
     /// Gets all candidates that meet the confidence threshold.
     /// </summary>
     public List<WorkflowMatchResult> GetStrongMatches(double threshold = 0.6) =>
-        WorkflowCandidates.Where(w => w.Confidence >= threshold).ToList();
+        WorkflowCandidates.Where(w => w.ConfidenceScore >= threshold).ToList();
 
     /// <summary>
     /// Gets the number of actionable items in this context.
@@ -102,7 +102,7 @@ public class AssistantContextPacket
         if (WorkflowCandidates.Count > 0)
         {
             var best = GetBestWorkflowMatch();
-            parts.Add($"Best match: {best?.WorkflowName} ({best?.Confidence:P0})");
+            parts.Add($"Best match: {best?.WorkflowName} ({best?.ConfidenceScore:P0})");
         }
 
         if (SafeActions.Count > 0)

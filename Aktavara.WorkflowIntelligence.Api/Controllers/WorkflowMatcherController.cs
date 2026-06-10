@@ -9,22 +9,28 @@ namespace Aktavara.WorkflowIntelligence.Api.Controllers;
 public class WorkflowMatcherController : ControllerBase
 {
     private readonly IWorkflowMatcher _matcher;
+    private readonly IWorkflowLibrary _library;
     private readonly ILogger<WorkflowMatcherController> _logger;
 
-    public WorkflowMatcherController(IWorkflowMatcher matcher, ILogger<WorkflowMatcherController> logger)
+    public WorkflowMatcherController(
+        IWorkflowMatcher matcher,
+        IWorkflowLibrary library,
+        ILogger<WorkflowMatcherController> logger)
     {
         _matcher = matcher;
+        _library = library;
         _logger = logger;
     }
 
     [HttpPost("match")]
-    public async Task<ActionResult<List<WorkflowMatch>>> MatchWorkflows([FromBody] List<ActivityLogEntry> activities)
+    public ActionResult<IReadOnlyList<WorkflowMatchResult>> MatchWorkflows([FromBody] ActivityContext context)
     {
-        _logger.LogInformation("Matching workflows for {Count} activities", activities.Count);
+        _logger.LogInformation("Matching workflows for {Count} activities", context.RecentEvents.Count);
 
         try
         {
-            var matches = await _matcher.MatchWorkflowsAsync(activities);
+            var workflows = _library.GetAll();
+            var matches = _matcher.FindMatches(context, workflows);
             return Ok(matches);
         }
         catch (Exception ex)
@@ -35,13 +41,15 @@ public class WorkflowMatcherController : ControllerBase
     }
 
     [HttpPost("best-match")]
-    public async Task<ActionResult<WorkflowMatch?>> FindBestMatch([FromBody] List<ActivityLogEntry> activities)
+    public ActionResult<WorkflowMatchResult?> FindBestMatch([FromBody] ActivityContext context)
     {
-        _logger.LogInformation("Finding best workflow match");
+        _logger.LogInformation("Finding best workflow match for {UserName}", context.UserName);
 
         try
         {
-            var match = await _matcher.FindBestMatchAsync(activities);
+            var workflows = _library.GetAll();
+            var match = _matcher.FindBestMatch(context, workflows, minimumConfidence: 0.55);
+
             if (match == null)
             {
                 return NotFound("No matching workflow found");
