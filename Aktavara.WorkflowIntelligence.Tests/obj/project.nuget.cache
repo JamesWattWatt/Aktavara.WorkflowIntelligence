@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "mLGSUBJNWG8=",
+  "dgSpecHash": "uHY/PrVfV4Q=",
   "success": true,
-  "projectFilePath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj",
+  "projectFilePath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\james.watt\\.nuget\\packages\\castle.core\\5.1.1\\castle.core.5.1.1.nupkg.sha512",
     "C:\\Users\\james.watt\\.nuget\\packages\\coverlet.collector\\6.0.4\\coverlet.collector.6.0.4.nupkg.sha512",

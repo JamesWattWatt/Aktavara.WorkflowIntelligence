@@ -48,7 +48,8 @@ public class AktaJsonExtractor : IAktaJsonExtractor
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Could not extract records from JSON payload");
+            _logger.LogError(ex, "ERROR extracting records from JSON payload: {Message}. Payload length: {Length}",
+                ex.Message, json?.Length ?? 0);
             return Array.Empty<AktaRecordSnapshot>();
         }
     }
@@ -222,7 +223,16 @@ public class AktaJsonExtractor : IAktaJsonExtractor
     /// </summary>
     private void ExtractRecordsFromElement(JsonElement element, List<AktaRecordSnapshot> records)
     {
-        if (element.ValueKind == JsonValueKind.Object)
+        // Handle arrays first (before trying property access which fails on arrays)
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            // Direct array - enumerate items
+            foreach (var item in element.EnumerateArray())
+            {
+                ExtractRecordsFromElement(item, records);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Object)
         {
             // Check if this element is a record
             if (element.TryGetProperty("TypeKind", out var typeKind) &&
@@ -233,28 +243,22 @@ public class AktaJsonExtractor : IAktaJsonExtractor
                     records.Add(record);
             }
 
-            // Recurse into object properties
-            foreach (var prop in element.EnumerateObject())
-            {
-                ExtractRecordsFromElement(prop.Value, records);
-            }
-        }
-        else if (element.ValueKind == JsonValueKind.Array)
-        {
             // Check for wrapped array with $data property
-            if (element.TryGetProperty("$data", out var dataArray))
+            if (element.TryGetProperty("$data", out var dataArray) && dataArray.ValueKind == JsonValueKind.Array)
             {
                 foreach (var item in dataArray.EnumerateArray())
                 {
                     ExtractRecordsFromElement(item, records);
                 }
             }
-            else
+
+            // Recurse into other object properties
+            foreach (var prop in element.EnumerateObject())
             {
-                // Direct array
-                foreach (var item in element.EnumerateArray())
+                // Skip $data and $list and $type as they're metadata
+                if (!prop.Name.StartsWith("$"))
                 {
-                    ExtractRecordsFromElement(item, records);
+                    ExtractRecordsFromElement(prop.Value, records);
                 }
             }
         }

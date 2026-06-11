@@ -460,6 +460,21 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
             var payload = entry.RawXmlPayloads[0];
             var payloadType = PayloadTypeDetector.Detect(payload);
 
+            _logger.LogInformation("Save records payload ({PayloadType}): Full payload length: {Length} chars",
+                payloadType,
+                payload.Length);
+
+            // Log the full payload for inspection
+            if (payload.Length < 5000)
+            {
+                _logger.LogInformation("Full Save payload: {Payload}", payload);
+            }
+            else
+            {
+                _logger.LogInformation("Save payload preview (first 500 chars): {PayloadPreview}",
+                    payload.Substring(0, 500));
+            }
+
             IReadOnlyList<AktaRecordSnapshot> records = payloadType switch
             {
                 PayloadType.Json => _jsonExtractor.ExtractRecords(payload),
@@ -467,18 +482,31 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                 _ => Array.Empty<AktaRecordSnapshot>()
             };
 
+            _logger.LogInformation("Save records: extracted {RecordCount} records from {PayloadType} payload", records.Count, payloadType);
+
             // Look for records being saved
             foreach (var record in records)
             {
+                // Log extracted record details
+                _logger.LogInformation(
+                    "Processing saved record: RecordId={RecordId}, TypeKind={TypeKind}, TypeId={TypeId}, RecordState={RecordState}",
+                    record.RecordId,
+                    string.IsNullOrEmpty(record.TypeKind) ? "<empty>" : record.TypeKind,
+                    string.IsNullOrEmpty(record.TypeId) ? "<empty>" : record.TypeId,
+                    string.IsNullOrEmpty(record.RecordState) ? "<empty>" : record.RecordState);
+
                 // Handle records with no TypeKind - use Other as fallback instead of skipping
                 if (string.IsNullOrEmpty(record.TypeKind))
                 {
-                    _logger.LogWarning("Save records entry has record without TypeKind. RecordId: {RecordId}", record.RecordId);
+                    _logger.LogWarning("Save records entry has record without TypeKind. RecordId: {RecordId}, using RecordKind.Other", record.RecordId);
                     // Don't skip - process with Other type
                 }
 
                 // Determine RecordKind from TypeKind
                 var recordKind = AktavaraTypeHelper.ToRecordKind(record.TypeKind);
+                _logger.LogInformation("Mapped TypeKind={TypeKind} to RecordKind={RecordKind}",
+                    string.IsNullOrEmpty(record.TypeKind) ? "<empty>" : record.TypeKind,
+                    recordKind);
 
                 var evt = new ActivityEvent
                 {
