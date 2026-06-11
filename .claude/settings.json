@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; $output = dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" 2>&1; $lines = $output | Select-String -Pattern \"Match 1:\" -A 60; Write-Output \\($lines -join \"`n\"\\))",
+      "Read(//c/temp/**)"
+    ]
+  }
+}

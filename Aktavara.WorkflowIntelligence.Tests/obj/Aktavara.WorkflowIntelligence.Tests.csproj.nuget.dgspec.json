@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj": {}
+    "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj": {}
   },
   "projects": {
-    "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj": {
+    "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj",
+        "projectUniqueName": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj",
         "projectName": "Aktavara.WorkflowIntelligence.Core",
-        "projectPath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj",
+        "projectPath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj",
         "packagesPath": "C:\\Users\\james.watt\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\obj\\",
+        "outputPath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\james.watt\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -345,14 +345,14 @@
         }
       }
     },
-    "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj": {
+    "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj",
+        "projectUniqueName": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj",
         "projectName": "Aktavara.WorkflowIntelligence.Tests",
-        "projectPath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj",
+        "projectPath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\Aktavara.WorkflowIntelligence.Tests.csproj",
         "packagesPath": "C:\\Users\\james.watt\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\obj\\",
+        "outputPath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Tests\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\james.watt\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -368,8 +368,8 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj": {
-                "projectPath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj"
+              "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj": {
+                "projectPath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Core\\Aktavara.WorkflowIntelligence.Core.csproj"
               }
             }
           }

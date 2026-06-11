@@ -12,6 +12,24 @@ services.AddScoped<IAktaJsonExtractor, AktaJsonExtractor>();
 services.AddScoped<IRecordDiffService, RecordDiffService>();
 services.AddScoped<IActivityEventNormalizer, ActivityEventNormalizer>();
 services.AddScoped<IWorkflowProvider, StaticWorkflowProvider>();
+
+// Register FileWorkflowLibrary with workflows directory path
+// AppContext.BaseDirectory is: .../Cli/bin/Debug/net10.0
+// We need: .../workflows
+var workflowDirectory = Path.Combine(
+    AppContext.BaseDirectory,
+    "..", "..", "..", "..", "workflows"
+);
+var workflowDirectoryResolved = Path.GetFullPath(workflowDirectory);
+services.AddScoped<IWorkflowLibrary>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<FileWorkflowLibrary>>();
+    var library = new FileWorkflowLibrary(workflowDirectoryResolved, logger);
+    // Load workflows synchronously
+    library.LoadAsync().GetAwaiter().GetResult();
+    return library;
+});
+
 services.AddScoped<IWorkflowMatcher, WorkflowMatcher>();
 services.AddScoped<IAssistantContextBuilder, AssistantContextBuilder>();
 
@@ -255,6 +273,22 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
             })
             .ToList();
 
+        // Load real workflow definitions from library instead of using test data
+        var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
+        try
+        {
+            var libraryWorkflows = workflowLibrary.GetAll();
+            if (libraryWorkflows.Count > 0)
+            {
+                workflowDefinitions = libraryWorkflows.ToList();
+                Console.WriteLine($"Loaded {workflowDefinitions.Count} workflow definitions from library\n");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Note: Could not load workflows from library ({ex.Message}), using test definitions\n");
+        }
+
         Console.WriteLine($"\nMatching against {workflowDefinitions.Count} workflow definitions...\n");
 
         // Find matches
@@ -283,9 +317,40 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
                     Console.WriteLine($"  Current State: {match.CurrentStateName}");
                 }
 
+                // Display score breakdown
+                var breakdown = match.ScoreBreakdown;
+                Console.WriteLine($"\n  Score Breakdown:");
+                Console.WriteLine($"    Matched Rules Weight: {breakdown.MatchedRulesWeight:F3}");
+                Console.WriteLine($"    Missing Rules Penalty: -{breakdown.MissingRulesPenalty:F3}");
+                Console.WriteLine($"    Sequence Bonus: +{breakdown.SequenceBonus:F3}");
+                Console.WriteLine($"    Entity Correlation Bonus: +{breakdown.EntityCorrelationBonus:F3}");
+                if (breakdown.StalenesssPenalty > 0)
+                    Console.WriteLine($"    Staleness Penalty: -{breakdown.StalenesssPenalty:F3}");
+                Console.WriteLine($"    Raw Score: {breakdown.RawScore:F3}");
+                Console.WriteLine($"    Final Score (clamped): {breakdown.FinalScore:F3}");
+
+                // Display rule scores
+                if (match.RuleScores.Count > 0)
+                {
+                    Console.WriteLine($"\n  Rule Matches:");
+                    foreach (var rule in match.RuleScores.OrderByDescending(r => r.Value))
+                    {
+                        Console.WriteLine($"    - {rule.Key}: {rule.Value:F3}");
+                    }
+                }
+
+                if (breakdown.Details.Count > 0)
+                {
+                    Console.WriteLine($"\n  Details:");
+                    foreach (var detail in breakdown.Details)
+                    {
+                        Console.WriteLine($"    - {detail.Key}: {detail.Value}");
+                    }
+                }
+
                 if (match.MatchedEvidence.Count > 0)
                 {
-                    Console.WriteLine($"  Matched Evidence ({match.MatchedEvidence.Count}):");
+                    Console.WriteLine($"\n  Matched Evidence ({match.MatchedEvidence.Count}):");
                     foreach (var evidence in match.MatchedEvidence.Take(5))
                     {
                         Console.WriteLine($"    - {evidence.EventType}: {evidence.GetSummary()}");

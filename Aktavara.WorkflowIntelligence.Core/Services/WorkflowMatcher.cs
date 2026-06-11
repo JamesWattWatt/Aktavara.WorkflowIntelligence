@@ -345,6 +345,18 @@ public class WorkflowMatcher : IWorkflowMatcher
                        $"+{breakdown.EntityCorrelationBonus:F2} (correlation) " +
                        $"-{breakdown.StalenesssPenalty:F2} (age)");
 
+        // Populate Details dictionary for detailed breakdown display
+        breakdown.Details["Matched Rules"] = $"{result.RuleScores.Count} rules matched: {string.Join(", ", result.RuleScores.Keys)}";
+        breakdown.Details["Missing Rules"] = result.MissingEvidence.Count > 0
+            ? $"{result.MissingEvidence.Count} rules missing: {string.Join(", ", result.MissingEvidence)}"
+            : "No missing rules";
+        breakdown.Details["Matched Evidence Count"] = $"{result.MatchedEvidence.Count} events";
+        breakdown.Details["Sequence"] = $"Bonus: {breakdown.SequenceBonus:F3}";
+        breakdown.Details["Entity Correlation"] = $"Bonus: {breakdown.EntityCorrelationBonus:F3}";
+        if (breakdown.StalenesssPenalty > 0)
+            breakdown.Details["Staleness"] = $"Penalty: {breakdown.StalenesssPenalty:F3}";
+        breakdown.Details["Calculation"] = $"{breakdown.MatchedRulesWeight:F3} - {breakdown.MissingRulesPenalty:F3} + {breakdown.SequenceBonus:F3} + {breakdown.EntityCorrelationBonus:F3} - {breakdown.StalenesssPenalty:F3} = {breakdown.RawScore:F3} → {breakdown.FinalScore:F3}";
+
         result.Metadata["explanation"] = string.Join("; ", explanation);
     }
 }

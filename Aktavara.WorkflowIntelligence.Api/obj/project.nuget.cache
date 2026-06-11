@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "58eDpPSRSRs=",
+  "dgSpecHash": "h/qSNfCwf9I=",
   "success": true,
-  "projectFilePath": "C:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Api\\Aktavara.WorkflowIntelligence.Api.csproj",
+  "projectFilePath": "c:\\Users\\james.watt\\Documents\\dev\\Aktavara.WorkflowIntelligence\\Aktavara.WorkflowIntelligence.Api\\Aktavara.WorkflowIntelligence.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\james.watt\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.8\\microsoft.aspnetcore.openapi.10.0.8.nupkg.sha512",
     "C:\\Users\\james.watt\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512"
