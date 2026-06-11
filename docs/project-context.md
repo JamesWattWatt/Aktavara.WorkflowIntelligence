@@ -12,10 +12,10 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-13a complete ✓
-- 175 tests passing (128 existing + 12 ActivityContextBuilder + 11 AssistantContextPacketGenerator + 3 GuidedMode + 7 ApiIntegration + 14 HelpGuideStore), 0 errors
-- CLI: 5 commands (parse, analyze, guided, list-workflows, validate)
-- API: 10 endpoints (analyze, workflows, help-guides with section extraction)
+- Prompts 1-14 complete ✓
+- 197 tests passing (175 previous + 10 KeywordSemanticWorkflowSearch + 9 AmbiguityDetector + 3 SemanticSearchIntegration), 0 errors
+- CLI: 5 commands with --question flag for semantic search (parse, analyze, guided, list-workflows, validate)
+- API: 10 endpoints with semantic search support (analyze, workflows, help-guides with section extraction)
 - Help guides: 29 Aktavara documentation chapters with section parsing, workflow-step mapping
 - Parser: working, handles JSON and XML formats
 - AktavaraSchemaTypes.cs: complete enum set from Swagger
@@ -23,7 +23,10 @@
 - WorkflowMatcher: 10-factor scoring, confidence levels High/Medium/Low
 - ActivityContextBuilder: determines current state, active entities, workflow hints
 - Normalizer: fully working with WorkspaceKind extraction
-- CLI analyze: now outputs activity context summary before workflow matching results
+- SemanticWorkflowSearch: keyword-based deterministic scoring with stop-word filtering
+- AmbiguityDetection: 8 decision rules for activity vs semantic match scenarios
+- CLI analyze: supports --question for semantic search with match display
+- API analyze: accepts userQuestion field, returns semantic matches and ambiguity signal
 
 ## Prompt 9 Completed (Activity Context Service)
 - IActivityContextBuilder interface with single BuildContext method
@@ -89,6 +92,35 @@
 - 7 API integration tests
 - Configuration in appsettings.json (workflows path, time window, max file size)
 
+## Prompt 14 Completed (Semantic Workflow Search & Ambiguity Detection)
+- KeywordSemanticWorkflowSearch service (deterministic, no LLM required):
+  - Scoring algorithm: Name match 0.5 exact phrase/0.4 all words/0.1 per word (max 0.3), Description 0.05 per word (max 0.2), Tags 0.15 per tag (max 0.3), Guide titles 0.05 per word (max 0.2)
+  - Stop-word filtering: ignores 14 common words (i, am, trying, to, a, the, is, in, and, or, my, for, of, with, this, that, want, need, how, do, can, please, help)
+  - Only returns matches with score > 0.1, ordered by relevance
+  - IsAvailable property false (keyword) vs true for future embeddings
+- AmbiguityDetector service with 8 decision rules:
+  - Analyzes activity-based vs semantic matches
+  - Recommends: UseActivity, UseSemantic, AskClarification, or NoMatch
+  - Generates clarification questions for ambiguous cases
+- AssistantContextPacket enhanced:
+  - SemanticMatches: list of SemanticWorkflowMatch (WorkflowId, WorkflowName, Score, MatchedTerms, MatchedFields, Reason)
+  - Ambiguity: AmbiguitySignal (IsAmbiguous, ActivityMatchId, SemanticMatchId, ActivityConfidence, SemanticScore, RecommendedAction, ClarificationQuestion)
+  - UserText: original user search text
+- AssistantContextPacketGenerator updated:
+  - Accepts optional ISemanticWorkflowSearch dependency
+  - Accepts optional userText parameter to GeneratePacket
+  - Calls SearchAsync if userText provided, then detects ambiguity
+- CLI analyze command: new --question flag
+  - Format: dotnet run -- analyze --log samples/logs/log20260610.txt --question "I am trying to connect two nodes"
+  - Displays semantic matches and ambiguity signal
+- API endpoints updated:
+  - POST /api/analyze/upload: userQuestion form field
+  - POST /api/analyze/text: userQuestion body field (added to AnalyzeTextRequest)
+  - AnalyzeResponse: SemanticMatches and Ambiguity properties
+- Registered in DI as singleton (both CLI and API)
+- 22 new tests (10 KeywordSemanticWorkflowSearch + 9 AmbiguityDetector + 3 integration)
+- 197 total tests passing
+
 ## Prompt 13a Completed (Help Guide System Refactor)
 **MAJOR REFACTOR:** Switched from per-step custom guides to working with existing 29-chapter Aktavara documentation
 - Refactored HelpGuide model: now contains Sections list with parsed content
@@ -130,8 +162,8 @@
 - Configuration in appsettings.json (help guides path)
 
 ## Next prompts
-- Prompt 14: React UI integration and frontend
-- Prompt 15+: Extended features and optimizations
+- Prompt 15: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch using OpenAI/Anthropic embeddings)
+- Prompt 16+: React UI integration, frontend, and extended features
 
 ## Key design rule
 LLM does not parse, match, or make safety decisions.
