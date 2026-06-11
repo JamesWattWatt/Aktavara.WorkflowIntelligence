@@ -32,6 +32,7 @@ services.AddScoped<IWorkflowLibrary>(sp =>
 
 services.AddScoped<IWorkflowMatcher, WorkflowMatcher>();
 services.AddScoped<IActivityContextBuilder, ActivityContextBuilder>();
+services.AddScoped<IAssistantContextPacketGenerator, AssistantContextPacketGenerator>();
 services.AddScoped<IAssistantContextBuilder, AssistantContextBuilder>();
 
 var serviceProvider = services.BuildServiceProvider();
@@ -54,6 +55,15 @@ switch (command)
     case "analyze":
         await AnalyzeLogFile(serviceProvider, args);
         break;
+    case "guided":
+        await GuidedMode(serviceProvider, args);
+        break;
+    case "list-workflows":
+        await ListWorkflows(serviceProvider, args);
+        break;
+    case "validate":
+        await ValidateWorkflows(serviceProvider, args);
+        break;
     case "match":
         await MatchWorkflows(serviceProvider, args);
         break;
@@ -70,10 +80,12 @@ void PrintUsage()
 {
     Console.WriteLine("Workflow Intelligence CLI");
     Console.WriteLine("Usage:");
-    Console.WriteLine("  parse <logfile>          Parse activity log file");
-    Console.WriteLine("  analyze <logfile>        Analyze log file (parse, extract, normalize, diff)");
-    Console.WriteLine("  match <logfile>          Match workflows from activity log (TODO)");
-    Console.WriteLine("  context <id> <logfile>   Build assistant context (TODO)");
+    Console.WriteLine("  parse <logfile>              Parse activity log file");
+    Console.WriteLine("  analyze <logfile> [--verbose] Analyze log file with full diagnostics");
+    Console.WriteLine("  guided --log <logfile>       Simulate runtime guidance mode");
+    Console.WriteLine("           --user <username>   (--window <minutes> default 30)");
+    Console.WriteLine("  list-workflows               Show all loaded workflows and status");
+    Console.WriteLine("  validate <workflow-dir>      Validate all workflow JSON files");
 }
 
 async Task ParseLogFile(IServiceProvider sp, string[] cmdArgs)
@@ -120,11 +132,14 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
     }
 
     var filePath = cmdArgs[1];
+    var verbose = cmdArgs.Contains("--verbose");
     var parser = sp.GetRequiredService<IActivityLogParser>();
     var normalizer = sp.GetRequiredService<IActivityEventNormalizer>();
     var workflowProvider = sp.GetRequiredService<IWorkflowProvider>();
     var workflowMatcher = sp.GetRequiredService<IWorkflowMatcher>();
     var contextBuilder = sp.GetRequiredService<IActivityContextBuilder>();
+    var packetGenerator = sp.GetRequiredService<IAssistantContextPacketGenerator>();
+    var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
 
     try
     {
@@ -300,7 +315,6 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
             .ToList();
 
         // Load real workflow definitions from library instead of using test data
-        var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
         try
         {
             var libraryWorkflows = workflowLibrary.GetAll();
@@ -398,6 +412,35 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
             }
         }
 
+        // Generate and display AssistantContextPacket
+        Console.WriteLine("\n" + "=".PadRight(100, '='));
+        Console.WriteLine("\nASSISTANT CONTEXT PACKET");
+        Console.WriteLine("=".PadRight(100, '='));
+
+        try
+        {
+            var assistantPacket = packetGenerator.GeneratePacket(context, matches, workflowLibrary);
+
+            Console.WriteLine($"\nGuidance Level: {assistantPacket.GuidanceLevel}");
+            if (!string.IsNullOrEmpty(assistantPacket.RecommendedNextStep))
+            {
+                Console.WriteLine($"Recommended Next Step: {assistantPacket.RecommendedNextStep}");
+            }
+
+            Console.WriteLine($"\nContext Narrative:\n{assistantPacket.ContextNarrative}");
+
+            // Display as JSON (for API integration in next prompt)
+            if (verbose)
+            {
+                Console.WriteLine($"\nJSON Packet (for LLM API):");
+                Console.WriteLine(assistantPacket.ToJson());
+            }
+        }
+        catch (Exception packetEx)
+        {
+            Console.WriteLine($"Note: Could not generate assistant packet ({packetEx.Message})");
+        }
+
         Console.WriteLine("\n" + "=".PadRight(100, '='));
     }
     catch (Exception ex)
@@ -453,4 +496,207 @@ async Task BuildContext(IServiceProvider sp, string[] cmdArgs)
     {
         Console.WriteLine($"Error: {ex.Message}");
     }
+}
+
+async Task GuidedMode(IServiceProvider sp, string[] cmdArgs)
+{
+    var logFile = ExtractArgValue(cmdArgs, "--log");
+    var userName = ExtractArgValue(cmdArgs, "--user");
+    var windowStr = ExtractArgValue(cmdArgs, "--window") ?? "30";
+
+    if (string.IsNullOrEmpty(logFile) || string.IsNullOrEmpty(userName))
+    {
+        Console.WriteLine("Usage: guided --log <logfile> --user <username> [--window <minutes>]");
+        return;
+    }
+
+    if (!int.TryParse(windowStr, out var windowMinutes))
+        windowMinutes = 30;
+
+    var parser = sp.GetRequiredService<IActivityLogParser>();
+    var normalizer = sp.GetRequiredService<IActivityEventNormalizer>();
+    var contextBuilder = sp.GetRequiredService<IActivityContextBuilder>();
+    var workflowMatcher = sp.GetRequiredService<IWorkflowMatcher>();
+    var packetGenerator = sp.GetRequiredService<IAssistantContextPacketGenerator>();
+    var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
+
+    try
+    {
+        var rawEntries = await parser.ParseFileAsync(logFile);
+        var allEvents = normalizer.Normalize(rawEntries);
+
+        // Filter to user and time window
+        var now = allEvents.Count > 0 ? allEvents.Max(e => e.Timestamp) : DateTime.UtcNow;
+        var windowStart = now.AddMinutes(-windowMinutes);
+        var userEvents = allEvents
+            .Where(e => e.UserName == userName && e.Timestamp >= windowStart && e.Timestamp <= now)
+            .ToList();
+
+        if (userEvents.Count == 0)
+        {
+            Console.WriteLine($"No events found for user '{userName}' in the last {windowMinutes} minutes");
+            return;
+        }
+
+        // Build activity context
+        var context = contextBuilder.BuildContext(
+            userEvents,
+            userName,
+            userEvents.Min(e => e.Timestamp),
+            userEvents.Max(e => e.Timestamp));
+
+        // Get workflow definitions and find matches
+        var workflowDefs = workflowLibrary.GetAll().ToList();
+        var matches = workflowMatcher.FindMatches(context, workflowDefs);
+
+        // Display guided mode output
+        Console.WriteLine($"\n=== GUIDED ASSISTANCE MODE ===\n");
+        Console.WriteLine($"User: {userName}");
+        Console.WriteLine($"Time Window: Last {windowMinutes} minutes");
+        Console.WriteLine($"Events in window: {userEvents.Count}\n");
+
+        Console.WriteLine("=== CURRENT ACTIVITY ===");
+        Console.WriteLine($"State: {context.CurrentState}");
+        Console.WriteLine($"Summary: {context.Summary}\n");
+
+        if (matches.Count > 0 && matches[0].ConfidenceScore > 0)
+        {
+            var bestMatch = matches[0];
+            Console.WriteLine("=== DETECTED WORKFLOW ===");
+            Console.WriteLine($"Workflow: {bestMatch.WorkflowName}");
+            Console.WriteLine($"Confidence: {bestMatch.ConfidenceScore:P0}");
+            Console.WriteLine($"Level: {bestMatch.ConfidenceLevel}\n");
+
+            // Generate packet for guidance
+            var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary);
+            Console.WriteLine("=== GUIDANCE ===");
+            Console.WriteLine($"Guidance Level: {packet.GuidanceLevel}");
+            if (!string.IsNullOrEmpty(packet.RecommendedNextStep))
+                Console.WriteLine($"Next Step: {packet.RecommendedNextStep}");
+            Console.WriteLine($"\n{packet.ContextNarrative}");
+        }
+        else
+        {
+            Console.WriteLine("No matching workflows detected. Cannot provide guidance.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex.Message}");
+    }
+}
+
+async Task ListWorkflows(IServiceProvider sp, string[] cmdArgs)
+{
+    var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
+
+    try
+    {
+        var workflows = workflowLibrary.GetAll();
+
+        Console.WriteLine("\n=== LOADED WORKFLOWS ===\n");
+        Console.WriteLine($"Total: {workflows.Count}\n");
+
+        foreach (var workflow in workflows.OrderBy(w => w.Name))
+        {
+            Console.WriteLine($"ID: {workflow.WorkflowId}");
+            Console.WriteLine($"Name: {workflow.Name}");
+            Console.WriteLine($"Status: {workflow.Status}");
+            Console.WriteLine($"Rules: {workflow.ActivitySignature.Count}");
+            Console.WriteLine($"States: {workflow.States.Count}");
+
+            var errors = workflowLibrary.GetValidationErrors(workflow.WorkflowId);
+            if (errors.Count > 0)
+            {
+                Console.WriteLine($"⚠ Validation Errors:");
+                foreach (var error in errors)
+                    Console.WriteLine($"  - {error}");
+            }
+            else
+            {
+                Console.WriteLine("✓ Valid");
+            }
+            Console.WriteLine();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex.Message}");
+    }
+}
+
+async Task ValidateWorkflows(IServiceProvider sp, string[] cmdArgs)
+{
+    if (cmdArgs.Length < 2)
+    {
+        Console.WriteLine("Usage: validate <workflow-directory>");
+        return;
+    }
+
+    var workflowDir = cmdArgs[1];
+
+    try
+    {
+        if (!Directory.Exists(workflowDir))
+        {
+            Console.WriteLine($"Directory not found: {workflowDir}");
+            return;
+        }
+
+        var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
+        var workflows = workflowLibrary.GetAll();
+        var workflowFiles = Directory.GetFiles(workflowDir, "*.workflow.json");
+
+        Console.WriteLine($"\n=== WORKFLOW VALIDATION ===\n");
+        Console.WriteLine($"Found {workflowFiles.Length} workflow files\n");
+
+        int validCount = 0;
+        int errorCount = 0;
+
+        foreach (var file in workflowFiles.OrderBy(f => f))
+        {
+            var fileName = Path.GetFileName(file);
+            var fileBase = Path.GetFileNameWithoutExtension(fileName).Replace(".workflow", "");
+            var workflow = workflows.FirstOrDefault(w => w.WorkflowId == fileBase);
+
+            if (workflow == null)
+            {
+                Console.WriteLine($"⚠ {fileName}: NOT LOADED");
+                errorCount++;
+                continue;
+            }
+
+            var errors = workflowLibrary.GetValidationErrors(workflow.WorkflowId);
+            if (errors.Count > 0)
+            {
+                Console.WriteLine($"✗ {fileName}:");
+                foreach (var error in errors)
+                    Console.WriteLine($"    {error}");
+                errorCount++;
+            }
+            else
+            {
+                Console.WriteLine($"✓ {fileName}");
+                validCount++;
+            }
+        }
+
+        Console.WriteLine($"\n=== SUMMARY ===");
+        Console.WriteLine($"Valid: {validCount}");
+        Console.WriteLine($"Errors: {errorCount}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error: {ex.Message}");
+    }
+}
+
+string? ExtractArgValue(string[] args, string argName)
+{
+    for (int i = 0; i < args.Length - 1; i++)
+    {
+        if (args[i] == argName)
+            return args[i + 1];
+    }
+    return null;
 }

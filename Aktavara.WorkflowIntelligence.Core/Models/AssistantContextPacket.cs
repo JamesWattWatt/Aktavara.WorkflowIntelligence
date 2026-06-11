@@ -62,6 +62,48 @@ public class AssistantContextPacket
     public string Summary { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the current state as a human-readable string.
+    /// E.g., "Path workspace opened" or "Node saved".
+    /// </summary>
+    public string CurrentState { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets workflow hints derived from activity patterns.
+    /// </summary>
+    public List<string> WorkflowHints { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets active entities the user is working with.
+    /// </summary>
+    public List<SerializableActiveEntity> ActiveEntities { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the best matching workflow (highest confidence), if any.
+    /// </summary>
+    public WorkflowMatchSummary? BestMatch { get; set; }
+
+    /// <summary>
+    /// Gets or sets all matching workflows ranked by confidence.
+    /// </summary>
+    public List<WorkflowMatchSummary> AllMatches { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the level of guidance to provide based on confidence.
+    /// </summary>
+    public GuidanceLevel GuidanceLevel { get; set; } = GuidanceLevel.NoGuidance;
+
+    /// <summary>
+    /// Gets or sets the recommended next step, if any.
+    /// </summary>
+    public string? RecommendedNextStep { get; set; }
+
+    /// <summary>
+    /// Gets or sets a plain English narrative describing the context,
+    /// suitable for inclusion in an LLM system prompt.
+    /// </summary>
+    public string ContextNarrative { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets confidence metrics about the overall analysis.
     /// </summary>
     public Dictionary<string, double> ConfidenceMetrics { get; set; } = new();
@@ -113,6 +155,55 @@ public class AssistantContextPacket
 
         return string.Join(" | ", parts);
     }
+
+    /// <summary>
+    /// Serializes the context packet to a formatted JSON string.
+    /// </summary>
+    public string ToJson()
+    {
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+        return System.Text.Json.JsonSerializer.Serialize(this, options);
+    }
+}
+
+/// <summary>
+/// A serializable version of ActiveEntity suitable for JSON serialization.
+/// </summary>
+public class SerializableActiveEntity
+{
+    /// <summary>
+    /// The kind of record (Path, Node, Connector, Other).
+    /// </summary>
+    public string RecordKind { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The type identifier.
+    /// </summary>
+    public string TypeId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The unique record identifier.
+    /// </summary>
+    public string RecordId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The display name.
+    /// </summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The current state (Active, Draft, etc.).
+    /// </summary>
+    public string? State { get; set; }
+
+    /// <summary>
+    /// When this entity was last accessed or modified.
+    /// </summary>
+    public DateTime LastModified { get; set; }
 }
 
 /// <summary>

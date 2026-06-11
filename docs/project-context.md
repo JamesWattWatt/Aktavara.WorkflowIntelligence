@@ -12,8 +12,9 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-9 complete ✓
-- 140 tests passing (128 existing + 12 new), 0 errors, 0 warnings
+- Prompts 1-11 complete ✓
+- 154 tests passing (128 existing + 12 ActivityContextBuilder + 11 AssistantContextPacketGenerator + 3 GuidedMode), 0 errors, 0 warnings
+- CLI: 5 commands (parse, analyze, guided, list-workflows, validate)
 - Parser: working, handles JSON and XML formats
 - AktavaraSchemaTypes.cs: complete enum set from Swagger
 - WorkflowLibrary: loads *.workflow.json from workflows/ folder
@@ -31,6 +32,24 @@
 - 12 comprehensive unit tests covering all scenarios
 - CLI integration: context displayed before workflow matching
 
+## Prompt 10 Completed (Assistant Context Packet Generator)
+- GuidanceLevel enum (NoGuidance, Suggest, Confirm, Instruct)
+- WorkflowMatchSummary model with detailed match information
+- AssistantContextPacket model enhanced with:
+  - CurrentState, WorkflowHints, ActiveEntities (serializable)
+  - BestMatch, AllMatches (WorkflowMatchSummary list)
+  - GuidanceLevel determination from confidence scores
+  - RecommendedNextStep from workflow state definitions
+  - ContextNarrative for LLM system prompts
+  - ToJson() method for API integration
+- IAssistantContextPacketGenerator interface
+- AssistantContextPacketGenerator service:
+  - Converts WorkflowMatchResult to summaries
+  - Formats evidence as human-readable descriptions
+  - Builds context narratives deterministically
+  - 11 comprehensive unit tests
+- CLI integration: packet displayed with guidance level and narrative
+
 ## Known issues being worked on
 - $ref resolution returning 0 nodes/connectors on most workspace opens
 - ActivityContext correlation with full workspace snapshots (future enhancement)
@@ -43,10 +62,19 @@
 - workflows/update-node-in-path.workflow.json
 - workflows/add-connector-to-path.workflow.json
 
+## Prompt 11 Completed (CLI Completion)
+- 5 CLI commands: parse, analyze, guided, list-workflows, validate
+- parse: parses log file (no processing)
+- analyze: parses, normalizes, matches workflows, generates context packet, outputs JSON with --verbose flag
+- guided: time-window filtered analysis for active user guidance (defaults to 30 min window)
+- list-workflows: enumerates loaded workflows with rule and state counts
+- validate: validates all *.workflow.json files in directory
+- Logging: per-event logs moved to debug level, only rule match/miss at info level
+- 3 new tests for guided mode: time window filtering, user filtering, guidance generation
+
 ## Next prompts
-- Prompt 10: Wire ActivityContext into WorkflowMatcher for enhanced matching
-- Prompts 11-12: Extended features
-- Then extended prompts 17-23
+- Prompt 12: API integration and deployment
+- Prompt 13-23: Extended features and optimizations
 
 ## Key design rule
 LLM does not parse, match, or make safety decisions.
