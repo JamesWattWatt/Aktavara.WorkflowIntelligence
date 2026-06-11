@@ -12,9 +12,10 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-11 complete ✓
-- 154 tests passing (128 existing + 12 ActivityContextBuilder + 11 AssistantContextPacketGenerator + 3 GuidedMode), 0 errors, 0 warnings
+- Prompts 1-12 complete ✓
+- 161 tests passing (128 existing + 12 ActivityContextBuilder + 11 AssistantContextPacketGenerator + 3 GuidedMode + 7 ApiIntegration), 0 errors
 - CLI: 5 commands (parse, analyze, guided, list-workflows, validate)
+- API: 6 endpoints (analyze/upload, analyze/text, GET/PATCH workflows, health)
 - Parser: working, handles JSON and XML formats
 - AktavaraSchemaTypes.cs: complete enum set from Swagger
 - WorkflowLibrary: loads *.workflow.json from workflows/ folder
@@ -72,9 +73,24 @@
 - Logging: per-event logs moved to debug level, only rule match/miss at info level
 - 3 new tests for guided mode: time window filtering, user filtering, guidance generation
 
+## Prompt 12 Completed (Minimal API)
+- 6 REST endpoints for React UI and external tools
+- File upload endpoint: POST /api/analyze/upload (multipart/form-data, max 10MB, .txt only)
+- Text analysis endpoint: POST /api/analyze/text with time window filtering
+- Workflow listing: GET /api/workflows (returns summaries with counts)
+- Workflow detail: GET /api/workflows/{id} (full definition)
+- Workflow status update: PATCH /api/workflows/{id}/status
+- Health check: GET /api/health
+- Response models: AnalyzeResponse, WorkflowCandidateResult, WorkflowSummary
+- Full DI container with all Core services
+- CORS policy for localhost:3000, localhost:5173 (React dev ports)
+- OpenAPI/Swagger support in development
+- 7 API integration tests
+- Configuration in appsettings.json (workflows path, time window, max file size)
+
 ## Next prompts
-- Prompt 12: API integration and deployment
-- Prompt 13-23: Extended features and optimizations
+- Prompt 13: React UI integration and frontend
+- Prompt 14+: Extended features and optimizations
 
 ## Key design rule
 LLM does not parse, match, or make safety decisions.
