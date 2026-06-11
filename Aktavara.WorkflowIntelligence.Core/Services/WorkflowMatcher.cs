@@ -102,11 +102,11 @@ public class WorkflowMatcher : IWorkflowMatcher
 
         var now = DateTime.UtcNow;
 
-        _logger.LogInformation("Available events for matching: {EventCount} total events", recentEvents.Count);
+        _logger.LogDebug("Available events for matching: {EventCount} total events", recentEvents.Count);
         foreach (var evt in recentEvents)
         {
             var age = (int)(now - evt.Timestamp).TotalMinutes;
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "  - EventType={EventType}, RecordKind={RecordKind}, WorkspaceKind={WorkspaceKind}, Timestamp={Timestamp:O} (age={AgeMinutes}min)",
                 evt.EventType,
                 evt.RecordKind,
@@ -136,11 +136,12 @@ public class WorkflowMatcher : IWorkflowMatcher
                 }
             }
 
-            if (matched)
+            if (matched && matchedEvent != null)
             {
                 breakdown.MatchedRulesWeight += rule.Weight;
                 result.RuleScores[rule.Description] = rule.Weight;
                 matchedRules.Add(rule.Description);
+                result.MatchedEvidence.Add(matchedEvent);
                 _logger.LogInformation(
                     "✓ MATCHED: {Description} (weight={Weight:F2}) | EventType={EventType}, RecordKind={RecordKind}, Timestamp={Timestamp:O}",
                     rule.Description,
@@ -177,7 +178,7 @@ public class WorkflowMatcher : IWorkflowMatcher
                 }
                 else
                 {
-                    _logger.LogInformation(
+                    _logger.LogDebug(
                         "○ OPTIONAL NOT MATCHED: {Description} (weight={Weight:F2})",
                         rule.Description,
                         rule.Weight);
@@ -208,15 +209,8 @@ public class WorkflowMatcher : IWorkflowMatcher
         breakdown.FinalScore = Math.Max(0.0, Math.Min(1.0, breakdown.RawScore));
         result.ConfidenceScore = breakdown.FinalScore;
 
-        // 9. Determine current state
+        // Determine current state
         DetermineCurrentState(workflow, recentEvents, result);
-
-        // Collect matched evidence
-        foreach (var evt in recentEvents.Where(e => matchedRules.Any(
-            r => r.Contains(e.EventType.ToString()))))
-        {
-            result.MatchedEvidence.Add(evt);
-        }
 
         // Build explanation
         result.ScoreBreakdown = breakdown;
