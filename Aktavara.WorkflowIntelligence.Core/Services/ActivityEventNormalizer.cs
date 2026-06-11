@@ -1,6 +1,7 @@
 using Aktavara.WorkflowIntelligence.Core.Interfaces;
 using Aktavara.WorkflowIntelligence.Core.Models;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Aktavara.WorkflowIntelligence.Core.Services;
 
@@ -127,27 +128,6 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                 eventType = mappedEventType;
             }
 
-            // Handle Response-only entries specially to capture them as events
-            if (entry.Direction == EventType.ResponseReceived && (eventType == EventType.SearchRecords || eventType == EventType.SaveRecords))
-            {
-                // Create a Response event instead of silently dropping
-                _logger.LogDebug("Response-only entry for {ActionName}. Creating Response event.", entry.ActionName);
-                var responseEvent = new ActivityEvent
-                {
-                    EventId = Guid.NewGuid().ToString(),
-                    Timestamp = entry.Timestamp,
-                    UserName = entry.UserName,
-                    SessionId = entry.SessionId,
-                    EventType = eventType,
-                    ActionName = entry.ActionName,
-                    IsSuccess = true,
-                    RecordKind = RecordKind.Other
-                };
-                responseEvent.Evidence.Add($"Response entry for {entry.ActionName}");
-                responseEvent.Metadata["direction"] = "Response";
-                events.Add(responseEvent);
-                continue;
-            }
 
             // Process based on action type
             var normalizedEvents = eventType switch
@@ -167,7 +147,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
     }
 
     /// <summary>
-    /// Normalizes a Search records entry.
+    /// Normalizes a Search records entry by extracting search criteria from request or response payload.
     /// </summary>
     private List<ActivityEvent> NormalizeSearchRecords(RawActivityLogEntry entry)
     {
@@ -181,45 +161,65 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
             var payload = entry.RawXmlPayloads[0];
             var payloadType = PayloadTypeDetector.Detect(payload);
 
-            IReadOnlyList<AktaRecordSnapshot> records = payloadType switch
+            // For Search, extract from the request payload which contains SearchExpressionItem
+            // This has the actual search criteria: TypeKind and TypeId
+            var searchRequest = payloadType switch
             {
-                PayloadType.Json => _jsonExtractor.ExtractRecords(payload),
-                PayloadType.Xml => _xmlExtractor.ExtractRecords(payload),
-                _ => Array.Empty<AktaRecordSnapshot>()
+                PayloadType.Json => ExtractSearchRequest(payload),
+                PayloadType.Xml => ExtractSearchRequest(payload),
+                _ => null
             };
 
-            // Look for search expression in records
-            foreach (var record in records)
+            // If search request not found (e.g., response-only entry), try extracting from result records
+            if (searchRequest == null)
             {
-                if (record.TypeId == "TypedSearchExpressionItem")
+                var records = payloadType switch
                 {
-                    // Extract search criteria
-                    var kindProp = record.FindProperty("Kind");
-                    var typeIdProp = record.FindProperty("TypeId");
+                    PayloadType.Json => _jsonExtractor.ExtractRecords(payload),
+                    PayloadType.Xml => _xmlExtractor.ExtractRecords(payload),
+                    _ => Array.Empty<AktaRecordSnapshot>()
+                };
 
-                    var evt = new ActivityEvent
+                // Use first result record to get TypeKind/TypeId
+                if (records.Count > 0)
+                {
+                    var firstRecord = records[0];
+                    searchRequest = new SearchRequestInfo
                     {
-                        EventId = Guid.NewGuid().ToString(),
-                        Timestamp = entry.Timestamp,
-                        UserName = entry.UserName,
-                        SessionId = entry.SessionId,
-                        EventType = EventType.SearchRecords,
-                        ActionName = entry.ActionName,
-                        TypeId = typeIdProp?.Value?.ToString(),
-                        IsSuccess = true
+                        TypeKind = firstRecord.TypeKind,
+                        TypeId = firstRecord.TypeId
                     };
-
-                    // Determine RecordKind from Kind property
-                    if (kindProp?.Value is string kindStr)
-                    {
-                        evt.RecordKind = AktavaraTypeHelper.ToRecordKind(kindStr);
-                    }
-
-                    evt.Evidence.Add($"Search {evt.RecordKind ?? RecordKind.Other} of type {evt.TypeId ?? "unknown"}");
-                    evt.Metadata["payload"] = payload;
-
-                    events.Add(evt);
                 }
+            }
+
+            if (searchRequest != null)
+            {
+                var evt = new ActivityEvent
+                {
+                    EventId = Guid.NewGuid().ToString(),
+                    Timestamp = entry.Timestamp,
+                    UserName = entry.UserName,
+                    SessionId = entry.SessionId,
+                    EventType = EventType.SearchRecords,
+                    ActionName = entry.ActionName,
+                    TypeId = searchRequest.TypeId,
+                    IsSuccess = entry.Direction != EventType.ErrorOccurred
+                };
+
+                // Determine RecordKind from TypeKind
+                if (!string.IsNullOrEmpty(searchRequest.TypeKind))
+                {
+                    evt.RecordKind = AktavaraTypeHelper.ToRecordKind(searchRequest.TypeKind);
+                }
+                else
+                {
+                    evt.RecordKind = RecordKind.Other;
+                }
+
+                evt.Evidence.Add($"Search {evt.RecordKind} (TypeId: {evt.TypeId ?? "unknown"})");
+                evt.Metadata["payload"] = payload;
+
+                events.Add(evt);
             }
         }
         catch (Exception ex)
@@ -228,6 +228,57 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
         }
 
         return events;
+    }
+
+    /// <summary>
+    /// Extracts search criteria from a request payload.
+    /// Returns TypeKind and TypeId from the SearchExpressionItem.
+    /// </summary>
+    private SearchRequestInfo? ExtractSearchRequest(string payload)
+    {
+        try
+        {
+            // Parse JSON to find SearchExpressionItem
+            var json = System.Text.Json.JsonDocument.Parse(payload);
+            var root = json.RootElement;
+
+            // Navigate to SearchExpressionItem
+            if (root.TryGetProperty("$data", out var dataArray) && dataArray.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                foreach (var item in dataArray.EnumerateArray())
+                {
+                    if (item.TryGetProperty("SearchExpressionItem", out var searchItem))
+                    {
+                        var typeKind = searchItem.TryGetProperty("TypeKind", out var tk)
+                            ? tk.GetString()
+                            : null;
+                        var typeId = searchItem.TryGetProperty("TypeId", out var ti)
+                            ? ti.GetInt32().ToString()
+                            : null;
+
+                        if (!string.IsNullOrEmpty(typeKind) && !string.IsNullOrEmpty(typeId))
+                        {
+                            return new SearchRequestInfo { TypeKind = typeKind, TypeId = typeId };
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error extracting search request info");
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Holds search criteria extracted from a search request.
+    /// </summary>
+    private class SearchRequestInfo
+    {
+        public string? TypeKind { get; set; }
+        public string? TypeId { get; set; }
     }
 
     /// <summary>

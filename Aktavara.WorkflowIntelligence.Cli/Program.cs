@@ -1,4 +1,5 @@
 ﻿using Aktavara.WorkflowIntelligence.Core.Interfaces;
+using Aktavara.WorkflowIntelligence.Core.Models;
 using Aktavara.WorkflowIntelligence.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -102,6 +103,8 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
     var filePath = cmdArgs[1];
     var parser = sp.GetRequiredService<IActivityLogParser>();
     var normalizer = sp.GetRequiredService<IActivityEventNormalizer>();
+    var workflowProvider = sp.GetRequiredService<IWorkflowProvider>();
+    var workflowMatcher = sp.GetRequiredService<IWorkflowMatcher>();
 
     try
     {
@@ -168,6 +171,138 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
                 foreach (var evidence in evt.Evidence)
                 {
                     Console.WriteLine($"    - {evidence}");
+                }
+            }
+        }
+
+        Console.WriteLine("\n" + "=".PadRight(100, '='));
+        Console.WriteLine("\nWORKFLOW MATCHING RESULTS");
+        Console.WriteLine("=".PadRight(100, '='));
+
+        // Build activity context from events
+        var context = new ActivityContext
+        {
+            UserName = rawEntries.FirstOrDefault()?.UserName ?? "Unknown",
+            TimeWindowStart = activityEvents.Count > 0 ? activityEvents.Min(e => e.Timestamp) : DateTime.UtcNow,
+            TimeWindowEnd = activityEvents.Count > 0 ? activityEvents.Max(e => e.Timestamp) : DateTime.UtcNow,
+            RecentEvents = activityEvents.ToList()
+        };
+
+        // Get all workflows and convert to definitions
+        var parsedWorkflows = await workflowProvider.GetAllWorkflowsAsync();
+        var workflowDefinitions = parsedWorkflows
+            .Select(pw => new WorkflowDefinition
+            {
+                WorkflowId = pw.Id,
+                Name = pw.Name,
+                Description = pw.Description,
+                ActivitySignature = new List<WorkflowSignatureRule>
+                {
+                    new()
+                    {
+                        EventType = EventType.SearchRecords,
+                        Description = "Search records",
+                        Weight = 0.3,
+                        Required = false,
+                        MissingPenalty = 0.1
+                    },
+                    new()
+                    {
+                        EventType = EventType.OpenWorkspace,
+                        Description = "Open workspace",
+                        Weight = 0.3,
+                        Required = false,
+                        MissingPenalty = 0.1
+                    },
+                    new()
+                    {
+                        EventType = EventType.SaveRecords,
+                        Description = "Save records",
+                        Weight = 0.4,
+                        Required = true,
+                        MissingPenalty = 0.2
+                    }
+                },
+                States = new List<WorkflowStateDefinition>
+                {
+                    new()
+                    {
+                        StateId = "initial",
+                        Name = "Initial",
+                        Sequence = 0,
+                        IsTerminal = false,
+                        NextStateId = "active",
+                        RequiredEvidence = new List<string> { }
+                    },
+                    new()
+                    {
+                        StateId = "active",
+                        Name = "Active",
+                        Sequence = 1,
+                        IsTerminal = false,
+                        NextStateId = "complete",
+                        RequiredEvidence = new List<string> { "SearchRecords", "OpenWorkspace" }
+                    },
+                    new()
+                    {
+                        StateId = "complete",
+                        Name = "Complete",
+                        Sequence = 2,
+                        IsTerminal = true,
+                        RequiredEvidence = new List<string> { "SaveRecords" }
+                    }
+                }
+            })
+            .ToList();
+
+        Console.WriteLine($"\nMatching against {workflowDefinitions.Count} workflow definitions...\n");
+
+        // Find matches
+        var matches = workflowMatcher.FindMatches(context, workflowDefinitions);
+
+        if (matches.Count == 0)
+        {
+            Console.WriteLine("No workflows matched.");
+        }
+        else
+        {
+            // Display results sorted by confidence
+            for (int i = 0; i < matches.Count; i++)
+            {
+                var match = matches[i];
+                if (match.ConfidenceScore <= 0)
+                    continue;
+
+                Console.WriteLine($"\nMatch {i + 1}: {match.WorkflowName}");
+                Console.WriteLine($"  Workflow ID: {match.WorkflowId}");
+                Console.WriteLine($"  Confidence Score: {match.ConfidenceScore:P0}");
+                Console.WriteLine($"  Confidence Level: {match.ConfidenceLevel}");
+
+                if (!string.IsNullOrEmpty(match.CurrentStateName))
+                {
+                    Console.WriteLine($"  Current State: {match.CurrentStateName}");
+                }
+
+                if (match.MatchedEvidence.Count > 0)
+                {
+                    Console.WriteLine($"  Matched Evidence ({match.MatchedEvidence.Count}):");
+                    foreach (var evidence in match.MatchedEvidence.Take(5))
+                    {
+                        Console.WriteLine($"    - {evidence.EventType}: {evidence.GetSummary()}");
+                    }
+                    if (match.MatchedEvidence.Count > 5)
+                        Console.WriteLine($"    ... and {match.MatchedEvidence.Count - 5} more");
+                }
+
+                if (match.MissingEvidence.Count > 0)
+                {
+                    Console.WriteLine($"  Missing Evidence ({match.MissingEvidence.Count}):");
+                    foreach (var missing in match.MissingEvidence.Take(3))
+                    {
+                        Console.WriteLine($"    - {missing}");
+                    }
+                    if (match.MissingEvidence.Count > 3)
+                        Console.WriteLine($"    ... and {match.MissingEvidence.Count - 3} more");
                 }
             }
         }
