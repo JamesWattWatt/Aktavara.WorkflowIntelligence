@@ -48,7 +48,19 @@ public class FileWorkflowLibrary : IWorkflowLibrary
             try
             {
                 var json = await File.ReadAllTextAsync(filePath);
-                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var jsonPreview = json.Length > 200 ? json.Substring(0, 200) : json;
+                _logger.LogInformation(
+                    "Read workflow file {FilePath}: {Length} bytes. Preview: {Preview}",
+                    filePath,
+                    json.Length,
+                    jsonPreview);
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = false
+                };
+                options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                 var workflow = JsonSerializer.Deserialize<WorkflowDefinition>(json, options);
 
                 if (workflow == null)
@@ -89,18 +101,22 @@ public class FileWorkflowLibrary : IWorkflowLibrary
             }
             catch (JsonException ex)
             {
+                var innerMessage = ex.InnerException != null ? $" Inner: {ex.InnerException.Message}" : "";
                 _logger.LogError(
-                    ex,
-                    "Invalid JSON in workflow file {FilePath}: {Message}",
+                    "Invalid JSON in workflow file {FilePath}: {Message}{InnerMessage}",
                     filePath,
-                    ex.Message);
+                    ex.Message,
+                    innerMessage);
             }
             catch (Exception ex)
             {
+                var innerMessage = ex.InnerException != null ? $" Inner: {ex.InnerException.Message}" : "";
                 _logger.LogError(
-                    ex,
-                    "Error loading workflow file {FilePath}",
-                    filePath);
+                    "Error loading workflow file {FilePath}: {Type}: {Message}{InnerMessage}",
+                    filePath,
+                    ex.GetType().Name,
+                    ex.Message,
+                    innerMessage);
             }
         }
 

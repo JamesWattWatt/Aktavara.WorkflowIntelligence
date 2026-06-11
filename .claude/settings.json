@@ -7,7 +7,10 @@
       "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_workflows.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\analyze_workflows.txt\" | Select-String \"Workflow library|Loaded workflow|Loading\"\\) | Select-Object -First 10)",
       "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\"; dotnet test > \"c:\\\\temp\\\\test_run.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\test_run.txt\" -Tail 5\\))",
       "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\final_analyze.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\final_analyze.txt\" | Select-String \"library loaded|Loaded\"\\) | Select-Object -First 3)",
-      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_debug.txt\" 2>&1; \\(Get-Item \"c:\\\\temp\\\\analyze_debug.txt\"\\).Length; \\(Get-Content \"c:\\\\temp\\\\analyze_debug.txt\" | Measure-Object -Line\\).Lines)"
-    ]
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_debug.txt\" 2>&1; \\(Get-Item \"c:\\\\temp\\\\analyze_debug.txt\"\\).Length; \\(Get-Content \"c:\\\\temp\\\\analyze_debug.txt\" | Measure-Object -Line\\).Lines)",
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > $env:TEMP\\\\analyze_output.txt 2>&1; Select-String \"WORKFLOW MATCHING RESULTS\" -A 100 $env:TEMP\\\\analyze_output.txt)",
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > $env:TEMP\\\\analyze_output.txt 2>&1; Select-String \"WORKFLOW MATCHING RESULTS\" -Path $env:TEMP\\\\analyze_output.txt -A 100)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }
