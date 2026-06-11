@@ -22,7 +22,19 @@ builder.Services.AddSingleton<IWorkflowLibrary>(sp =>
 });
 builder.Services.AddScoped<IWorkflowMatcher, WorkflowMatcher>();
 builder.Services.AddScoped<IActivityContextBuilder, ActivityContextBuilder>();
-builder.Services.AddScoped<IAssistantContextPacketGenerator, AssistantContextPacketGenerator>();
+builder.Services.AddSingleton<IHelpGuideStore>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var helpGuidesPath = config.GetValue<string>("WorkflowIntelligence:HelpGuidesPath") ?? "help-guides/";
+    var logger = sp.GetRequiredService<ILogger<FileHelpGuideStore>>();
+    return new FileHelpGuideStore(helpGuidesPath, logger);
+});
+builder.Services.AddScoped<IAssistantContextPacketGenerator>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<AssistantContextPacketGenerator>>();
+    var helpGuideStore = sp.GetRequiredService<IHelpGuideStore>();
+    return new AssistantContextPacketGenerator(logger, helpGuideStore);
+});
 builder.Services.AddScoped<IRecordDiffService, RecordDiffService>();
 
 // Add CORS for React UI and localhost development
@@ -103,6 +115,28 @@ app.MapPatch("/api/workflows/{id}/status", UpdateWorkflowStatus)
 .Produces<WorkflowSummary>(200)
 .Produces(404)
 .ProducesProblem(400);
+
+// List help guides endpoint
+app.MapGet("/api/help-guides", GetHelpGuides)
+.WithName("ListHelpGuides")
+.WithOpenApi()
+.WithDescription("List all help guides (references only, no markdown content)")
+.Produces<List<HelpGuideReference>>(200);
+
+// Get help guide detail endpoint
+app.MapGet("/api/help-guides/{helpGuideId}", GetHelpGuideDetail)
+.WithName("GetHelpGuideDetail")
+.WithOpenApi()
+.WithDescription("Get full help guide including markdown content")
+.Produces<HelpGuide>(200)
+.Produces(404);
+
+// Get help guides by workflow endpoint
+app.MapGet("/api/help-guides/workflow/{workflowId}", GetHelpGuidesByWorkflow)
+.WithName("GetHelpGuidesByWorkflow")
+.WithOpenApi()
+.WithDescription("Get all help guides for a specific workflow")
+.Produces<List<HelpGuide>>(200);
 
 app.Run();
 
@@ -358,4 +392,34 @@ IResult UpdateWorkflowStatus(
         logger.LogError(ex, "Error updating workflow status");
         return Results.BadRequest(new { error = "Error updating workflow status" });
     }
+}
+
+IResult GetHelpGuides(IHelpGuideStore helpGuideStore)
+{
+    var guides = helpGuideStore.GetAll();
+    var references = guides.Select(g => new HelpGuideReference
+    {
+        GuideId = g.HelpGuideId,
+        Title = g.Title,
+        WorkflowId = g.WorkflowId,
+        StateId = g.StepId
+    }).ToList();
+
+    return Results.Ok(references);
+}
+
+IResult GetHelpGuideDetail(string helpGuideId, IHelpGuideStore helpGuideStore)
+{
+    var guide = helpGuideStore.GetById(helpGuideId);
+
+    if (guide == null)
+        return Results.NotFound(new { error = $"Help guide '{helpGuideId}' not found" });
+
+    return Results.Ok(guide);
+}
+
+IResult GetHelpGuidesByWorkflow(string workflowId, IHelpGuideStore helpGuideStore)
+{
+    var guides = helpGuideStore.GetByWorkflowId(workflowId);
+    return Results.Ok(guides);
 }

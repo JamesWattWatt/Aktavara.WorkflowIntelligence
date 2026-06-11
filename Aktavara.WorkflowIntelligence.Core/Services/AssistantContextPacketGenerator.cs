@@ -11,10 +11,14 @@ namespace Aktavara.WorkflowIntelligence.Core.Services;
 public class AssistantContextPacketGenerator : IAssistantContextPacketGenerator
 {
     private readonly ILogger<AssistantContextPacketGenerator> _logger;
+    private readonly IHelpGuideStore? _helpGuideStore;
 
-    public AssistantContextPacketGenerator(ILogger<AssistantContextPacketGenerator> logger)
+    public AssistantContextPacketGenerator(
+        ILogger<AssistantContextPacketGenerator> logger,
+        IHelpGuideStore? helpGuideStore = null)
     {
         _logger = logger;
+        _helpGuideStore = helpGuideStore;
     }
 
     /// <summary>
@@ -64,6 +68,27 @@ public class AssistantContextPacketGenerator : IAssistantContextPacketGenerator
         packet.RecommendedNextStep = packet.BestMatch != null
             ? packet.BestMatch.NextStepHint
             : null;
+
+        // Load relevant help guides
+        if (_helpGuideStore != null && packet.BestMatch != null)
+        {
+            var relevantGuides = _helpGuideStore.GetByStepId(
+                packet.BestMatch.WorkflowId,
+                packet.BestMatch.CurrentStateName);
+
+            packet.HelpGuideReferences = relevantGuides
+                .Take(3)
+                .Select(g => new HelpGuideReference
+                {
+                    GuideId = g.HelpGuideId,
+                    Title = g.Title,
+                    Summary = g.MarkdownContent.Length > 100 ? g.MarkdownContent[..100] + "..." : g.MarkdownContent,
+                    WorkflowId = g.WorkflowId,
+                    StateId = g.StepId,
+                    RelevanceScore = 1.0
+                })
+                .ToList();
+        }
 
         // Build context narrative
         packet.ContextNarrative = BuildContextNarrative(packet);
