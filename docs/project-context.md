@@ -12,11 +12,11 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-13 complete ✓
-- 170 tests passing (128 existing + 12 ActivityContextBuilder + 11 AssistantContextPacketGenerator + 3 GuidedMode + 7 ApiIntegration + 9 HelpGuideStore), 0 errors
+- Prompts 1-13a complete ✓
+- 175 tests passing (128 existing + 12 ActivityContextBuilder + 11 AssistantContextPacketGenerator + 3 GuidedMode + 7 ApiIntegration + 14 HelpGuideStore), 0 errors
 - CLI: 5 commands (parse, analyze, guided, list-workflows, validate)
-- API: 9 endpoints (analyze, workflows, help-guides)
-- Help guides: 40+ markdown files with YAML metadata, 4 workflow-specific guides
+- API: 10 endpoints (analyze, workflows, help-guides with section extraction)
+- Help guides: 29 Aktavara documentation chapters with section parsing, workflow-step mapping
 - Parser: working, handles JSON and XML formats
 - AktavaraSchemaTypes.cs: complete enum set from Swagger
 - WorkflowLibrary: loads *.workflow.json from workflows/ folder
@@ -88,6 +88,25 @@
 - OpenAPI/Swagger support in development
 - 7 API integration tests
 - Configuration in appsettings.json (workflows path, time window, max file size)
+
+## Prompt 13a Completed (Help Guide System Refactor)
+**MAJOR REFACTOR:** Switched from per-step custom guides to working with existing 29-chapter Aktavara documentation
+- Refactored HelpGuide model: now contains Sections list with parsed content
+- New HelpGuideSection model: SectionId, Heading, Level, Content, ParentSectionId, RelevantStepIds
+- FileHelpGuideStore completely rewritten:
+  - Loads all 30 markdown files (skips index.md)
+  - Extracts title from first # heading
+  - Infers WorkspaceType from filename (Path_Workspace.md → "Path", files without _Workspace → "General")
+  - Parses ## and ### headings into sections
+  - Preserves all markdown: callouts (> ⚠️, > 💡), images, lists, formatting
+  - Proper section hierarchy (### linked to parent ##)
+  - SectionId slugification with collision handling (lowercase, spaces→hyphens)
+- Created workflow-guide-mapping.json with 8 mappings (update-node-in-path, add-connector-to-path steps to guide sections)
+- Updated IHelpGuideStore: GetByFileName, GetByWorkflowAndStep, GetWorkspaceTypes
+- AssistantContextPacket: RelevantGuideSections property (up to 2 sections per workflow step)
+- Updated API: 4 help-guide endpoints for summaries, detail, sections by workflow, by workspace
+- 14 comprehensive new tests for section parsing, hierarchy, workspace types, workflow mapping
+- 175 total tests passing
 
 ## Prompt 13 Completed (Help Guide Store)
 - HelpGuide model: Full content with metadata
