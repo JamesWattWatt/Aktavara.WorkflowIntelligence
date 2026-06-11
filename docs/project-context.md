@@ -12,8 +12,8 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-14 complete ✓
-- 197 tests passing (175 previous + 10 KeywordSemanticWorkflowSearch + 9 AmbiguityDetector + 3 SemanticSearchIntegration), 0 errors
+- Prompts 1-15 complete ✓
+- 197 tests passing (.NET), TypeScript compiles clean, 0 errors
 - CLI: 5 commands with --question flag for semantic search (parse, analyze, guided, list-workflows, validate)
 - API: 10 endpoints with semantic search support (analyze, workflows, help-guides with section extraction)
 - Help guides: 29 Aktavara documentation chapters with section parsing, workflow-step mapping
@@ -25,8 +25,8 @@
 - Normalizer: fully working with WorkspaceKind extraction
 - SemanticWorkflowSearch: keyword-based deterministic scoring with stop-word filtering
 - AmbiguityDetection: 8 decision rules for activity vs semantic match scenarios
-- CLI analyze: supports --question for semantic search with match display
-- API analyze: accepts userQuestion field, returns semantic matches and ambiguity signal
+- MCP Server: TypeScript proxy to API, 5 tools, 4 resources, stdio transport
+- Supports: Claude Desktop, VS Code, Cursor, any MCP client
 
 ## Prompt 9 Completed (Activity Context Service)
 - IActivityContextBuilder interface with single BuildContext method
@@ -161,9 +161,73 @@
 - 9 comprehensive unit tests for help guide store
 - Configuration in appsettings.json (help guides path)
 
+## Prompt 15 Completed (MCP Server)
+**TypeScript MCP Server** — Exposes workflow intelligence to LLM clients via Model Context Protocol
+- **Architecture:** Thin proxy to .NET API (no processing, no LLM calls)
+- **Transport:** stdio (standard MCP protocol)
+- **Configuration:** Environment variables (AKTAVARA_API_URL, NODE_TLS_REJECT_UNAUTHORIZED)
+
+**5 Tools:**
+1. `analyze_activity` — Parse logs and return formatted markdown summary
+2. `detect_current_task` — Return JSON with detected workflow, state, next step
+3. `get_workflow_definition` — Return workflow definition as markdown
+4. `get_help_guide` — Return help guide content or table of contents
+5. `explain_next_step` — Complete LLM-ready context block with documentation
+
+**4 Resources:**
+1. `akta://workflows` — List all workflows (JSON)
+2. `akta://workflows/{id}` — Individual workflow definition (JSON)
+3. `akta://help-guides/{id}` — Help guide content (Markdown)
+4. `akta://health` — API health status (JSON)
+
+**Project Structure:**
+- src/index.ts — MCP server entry point
+- src/apiClient.ts — Typed fetch wrapper
+- src/tools/ — 5 tool implementations
+- src/resources/ — Resource providers
+- src/types/apiTypes.ts — TypeScript interfaces matching API responses
+- src/test-manual.ts — Manual test suite (7 sequential tests)
+- tsconfig.json, package.json — TypeScript configuration
+- README.md — Setup and configuration guide
+
+**Build:** `npm run build` (clean TypeScript, no errors)
+**Dev:** `npm run dev` (hot reload)
+**Prod:** `npm start` (stdio transport)
+**Test:** `npm run test:manual` (7 sequential tests)
+
+**Claude Desktop Config:**
+```json
+{
+  "mcpServers": {
+    "aktavara-workflow": {
+      "command": "node",
+      "args": ["/path/to/dist/index.js"],
+      "env": {
+        "AKTAVARA_API_URL": "https://localhost:7200",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
+```
+
+**Dependencies:**
+- @modelcontextprotocol/sdk — MCP protocol implementation
+- zod — Input validation for tool arguments
+- TypeScript, tsx, @types/node — Development tooling
+
+**Design Principles:**
+- Proxy-only (no intelligence in server)
+- Type-safe (full TypeScript + Zod validation)
+- Streaming-friendly (markdown output for LLM injection)
+- Resource-based (expose data via MCP resources)
+- Composable (tools work together)
+
+**Supports:** Claude Desktop, VS Code Copilot, Cursor, any MCP-compatible client
+
 ## Next prompts
-- Prompt 15: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch using OpenAI/Anthropic embeddings)
-- Prompt 16+: React UI integration, frontend, and extended features
+- Prompt 16+: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch)
+- React UI integration, frontend, and extended features
 
 ## Key design rule
 LLM does not parse, match, or make safety decisions.
