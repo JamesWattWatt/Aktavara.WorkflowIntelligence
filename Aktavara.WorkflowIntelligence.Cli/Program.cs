@@ -31,6 +31,7 @@ services.AddScoped<IWorkflowLibrary>(sp =>
 });
 
 services.AddScoped<IWorkflowMatcher, WorkflowMatcher>();
+services.AddScoped<IActivityContextBuilder, ActivityContextBuilder>();
 services.AddScoped<IAssistantContextBuilder, AssistantContextBuilder>();
 
 var serviceProvider = services.BuildServiceProvider();
@@ -123,6 +124,7 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
     var normalizer = sp.GetRequiredService<IActivityEventNormalizer>();
     var workflowProvider = sp.GetRequiredService<IWorkflowProvider>();
     var workflowMatcher = sp.GetRequiredService<IWorkflowMatcher>();
+    var contextBuilder = sp.GetRequiredService<IActivityContextBuilder>();
 
     try
     {
@@ -194,17 +196,41 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
         }
 
         Console.WriteLine("\n" + "=".PadRight(100, '='));
-        Console.WriteLine("\nWORKFLOW MATCHING RESULTS");
+        Console.WriteLine("\nACTIVITY CONTEXT");
         Console.WriteLine("=".PadRight(100, '='));
 
         // Build activity context from events
-        var context = new ActivityContext
+        var userName = rawEntries.FirstOrDefault()?.UserName ?? "Unknown";
+        var timeWindowStart = activityEvents.Count > 0 ? activityEvents.Min(e => e.Timestamp) : DateTime.UtcNow;
+        var timeWindowEnd = activityEvents.Count > 0 ? activityEvents.Max(e => e.Timestamp) : DateTime.UtcNow;
+
+        var context = contextBuilder.BuildContext(activityEvents, userName, timeWindowStart, timeWindowEnd);
+
+        Console.WriteLine($"\nSummary: {context.Summary}");
+        Console.WriteLine($"Current State: {context.CurrentState}");
+        Console.WriteLine($"Session ID: {context.SessionId ?? "(none)"}");
+
+        if (context.ActiveEntities.Count > 0)
         {
-            UserName = rawEntries.FirstOrDefault()?.UserName ?? "Unknown",
-            TimeWindowStart = activityEvents.Count > 0 ? activityEvents.Min(e => e.Timestamp) : DateTime.UtcNow,
-            TimeWindowEnd = activityEvents.Count > 0 ? activityEvents.Max(e => e.Timestamp) : DateTime.UtcNow,
-            RecentEvents = activityEvents.ToList()
-        };
+            Console.WriteLine("\nActive Entities:");
+            foreach (var entity in context.ActiveEntities.Take(5))
+            {
+                Console.WriteLine($"  - {entity.RecordKind}: {entity.Name} (ID: {entity.RecordId}, Type: {entity.TypeId})");
+            }
+        }
+
+        if (context.WorkflowHints.Count > 0)
+        {
+            Console.WriteLine("\nWorkflow Hints:");
+            foreach (var hint in context.WorkflowHints)
+            {
+                Console.WriteLine($"  - {hint}");
+            }
+        }
+
+        Console.WriteLine("\n" + "=".PadRight(100, '='));
+        Console.WriteLine("\nWORKFLOW MATCHING RESULTS");
+        Console.WriteLine("=".PadRight(100, '='));
 
         // Get all workflows and convert to definitions
         var parsedWorkflows = await workflowProvider.GetAllWorkflowsAsync();

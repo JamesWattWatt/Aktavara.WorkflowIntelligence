@@ -12,18 +12,28 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-8 complete
-- 128 tests passing, 0 errors, 0 warnings
+- Prompts 1-9 complete ✓
+- 140 tests passing (128 existing + 12 new), 0 errors, 0 warnings
 - Parser: working, handles JSON and XML formats
 - AktavaraSchemaTypes.cs: complete enum set from Swagger
 - WorkflowLibrary: loads *.workflow.json from workflows/ folder
 - WorkflowMatcher: 10-factor scoring, confidence levels High/Medium/Low
-- Normalizer: fixed - produces 87 events from 180 log entries (was 7)
+- ActivityContextBuilder: determines current state, active entities, workflow hints
+- Normalizer: fully working with WorkspaceKind extraction
+- CLI analyze: now outputs activity context summary before workflow matching results
+
+## Prompt 9 Completed (Activity Context Service)
+- IActivityContextBuilder interface with single BuildContext method
+- ActivityContext model enhanced with CurrentState enum, SessionId, WorkflowHints
+- CurrentState determination from most recent event (8 possible states)
+- ActiveEntities identification (Path, Node, Connector with names and metadata)
+- WorkflowHints generation (rapid sequences, batch operations, open-save patterns)
+- 12 comprehensive unit tests covering all scenarios
+- CLI integration: context displayed before workflow matching
 
 ## Known issues being worked on
-- SearchRecords and SaveRecords show Record Kind: Other (request payload not read)
-- Matcher output not yet wired into CLI analyze command
 - $ref resolution returning 0 nodes/connectors on most workspace opens
+- ActivityContext correlation with full workspace snapshots (future enhancement)
 
 ## Sample logs
 - samples/logs/log20260608.txt (old XML format, 3 actions)
@@ -34,10 +44,9 @@
 - workflows/add-connector-to-path.workflow.json
 
 ## Next prompts
-- Fix SearchRecords/SaveRecords payload extraction
-- Wire matcher output into CLI
-- Prompt 9: Activity context service
-- Then prompts 10-12, then extended prompts 17-23
+- Prompt 10: Wire ActivityContext into WorkflowMatcher for enhanced matching
+- Prompts 11-12: Extended features
+- Then extended prompts 17-23
 
 ## Key design rule
 LLM does not parse, match, or make safety decisions.

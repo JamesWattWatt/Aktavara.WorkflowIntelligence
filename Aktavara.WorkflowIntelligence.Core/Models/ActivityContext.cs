@@ -45,10 +45,27 @@ public class ActivityContext
     public Dictionary<string, OpenedRecordInfo> OpenedRecords { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the session identifier from the most recent event.
+    /// </summary>
+    public string? SessionId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current state of user activity in this context.
+    /// Determined from the most recent meaningful event.
+    /// </summary>
+    public CurrentState CurrentState { get; set; } = CurrentState.NoActivity;
+
+    /// <summary>
     /// Gets or sets a human-readable summary of the activity context.
     /// Typically generated from the recent events and active entities.
     /// </summary>
     public string Summary { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the workflow hints derived from observable activity patterns.
+    /// These are signals useful for matching against workflow definitions.
+    /// </summary>
+    public List<string> WorkflowHints { get; set; } = new();
 
     /// <summary>
     /// Gets the duration of the time window.
