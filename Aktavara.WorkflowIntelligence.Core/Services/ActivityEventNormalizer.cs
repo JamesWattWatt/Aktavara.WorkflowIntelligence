@@ -374,7 +374,8 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                 RecordId = pathWorkspace.PathRecord.RecordId,
                 RecordName = pathWorkspace.PathRecord.FindProperty("Name")?.Value?.ToString(),
                 TypeId = pathWorkspace.PathRecord.TypeId,
-                IsSuccess = true
+                IsSuccess = true,
+                WorkspaceKind = ExtractWorkspaceKindFromActionName(entry.ActionName)
             };
 
             // Add related record IDs from nodes and connectors
@@ -765,6 +766,26 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Error extracting name from save records payload");
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts the workspace kind from an action name like "Open workspace Path".
+    /// Returns "Path", "Diagram", "Topology", "Carrier", "Schema", or null if not found.
+    /// </summary>
+    private string? ExtractWorkspaceKindFromActionName(string actionName)
+    {
+        if (string.IsNullOrEmpty(actionName))
+            return null;
+
+        // Pattern: "Open workspace {Kind}"
+        const string prefix = "Open workspace ";
+        if (actionName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var kind = actionName.Substring(prefix.Length).Trim();
+            return !string.IsNullOrEmpty(kind) ? kind : null;
         }
 
         return null;

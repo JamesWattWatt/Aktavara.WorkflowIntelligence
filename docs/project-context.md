@@ -42,3 +42,11 @@
 ## Key design rule
 LLM does not parse, match, or make safety decisions.
 All deterministic work happens in Core.
+
+## Future: OpenTelemetry integration
+Aktavara has existing OTEL telemetry instrumentation.
+Long-term: replace ActivityLogParser with OtelTraceParser reading 
+from the OTEL backend directly. Same Core pipeline from normalizer 
+onwards. Benefits: better session correlation, timing data, 
+validation messages, failure events — all without activity log changes.
+Defer until after initial demo is complete.

@@ -102,18 +102,36 @@ public class WorkflowMatcher : IWorkflowMatcher
 
         var now = DateTime.UtcNow;
 
+        _logger.LogInformation("Available events for matching: {EventCount} total events", recentEvents.Count);
+        foreach (var evt in recentEvents)
+        {
+            var age = (int)(now - evt.Timestamp).TotalMinutes;
+            _logger.LogInformation(
+                "  - EventType={EventType}, RecordKind={RecordKind}, WorkspaceKind={WorkspaceKind}, Timestamp={Timestamp:O} (age={AgeMinutes}min)",
+                evt.EventType,
+                evt.RecordKind,
+                evt.WorkspaceKind,
+                evt.Timestamp,
+                age);
+        }
+
         // 1. Score matched rules
         breakdown.MatchedRulesWeight = 0.0;
         var matchedRules = new HashSet<string>();
 
+        _logger.LogInformation("=== Rule Matching for {WorkflowName} ===", workflow.Name);
         foreach (var rule in workflow.ActivitySignature)
         {
             var matched = false;
+            ActivityEvent? matchedEvent = null;
+
             foreach (var evt in recentEvents)
             {
-                if (rule.Matches(evt, (int)(now - evt.Timestamp).TotalMinutes))
+                var eventAge = (int)(now - evt.Timestamp).TotalMinutes;
+                if (rule.Matches(evt, eventAge))
                 {
                     matched = true;
+                    matchedEvent = evt;
                     break;
                 }
             }
@@ -123,12 +141,47 @@ public class WorkflowMatcher : IWorkflowMatcher
                 breakdown.MatchedRulesWeight += rule.Weight;
                 result.RuleScores[rule.Description] = rule.Weight;
                 matchedRules.Add(rule.Description);
+                _logger.LogInformation(
+                    "✓ MATCHED: {Description} (weight={Weight:F2}) | EventType={EventType}, RecordKind={RecordKind}, Timestamp={Timestamp:O}",
+                    rule.Description,
+                    rule.Weight,
+                    matchedEvent?.EventType,
+                    matchedEvent?.RecordKind,
+                    matchedEvent?.Timestamp);
             }
-            else if (rule.Required)
+            else
             {
-                // 2. Penalize missing required rules
-                breakdown.MissingRulesPenalty += rule.MissingPenalty;
-                result.MissingEvidence.Add(rule.Description);
+                var reasons = new List<string>();
+                foreach (var evt in recentEvents)
+                {
+                    var eventAge = (int)(now - evt.Timestamp).TotalMinutes;
+                    if (evt.EventType != rule.EventType)
+                        reasons.Add($"EventType mismatch: expected {rule.EventType}, got {evt.EventType}");
+                    if (rule.RecordKind.HasValue && evt.RecordKind != rule.RecordKind)
+                        reasons.Add($"RecordKind mismatch: expected {rule.RecordKind}, got {evt.RecordKind}");
+                    if (!string.IsNullOrEmpty(rule.WorkspaceKind) && evt.WorkspaceKind != rule.WorkspaceKind)
+                        reasons.Add($"WorkspaceKind mismatch: expected {rule.WorkspaceKind}, got {evt.WorkspaceKind}");
+                    if (rule.MaxAgeMinutes.HasValue && eventAge > rule.MaxAgeMinutes)
+                        reasons.Add($"Age check: event is {eventAge}min old, max allowed is {rule.MaxAgeMinutes}min");
+                }
+
+                if (rule.Required)
+                {
+                    // 2. Penalize missing required rules
+                    breakdown.MissingRulesPenalty += rule.MissingPenalty;
+                    result.MissingEvidence.Add(rule.Description);
+                    _logger.LogWarning(
+                        "✗ MISSING (REQUIRED): {Description} (penalty={Penalty:F2}) | No matching events found",
+                        rule.Description,
+                        rule.MissingPenalty);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "○ OPTIONAL NOT MATCHED: {Description} (weight={Weight:F2})",
+                        rule.Description,
+                        rule.Weight);
+                }
             }
         }
 
