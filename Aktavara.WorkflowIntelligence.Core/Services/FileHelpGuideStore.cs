@@ -1,17 +1,22 @@
 using Aktavara.WorkflowIntelligence.Core.Interfaces;
 using Aktavara.WorkflowIntelligence.Core.Models;
 using Microsoft.Extensions.Logging;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Aktavara.WorkflowIntelligence.Core.Services;
 
 /// <summary>
-/// Loads help guides from markdown files with YAML front matter.
+/// Loads help guides from markdown files in help-guides/ folder.
+/// Parses sections and maps them to workflow steps.
 /// </summary>
 public class FileHelpGuideStore : IHelpGuideStore
 {
     private readonly string _helpGuidesPath;
     private readonly ILogger<FileHelpGuideStore> _logger;
-    private List<HelpGuide>? _cache;
+    private Dictionary<string, HelpGuide>? _cache;
+    private Dictionary<string, List<HelpGuideSection>>? _stepMappings;
     private bool _loaded;
 
     public FileHelpGuideStore(string helpGuidesPath, ILogger<FileHelpGuideStore> logger)
@@ -24,25 +29,46 @@ public class FileHelpGuideStore : IHelpGuideStore
     public HelpGuide? GetById(string helpGuideId)
     {
         EnsureLoaded();
-        return _cache?.FirstOrDefault(g => g.HelpGuideId == helpGuideId);
+        return _cache?.GetValueOrDefault(helpGuideId);
     }
 
-    public IReadOnlyList<HelpGuide> GetByWorkflowId(string workflowId)
+    public HelpGuide? GetByFileName(string fileName)
     {
         EnsureLoaded();
-        return _cache?.Where(g => g.WorkflowId == workflowId).ToList() ?? new List<HelpGuide>();
+        var id = Path.GetFileNameWithoutExtension(fileName);
+        return _cache?.GetValueOrDefault(id);
     }
 
-    public IReadOnlyList<HelpGuide> GetByStepId(string workflowId, string stepId)
+    public HelpGuideSection? GetSection(string fileName, string sectionId)
+    {
+        var guide = GetByFileName(fileName);
+        if (guide == null)
+            return null;
+
+        return guide.Sections.FirstOrDefault(s => s.SectionId == sectionId);
+    }
+
+    public IReadOnlyList<HelpGuideSection> GetByWorkflowAndStep(string workflowId, string stepId)
     {
         EnsureLoaded();
-        return _cache?.Where(g => g.WorkflowId == workflowId && g.StepId == stepId).ToList() ?? new List<HelpGuide>();
+        var key = $"{workflowId}:{stepId}";
+        return _stepMappings?.GetValueOrDefault(key) ?? new List<HelpGuideSection>();
     }
 
     public IReadOnlyList<HelpGuide> GetAll()
     {
         EnsureLoaded();
-        return _cache?.AsReadOnly() ?? new List<HelpGuide>().AsReadOnly();
+        return _cache?.Values.ToList() ?? new List<HelpGuide>();
+    }
+
+    public IReadOnlyList<string> GetWorkspaceTypes()
+    {
+        EnsureLoaded();
+        return _cache?.Values
+            .Select(g => g.WorkspaceType)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList() ?? new List<string>();
     }
 
     private void EnsureLoaded()
@@ -50,7 +76,8 @@ public class FileHelpGuideStore : IHelpGuideStore
         if (_loaded)
             return;
 
-        _cache = new List<HelpGuide>();
+        _cache = new Dictionary<string, HelpGuide>();
+        _stepMappings = new Dictionary<string, List<HelpGuideSection>>();
         _loaded = true;
 
         if (!Directory.Exists(_helpGuidesPath))
@@ -59,108 +86,257 @@ public class FileHelpGuideStore : IHelpGuideStore
             return;
         }
 
-        try
-        {
-            var mdFiles = Directory.GetFiles(_helpGuidesPath, "*.md", SearchOption.AllDirectories);
-            _logger.LogInformation("Found {Count} help guide files", mdFiles.Length);
+        // Load all markdown files
+        var mdFiles = Directory.GetFiles(_helpGuidesPath, "*.md", SearchOption.TopDirectoryOnly)
+            .Where(f => !Path.GetFileName(f).Equals("index.md", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f)
+            .ToList();
 
-            foreach (var filePath in mdFiles)
+        _logger.LogInformation("Found {Count} help guide markdown files", mdFiles.Count);
+
+        foreach (var filePath in mdFiles)
+        {
+            try
             {
-                try
+                var guide = ParseHelpGuideFile(filePath);
+                if (guide != null)
                 {
-                    var guide = ParseHelpGuideFile(filePath);
-                    if (guide != null)
-                    {
-                        _cache.Add(guide);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error parsing help guide file {FilePath}", filePath);
+                    _cache[guide.HelpGuideId] = guide;
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error parsing help guide file {FilePath}", filePath);
+            }
+        }
 
-            _logger.LogInformation("Loaded {Count} help guides", _cache.Count);
-        }
-        catch (Exception ex)
+        // Load workflow-guide-mapping.json
+        var mappingPath = Path.Combine(_helpGuidesPath, "workflow-guide-mapping.json");
+        if (File.Exists(mappingPath))
         {
-            _logger.LogError(ex, "Error loading help guides from {Path}", _helpGuidesPath);
+            try
+            {
+                LoadWorkflowMappings(mappingPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error loading workflow-guide-mapping.json");
+            }
         }
+
+        _logger.LogInformation("Loaded {Count} help guides", _cache.Count);
     }
 
     private HelpGuide? ParseHelpGuideFile(string filePath)
     {
+        var fileName = Path.GetFileName(filePath);
+        var helpGuideId = Path.GetFileNameWithoutExtension(fileName);
         var content = File.ReadAllText(filePath);
 
-        // Parse YAML front matter
-        var frontMatterMatch = System.Text.RegularExpressions.Regex.Match(
-            content,
-            @"^---\s*\n(.*?)\n---\s*\n(.*)$",
-            System.Text.RegularExpressions.RegexOptions.Singleline);
-
-        if (!frontMatterMatch.Success)
+        var guide = new HelpGuide
         {
-            _logger.LogWarning("No YAML front matter found in {FilePath}", filePath);
-            return null;
-        }
+            HelpGuideId = helpGuideId,
+            FileName = fileName,
+            WorkspaceType = InferWorkspaceType(fileName),
+            MarkdownContent = content,
+            LastModified = File.GetLastWriteTimeUtc(filePath)
+        };
 
-        var frontMatter = frontMatterMatch.Groups[1].Value;
-        var markdown = frontMatterMatch.Groups[2].Value;
+        // Extract title from first # heading
+        var titleMatch = Regex.Match(content, @"^#\s+(.+)$", RegexOptions.Multiline);
+        guide.Title = titleMatch.Success ? titleMatch.Groups[1].Value.Trim() : helpGuideId;
 
-        var guide = new HelpGuide();
-        guide.MarkdownContent = markdown.Trim();
-        guide.LastModified = File.GetLastWriteTimeUtc(filePath);
+        // Parse sections
+        guide.Sections = ParseSections(content);
 
-        // Parse front matter key-value pairs
-        foreach (var line in frontMatter.Split('\n'))
+        return guide;
+    }
+
+    private List<HelpGuideSection> ParseSections(string content)
+    {
+        var sections = new List<HelpGuideSection>();
+        var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+
+        var currentSection = new StringBuilder();
+        HelpGuideSection? currentParsedSection = null;
+        int? currentLevel = null;
+        string? lastLevel2SectionId = null;
+        var sectionIdCounts = new Dictionary<string, int>();
+
+        for (int i = 0; i < lines.Length; i++)
         {
-            var trimmed = line.Trim();
-            if (string.IsNullOrEmpty(trimmed))
-                continue;
+            var line = lines[i];
+            var headingMatch = Regex.Match(line, @"^(#{2,3})\s+(.+)$");
 
-            var colonIndex = trimmed.IndexOf(':');
-            if (colonIndex < 0)
-                continue;
-
-            var key = trimmed[..colonIndex].Trim();
-            var value = trimmed[(colonIndex + 1)..].Trim();
-
-            switch (key.ToLowerInvariant())
+            if (headingMatch.Success)
             {
-                case "helpguideid":
-                    guide.HelpGuideId = value;
-                    break;
-                case "workflowid":
-                    guide.WorkflowId = value;
-                    break;
-                case "stepid":
-                    guide.StepId = value;
-                    break;
-                case "title":
-                    guide.Title = value;
-                    break;
-                case "tags":
-                    guide.Tags = value.Split(',').Select(t => t.Trim()).Where(t => !string.IsNullOrEmpty(t)).ToList();
-                    break;
-                case "isautogenerated":
-                    if (bool.TryParse(value, out var isAuto))
-                        guide.IsAutoGenerated = isAuto;
-                    break;
+                // Save the previous section
+                if (currentParsedSection != null)
+                {
+                    currentParsedSection.Content = currentSection.ToString().TrimEnd();
+                    sections.Add(currentParsedSection);
+                }
+
+                // Start a new section
+                var level = headingMatch.Groups[1].Value.Length;
+                var heading = headingMatch.Groups[2].Value.Trim();
+                var sectionId = SlugifyHeading(heading);
+
+                // Handle duplicate section IDs
+                if (sectionIdCounts.ContainsKey(sectionId))
+                {
+                    sectionIdCounts[sectionId]++;
+                    sectionId = $"{sectionId}-{sectionIdCounts[sectionId]}";
+                }
+                else
+                {
+                    sectionIdCounts[sectionId] = 1;
+                }
+
+                string? parentSectionId = null;
+                if (level == 3 && lastLevel2SectionId != null)
+                {
+                    parentSectionId = lastLevel2SectionId;
+                }
+
+                currentParsedSection = new HelpGuideSection
+                {
+                    SectionId = sectionId,
+                    Heading = heading,
+                    Level = level,
+                    ParentSectionId = parentSectionId
+                };
+
+                if (level == 2)
+                {
+                    lastLevel2SectionId = sectionId;
+                }
+
+                currentLevel = level;
+                currentSection = new StringBuilder();
+            }
+            else
+            {
+                currentSection.AppendLine(line);
             }
         }
 
-        // Validate required fields
-        if (string.IsNullOrEmpty(guide.HelpGuideId) ||
-            string.IsNullOrEmpty(guide.WorkflowId) ||
-            string.IsNullOrEmpty(guide.StepId) ||
-            string.IsNullOrEmpty(guide.Title))
+        // Save the last section
+        if (currentParsedSection != null)
         {
-            _logger.LogWarning(
-                "Help guide file missing required fields (helpGuideId, workflowId, stepId, title): {FilePath}",
-                filePath);
-            return null;
+            currentParsedSection.Content = currentSection.ToString().TrimEnd();
+            sections.Add(currentParsedSection);
         }
 
-        return guide;
+        return sections;
+    }
+
+    private string SlugifyHeading(string heading)
+    {
+        var slug = heading.ToLowerInvariant();
+        slug = Regex.Replace(slug, @"[^\w\s-]", "");
+        slug = Regex.Replace(slug, @"\s+", "-");
+        slug = Regex.Replace(slug, @"-+", "-");
+        return slug.Trim('-');
+    }
+
+    private string InferWorkspaceType(string fileName)
+    {
+        var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+
+        if (nameWithoutExt.EndsWith("_Workspace", StringComparison.OrdinalIgnoreCase))
+        {
+            var type = nameWithoutExt[..^"_Workspace".Length];
+            return type;
+        }
+
+        return "General";
+    }
+
+    private void LoadWorkflowMappings(string mappingPath)
+    {
+        var json = File.ReadAllText(mappingPath);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("mappings", out var mappingsElement))
+            return;
+
+        foreach (var mapping in mappingsElement.EnumerateArray())
+        {
+            try
+            {
+                var workflowId = mapping.GetProperty("workflowId").GetString() ?? "";
+                var stepId = mapping.GetProperty("stepId").GetString() ?? "";
+                var guideFile = mapping.GetProperty("guideFile").GetString() ?? "";
+                string? sectionId = null;
+
+                if (mapping.TryGetProperty("sectionId", out var sectionIdElement) &&
+                    sectionIdElement.ValueKind != JsonValueKind.Null)
+                {
+                    sectionId = sectionIdElement.GetString();
+                }
+
+                var guide = GetByFileName(guideFile);
+                if (guide == null)
+                {
+                    _logger.LogWarning("Workflow mapping references missing guide file: {GuideFile}", guideFile);
+                    continue;
+                }
+
+                HelpGuideSection? section = null;
+
+                if (sectionId != null)
+                {
+                    section = guide.Sections.FirstOrDefault(s => s.SectionId == sectionId);
+                    if (section == null)
+                    {
+                        _logger.LogWarning("Workflow mapping references missing section {SectionId} in {GuideFile}", sectionId, guideFile);
+                        // Use guide intro (first section or all content before first ##)
+                        section = new HelpGuideSection
+                        {
+                            SectionId = "intro",
+                            Heading = guide.Title,
+                            Level = 2,
+                            Content = ExtractGuideIntro(guide.MarkdownContent)
+                        };
+                    }
+                }
+                else
+                {
+                    // Use guide intro
+                    section = new HelpGuideSection
+                    {
+                        SectionId = "intro",
+                        Heading = guide.Title,
+                        Level = 2,
+                        Content = ExtractGuideIntro(guide.MarkdownContent)
+                    };
+                }
+
+                section.RelevantStepIds.Add(stepId);
+
+                var key = $"{workflowId}:{stepId}";
+                if (!_stepMappings!.ContainsKey(key))
+                {
+                    _stepMappings[key] = new List<HelpGuideSection>();
+                }
+                _stepMappings[key].Add(section);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error processing workflow mapping");
+            }
+        }
+    }
+
+    private string ExtractGuideIntro(string content)
+    {
+        // Content before the first ## heading
+        var firstHeadingIndex = content.IndexOf("\n##", StringComparison.OrdinalIgnoreCase);
+        if (firstHeadingIndex < 0)
+            return content;
+
+        return content[..firstHeadingIndex].Trim();
     }
 }

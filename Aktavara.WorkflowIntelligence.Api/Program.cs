@@ -117,25 +117,32 @@ app.MapPatch("/api/workflows/{id}/status", UpdateWorkflowStatus)
 .ProducesProblem(400);
 
 // List help guides endpoint
-app.MapGet("/api/help-guides", GetHelpGuides)
+app.MapGet("/api/help-guides", GetHelpGuideSummaries)
 .WithName("ListHelpGuides")
 .WithOpenApi()
-.WithDescription("List all help guides (references only, no markdown content)")
-.Produces<List<HelpGuideReference>>(200);
+.WithDescription("List all help guides with metadata")
+.Produces<List<HelpGuideSummary>>(200);
 
 // Get help guide detail endpoint
 app.MapGet("/api/help-guides/{helpGuideId}", GetHelpGuideDetail)
 .WithName("GetHelpGuideDetail")
 .WithOpenApi()
-.WithDescription("Get full help guide including markdown content")
+.WithDescription("Get full help guide with all sections")
 .Produces<HelpGuide>(200)
 .Produces(404);
 
-// Get help guides by workflow endpoint
-app.MapGet("/api/help-guides/workflow/{workflowId}", GetHelpGuidesByWorkflow)
-.WithName("GetHelpGuidesByWorkflow")
+// Get help guide sections by workflow and step endpoint
+app.MapGet("/api/help-guides/section", GetHelpGuideSectionsByWorkflowAndStep)
+.WithName("GetHelpGuideSections")
 .WithOpenApi()
-.WithDescription("Get all help guides for a specific workflow")
+.WithDescription("Get guide sections for a workflow step (query: workflowId, stepId)")
+.Produces<List<HelpGuideSection>>(200);
+
+// Get help guides by workspace type endpoint
+app.MapGet("/api/help-guides/workspace/{workspaceType}", GetHelpGuidesByWorkspaceType)
+.WithName("GetHelpGuidesByWorkspace")
+.WithOpenApi()
+.WithDescription("Get all guides for a specific workspace type")
 .Produces<List<HelpGuide>>(200);
 
 app.Run();
@@ -394,18 +401,20 @@ IResult UpdateWorkflowStatus(
     }
 }
 
-IResult GetHelpGuides(IHelpGuideStore helpGuideStore)
+IResult GetHelpGuideSummaries(IHelpGuideStore helpGuideStore)
 {
     var guides = helpGuideStore.GetAll();
-    var references = guides.Select(g => new HelpGuideReference
+    var summaries = guides.Select(g => new HelpGuideSummary
     {
-        GuideId = g.HelpGuideId,
+        HelpGuideId = g.HelpGuideId,
         Title = g.Title,
-        WorkflowId = g.WorkflowId,
-        StateId = g.StepId
+        FileName = g.FileName,
+        WorkspaceType = g.WorkspaceType,
+        SectionCount = g.Sections.Count,
+        LastModified = g.LastModified
     }).ToList();
 
-    return Results.Ok(references);
+    return Results.Ok(summaries);
 }
 
 IResult GetHelpGuideDetail(string helpGuideId, IHelpGuideStore helpGuideStore)
@@ -418,8 +427,18 @@ IResult GetHelpGuideDetail(string helpGuideId, IHelpGuideStore helpGuideStore)
     return Results.Ok(guide);
 }
 
-IResult GetHelpGuidesByWorkflow(string workflowId, IHelpGuideStore helpGuideStore)
+IResult GetHelpGuideSectionsByWorkflowAndStep(string? workflowId, string? stepId, IHelpGuideStore helpGuideStore)
 {
-    var guides = helpGuideStore.GetByWorkflowId(workflowId);
+    if (string.IsNullOrEmpty(workflowId) || string.IsNullOrEmpty(stepId))
+        return Results.BadRequest(new { error = "workflowId and stepId query parameters required" });
+
+    var sections = helpGuideStore.GetByWorkflowAndStep(workflowId, stepId);
+    return Results.Ok(sections);
+}
+
+IResult GetHelpGuidesByWorkspaceType(string workspaceType, IHelpGuideStore helpGuideStore)
+{
+    var allGuides = helpGuideStore.GetAll();
+    var guides = allGuides.Where(g => g.WorkspaceType == workspaceType).ToList();
     return Results.Ok(guides);
 }

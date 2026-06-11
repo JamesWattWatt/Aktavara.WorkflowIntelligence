@@ -69,24 +69,15 @@ public class AssistantContextPacketGenerator : IAssistantContextPacketGenerator
             ? packet.BestMatch.NextStepHint
             : null;
 
-        // Load relevant help guides
+        // Load relevant help guide sections
         if (_helpGuideStore != null && packet.BestMatch != null)
         {
-            var relevantGuides = _helpGuideStore.GetByStepId(
+            var relevantSections = _helpGuideStore.GetByWorkflowAndStep(
                 packet.BestMatch.WorkflowId,
                 packet.BestMatch.CurrentStateName);
 
-            packet.HelpGuideReferences = relevantGuides
-                .Take(3)
-                .Select(g => new HelpGuideReference
-                {
-                    GuideId = g.HelpGuideId,
-                    Title = g.Title,
-                    Summary = g.MarkdownContent.Length > 100 ? g.MarkdownContent[..100] + "..." : g.MarkdownContent,
-                    WorkflowId = g.WorkflowId,
-                    StateId = g.StepId,
-                    RelevanceScore = 1.0
-                })
+            packet.RelevantGuideSections = relevantSections
+                .Take(2)
                 .ToList();
         }
 

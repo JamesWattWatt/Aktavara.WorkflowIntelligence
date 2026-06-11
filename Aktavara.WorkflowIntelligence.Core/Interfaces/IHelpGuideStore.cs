@@ -3,27 +3,38 @@ namespace Aktavara.WorkflowIntelligence.Core.Interfaces;
 using Aktavara.WorkflowIntelligence.Core.Models;
 
 /// <summary>
-/// Provides access to help guides for workflows and steps.
+/// Provides access to help guides and sections from markdown documentation.
 /// </summary>
 public interface IHelpGuideStore
 {
     /// <summary>
-    /// Gets a help guide by ID.
+    /// Gets a help guide by filename (without .md extension).
+    /// </summary>
+    HelpGuide? GetByFileName(string fileName);
+
+    /// <summary>
+    /// Gets a help guide by its ID (filename without extension).
     /// </summary>
     HelpGuide? GetById(string helpGuideId);
 
     /// <summary>
-    /// Gets all help guides for a specific workflow.
+    /// Gets a specific section within a guide.
     /// </summary>
-    IReadOnlyList<HelpGuide> GetByWorkflowId(string workflowId);
+    HelpGuideSection? GetSection(string fileName, string sectionId);
 
     /// <summary>
-    /// Gets all help guides for a specific workflow step.
+    /// Gets sections relevant to a workflow step.
+    /// Returns empty list if no mapping exists (not an error).
     /// </summary>
-    IReadOnlyList<HelpGuide> GetByStepId(string workflowId, string stepId);
+    IReadOnlyList<HelpGuideSection> GetByWorkflowAndStep(string workflowId, string stepId);
 
     /// <summary>
     /// Gets all loaded help guides.
     /// </summary>
     IReadOnlyList<HelpGuide> GetAll();
+
+    /// <summary>
+    /// Gets all distinct workspace types represented in loaded guides.
+    /// </summary>
+    IReadOnlyList<string> GetWorkspaceTypes();
 }

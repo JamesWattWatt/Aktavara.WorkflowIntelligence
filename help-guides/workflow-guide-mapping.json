@@ -1,0 +1,52 @@
+{
+  "mappings": [
+    {
+      "workflowId": "update-node-in-path",
+      "stepId": "no_activity",
+      "guideFile": "Quick_Start_Aktavara_Console.md",
+      "sectionId": null
+    },
+    {
+      "workflowId": "update-node-in-path",
+      "stepId": "path_opened",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "adding-and-removing-content-nodes-connectors-and-paths"
+    },
+    {
+      "workflowId": "update-node-in-path",
+      "stepId": "node_modified",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "adding-and-removing-content-nodes-connectors-and-paths"
+    },
+    {
+      "workflowId": "update-node-in-path",
+      "stepId": "node_saved",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "setting-the-start-and-end-node-for-a-path"
+    },
+    {
+      "workflowId": "add-connector-to-path",
+      "stepId": "path_opened",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "adding-and-removing-content-nodes-connectors-and-paths"
+    },
+    {
+      "workflowId": "add-connector-to-path",
+      "stepId": "nodes_selected",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "adding-and-removing-content-nodes-connectors-and-paths"
+    },
+    {
+      "workflowId": "add-connector-to-path",
+      "stepId": "connector_created",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "adding-connectors"
+    },
+    {
+      "workflowId": "add-connector-to-path",
+      "stepId": "path_saved",
+      "guideFile": "Path_Workspace.md",
+      "sectionId": "setting-the-start-and-end-node-for-a-path"
+    }
+  ]
+}

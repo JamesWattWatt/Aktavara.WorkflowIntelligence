@@ -36,6 +36,11 @@ public class AssistantContextPacket
     public List<HelpGuideReference> HelpGuideReferences { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets guide sections relevant to the current workflow step.
+    /// </summary>
+    public List<HelpGuideSection> RelevantGuideSections { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets raw evidence references that support the analysis.
     /// These are snippets from activity logs or records that provide evidence.
     /// </summary>
