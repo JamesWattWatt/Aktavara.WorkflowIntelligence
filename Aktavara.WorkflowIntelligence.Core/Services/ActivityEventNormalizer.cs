@@ -16,11 +16,20 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
     private readonly ILogger<ActivityEventNormalizer> _logger;
 
     // Mapping from action names to event types
+    // These are the user-facing action names that appear in activity logs
     private static readonly Dictionary<string, EventType> ActionEventTypeMap = new(StringComparer.OrdinalIgnoreCase)
     {
+        // Search/Query actions
         { "Search records", EventType.SearchRecords },
+
+        // Workspace open actions - all workspace types
         { "Open workspace Path", EventType.OpenWorkspace },
+        { "Open workspace Topology", EventType.OpenWorkspace },
         { "Open workspace Diagram", EventType.OpenWorkspace },
+        { "Open workspace Carrier", EventType.OpenWorkspace },
+        { "Open workspace Schema", EventType.OpenWorkspace },
+
+        // Record save actions
         { "Save records", EventType.SaveRecords },
         { "Save workspace Diagram", EventType.SaveRecords },
         { "SavePathWsData", EventType.SaveRecords }
@@ -105,18 +114,40 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
             var entry = rawEntries[i];
 
             // Determine the event type from action name
-            if (!ActionEventTypeMap.TryGetValue(entry.ActionName, out var eventType))
+            EventType eventType;
+            bool isRecognizedAction = ActionEventTypeMap.TryGetValue(entry.ActionName, out var mappedEventType);
+
+            if (!isRecognizedAction)
             {
-                _logger.LogDebug("Unknown action: {ActionName}", entry.ActionName);
-                continue;
+                _logger.LogWarning("Unrecognized action type: {ActionName}. Creating Unknown event.", entry.ActionName);
+                eventType = EventType.Unknown;
+            }
+            else
+            {
+                eventType = mappedEventType;
             }
 
-            // Skip responses unless they're correlated with a request
-            if (entry.Direction == EventType.ResponseReceived && eventType == EventType.SearchRecords)
+            // Handle Response-only entries specially to capture them as events
+            if (entry.Direction == EventType.ResponseReceived && (eventType == EventType.SearchRecords || eventType == EventType.SaveRecords))
+            {
+                // Create a Response event instead of silently dropping
+                _logger.LogDebug("Response-only entry for {ActionName}. Creating Response event.", entry.ActionName);
+                var responseEvent = new ActivityEvent
+                {
+                    EventId = Guid.NewGuid().ToString(),
+                    Timestamp = entry.Timestamp,
+                    UserName = entry.UserName,
+                    SessionId = entry.SessionId,
+                    EventType = eventType,
+                    ActionName = entry.ActionName,
+                    IsSuccess = true,
+                    RecordKind = RecordKind.Other
+                };
+                responseEvent.Evidence.Add($"Response entry for {entry.ActionName}");
+                responseEvent.Metadata["direction"] = "Response";
+                events.Add(responseEvent);
                 continue;
-
-            if (entry.Direction == EventType.ResponseReceived && eventType == EventType.SaveRecords)
-                continue;
+            }
 
             // Process based on action type
             var normalizedEvents = eventType switch
@@ -124,6 +155,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                 EventType.SearchRecords => NormalizeSearchRecords(entry),
                 EventType.OpenWorkspace => NormalizeOpenWorkspace(entry, rawEntries, i),
                 EventType.SaveRecords => NormalizeSaveRecords(entry, rawEntries, i, recordSnapshots),
+                EventType.Unknown => NormalizeUnknownActivity(entry),
                 _ => new List<ActivityEvent>()
             };
 
@@ -301,9 +333,12 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
             // Look for records being saved
             foreach (var record in records)
             {
-                // Skip if no TypeKind (can't determine record type)
+                // Handle records with no TypeKind - use Other as fallback instead of skipping
                 if (string.IsNullOrEmpty(record.TypeKind))
-                    continue;
+                {
+                    _logger.LogWarning("Save records entry has record without TypeKind. RecordId: {RecordId}", record.RecordId);
+                    // Don't skip - process with Other type
+                }
 
                 // Determine RecordKind from TypeKind
                 var recordKind = AktavaraTypeHelper.ToRecordKind(record.TypeKind);
@@ -415,5 +450,158 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// Normalizes an unrecognized action into an Unknown event.
+    /// This fallback handler ensures no events are silently dropped.
+    /// </summary>
+    private List<ActivityEvent> NormalizeUnknownActivity(RawActivityLogEntry entry)
+    {
+        var events = new List<ActivityEvent>();
+
+        try
+        {
+            var evt = new ActivityEvent
+            {
+                EventId = Guid.NewGuid().ToString(),
+                Timestamp = entry.Timestamp,
+                UserName = entry.UserName,
+                SessionId = entry.SessionId,
+                EventType = EventType.Unknown,
+                ActionName = entry.ActionName,
+                IsSuccess = entry.Direction != EventType.ResponseReceived,
+                RecordKind = RecordKind.Other
+            };
+
+            evt.Evidence.Add($"Unrecognized action: {entry.ActionName}");
+
+            if (entry.RawXmlPayloads.Count > 0)
+            {
+                evt.Metadata["payload_count"] = entry.RawXmlPayloads.Count;
+            }
+
+            evt.Metadata["direction"] = entry.Direction.ToString();
+
+            events.Add(evt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error normalizing unknown activity");
+        }
+
+        return events;
+    }
+
+    /// <summary>
+    /// Correlates record names in an ActivityContext by tracking opened records
+    /// and using attribute saves to resolve names for records modified in the session.
+    /// </summary>
+    public void CorrelateRecordNames(ActivityContext context, IReadOnlyList<RawActivityLogEntry> rawEntries)
+    {
+        if (context?.RecentEvents.Count == 0)
+            return;
+
+        // First pass: Track all opened records
+        foreach (var evt in context.RecentEvents)
+        {
+            if (evt.EventType == EventType.OpenWorkspace && !string.IsNullOrEmpty(evt.RecordId))
+            {
+                context.TrackOpenedRecord(
+                    evt.RecordId,
+                    evt.RecordName,
+                    evt.WorkspaceKind,
+                    evt.RecordKind ?? RecordKind.Other);
+            }
+        }
+
+        // Second pass: Use SaveRecords events to resolve names for records we don't have names for
+        var saveEvents = context.RecentEvents.Where(e => e.EventType == EventType.SaveRecords).ToList();
+
+        foreach (var saveEvent in saveEvents)
+        {
+            if (string.IsNullOrEmpty(saveEvent.RecordName) && !string.IsNullOrEmpty(saveEvent.RecordId))
+            {
+                // Try to resolve name from opened records
+                var resolvedName = context.ResolveRecordName(saveEvent.RecordId);
+                if (!string.IsNullOrEmpty(resolvedName))
+                {
+                    saveEvent.RecordName = resolvedName;
+                }
+                else
+                {
+                    // Try to extract name from the raw entry's payload attributes
+                    var nameFromPayload = ExtractNameFromSaveRecordsPayload(
+                        rawEntries,
+                        saveEvent.Timestamp,
+                        saveEvent.UserName,
+                        saveEvent.SessionId);
+
+                    if (!string.IsNullOrEmpty(nameFromPayload))
+                    {
+                        saveEvent.RecordName = nameFromPayload;
+                        // Also update the context for future correlation
+                        if (context.OpenedRecords.TryGetValue(saveEvent.RecordId, out var recordInfo))
+                        {
+                            recordInfo.Name = nameFromPayload;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Extracts a record name from a SaveRecords payload by looking for the Name attribute (typically AttributeId 1 or similar).
+    /// </summary>
+    private string? ExtractNameFromSaveRecordsPayload(
+        IReadOnlyList<RawActivityLogEntry> rawEntries,
+        DateTime eventTimestamp,
+        string userName,
+        string sessionId)
+    {
+        // Find the matching raw entry
+        var matchingEntry = rawEntries.FirstOrDefault(e =>
+            e.Timestamp == eventTimestamp &&
+            e.UserName == userName &&
+            e.SessionId == sessionId &&
+            (string.Equals(e.ActionName, "Save records", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(e.ActionName, "Save workspace Diagram", StringComparison.OrdinalIgnoreCase)));
+
+        if (matchingEntry?.RawXmlPayloads.Count == 0)
+            return null;
+
+        var payload = matchingEntry.RawXmlPayloads[0];
+        var payloadType = PayloadTypeDetector.Detect(payload);
+
+        try
+        {
+            var records = payloadType switch
+            {
+                PayloadType.Json => _jsonExtractor.ExtractRecords(payload),
+                PayloadType.Xml => _xmlExtractor.ExtractRecords(payload),
+                _ => new AktaRecordSnapshot[] { }
+            };
+
+            // Extract name from first record's properties (usually AttributeId 1 or similar)
+            if (records.Count > 0)
+            {
+                var record = records[0];
+                var nameProperty = record.FindProperty("Name") ??
+                                  record.Properties.FirstOrDefault(p =>
+                                      p.AttributeId == "1" || p.AttributeId == "6"); // Common name attribute IDs
+
+                if (nameProperty?.Value != null)
+                {
+                    return nameProperty.Value.ToString();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error extracting name from save records payload");
+        }
+
+        return null;
     }
 }

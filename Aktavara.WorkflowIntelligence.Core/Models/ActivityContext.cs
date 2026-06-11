@@ -39,6 +39,12 @@ public class ActivityContext
     public Dictionary<string, object> LastKnownState { get; set; } = new();
 
     /// <summary>
+    /// Tracks records that were opened in this session.
+    /// Maps RecordId to record information (name, type, etc.) for correlation.
+    /// </summary>
+    public Dictionary<string, OpenedRecordInfo> OpenedRecords { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets a human-readable summary of the activity context.
     /// Typically generated from the recent events and active entities.
     /// </summary>
@@ -94,4 +100,64 @@ public class ActivityContext
     /// </summary>
     public List<ActivityEvent> GetEventsInRange(DateTime startTime, DateTime endTime) =>
         RecentEvents.Where(e => e.Timestamp >= startTime && e.Timestamp <= endTime).ToList();
+
+    /// <summary>
+    /// Resolves the name of a record from the opened records in this session.
+    /// Useful for correlating attribute saves back to workspace records.
+    /// </summary>
+    public string? ResolveRecordName(string recordId)
+    {
+        if (OpenedRecords.TryGetValue(recordId, out var recordInfo))
+        {
+            return recordInfo.Name;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Tracks an opened record for correlation with later attribute saves.
+    /// </summary>
+    public void TrackOpenedRecord(string recordId, string? name, string? workspaceKind, RecordKind recordKind)
+    {
+        OpenedRecords[recordId] = new OpenedRecordInfo
+        {
+            RecordId = recordId,
+            Name = name,
+            WorkspaceKind = workspaceKind,
+            RecordKind = recordKind,
+            OpenedAt = DateTime.UtcNow
+        };
+    }
+}
+
+/// <summary>
+/// Information about a record that was opened in a workspace.
+/// Used to correlate attribute saves back to the original record.
+/// </summary>
+public class OpenedRecordInfo
+{
+    /// <summary>
+    /// The record's ID.
+    /// </summary>
+    public string RecordId { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The record's name (if available).
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// The type of workspace the record was opened in.
+    /// </summary>
+    public string? WorkspaceKind { get; set; }
+
+    /// <summary>
+    /// The kind of record.
+    /// </summary>
+    public RecordKind RecordKind { get; set; }
+
+    /// <summary>
+    /// When the record was opened in this session.
+    /// </summary>
+    public DateTime OpenedAt { get; set; }
 }

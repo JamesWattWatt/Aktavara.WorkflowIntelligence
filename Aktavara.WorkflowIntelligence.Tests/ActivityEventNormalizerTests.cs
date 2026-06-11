@@ -294,12 +294,15 @@ public class ActivityEventNormalizerTests
 
         var result = _normalizer.Normalize(new[] { requestEntry, responseEntry });
 
-        Assert.Single(result);
-        var evt = result[0];
-        Assert.True(evt.IsSuccess);
-        var evidenceLower = evt.Evidence.Select(e => e.ToLower()).ToList();
+        // Now expect 2 events: 1 SaveRecords + 1 Response event
+        Assert.Equal(2, result.Count);
+
+        var saveEvt = result.FirstOrDefault(e => e.EventType == EventType.SaveRecords && e.Metadata.ContainsKey("correlated_response_index"));
+        Assert.NotNull(saveEvt);
+        Assert.True(saveEvt.IsSuccess);
+        var evidenceLower = saveEvt.Evidence.Select(e => e.ToLower()).ToList();
         Assert.Contains("success", evidenceLower.SingleOrDefault(e => e.Contains("indicates")));
-        Assert.Contains("correlated_response_index", evt.Metadata.Keys);
+        Assert.Contains("correlated_response_index", saveEvt.Metadata.Keys);
     }
 
     [Fact]
@@ -343,11 +346,19 @@ public class ActivityEventNormalizerTests
 
         var result = _normalizer.Normalize(new[] { requestEntry, responseEntry });
 
-        Assert.Single(result);
-        var evt = result[0];
-        Assert.False(evt.IsSuccess);
-        var evidenceLower = evt.Evidence.Select(e => e.ToLower()).ToList();
+        // Now expect 2 events: 1 SaveRecords + 1 Response event
+        Assert.Equal(2, result.Count);
+
+        // Check SaveRecords event
+        var saveEvt = result.FirstOrDefault(e => e.EventType == EventType.SaveRecords && e.Metadata.ContainsKey("correlated_response_index"));
+        Assert.NotNull(saveEvt);
+        Assert.False(saveEvt.IsSuccess);
+        var evidenceLower = saveEvt.Evidence.Select(e => e.ToLower()).ToList();
         Assert.Contains("failure", evidenceLower.SingleOrDefault(e => e.Contains("indicates")));
+
+        // Check Response event
+        var responseEvt = result.FirstOrDefault(e => e.Metadata.ContainsKey("direction") && e.Metadata["direction"]?.ToString() == "Response");
+        Assert.NotNull(responseEvt);
     }
 
     [Fact]
@@ -496,8 +507,8 @@ public class ActivityEventNormalizerTests
         var entries = new[] { searchEntry, openEntry, saveEntry, saveResponseEntry };
         var result = _normalizer.Normalize(entries);
 
-        // Verify we get the expected events
-        Assert.Equal(3, result.Count);
+        // Verify we get the expected events (now includes Response event for SaveRecords)
+        Assert.Equal(4, result.Count);
 
         // Check search event
         var searchEvt = result.FirstOrDefault(e => e.EventType == EventType.SearchRecords);
@@ -519,7 +530,7 @@ public class ActivityEventNormalizerTests
     }
 
     [Fact]
-    public void Normalize_UnknownActionName_SkipsEntry()
+    public void Normalize_UnknownActionName_CreatesUnknownEvent()
     {
         var unknownEntry = new RawActivityLogEntry
         {
@@ -534,11 +545,48 @@ public class ActivityEventNormalizerTests
 
         var result = _normalizer.Normalize(new[] { unknownEntry });
 
-        Assert.Empty(result);
+        Assert.Single(result);
+        Assert.Equal(EventType.Unknown, result[0].EventType);
+        Assert.Equal("Unknown action that does not exist", result[0].ActionName);
+        Assert.Contains("Unrecognized action", result[0].Evidence[0]);
     }
 
     [Fact]
-    public void Normalize_ResponseEntriesWithoutRequest_Skipped()
+    public void Normalize_AllWorkspaceTypes_AreRecognized()
+    {
+        // Verify that all workspace types from the Swagger spec are recognized
+        var workspaceActions = new[]
+        {
+            "Open workspace Path",
+            "Open workspace Topology",
+            "Open workspace Diagram",
+            "Open workspace Carrier",
+            "Open workspace Schema"
+        };
+
+        foreach (var action in workspaceActions)
+        {
+            var entry = new RawActivityLogEntry
+            {
+                Timestamp = new DateTime(2026, 6, 8, 11, 13, 20),
+                UserName = "user",
+                SessionId = "1",
+                Direction = EventType.RequestInitiated,
+                ActionName = action,
+                RawText = $"{action} request",
+                RawXmlPayloads = new List<string>()
+            };
+
+            var result = _normalizer.Normalize(new[] { entry });
+
+            // Without payloads, OpenWorkspace returns empty, but the action should not produce Unknown
+            // This test verifies that all workspace types are recognized in the ActionEventTypeMap
+            Assert.Empty(result); // Expected: no events due to missing payload, but action is recognized
+        }
+    }
+
+    [Fact]
+    public void Normalize_ResponseEntriesWithoutRequest_CreatesResponseEvent()
     {
         var responseEntry = new RawActivityLogEntry
         {
@@ -553,8 +601,10 @@ public class ActivityEventNormalizerTests
 
         var result = _normalizer.Normalize(new[] { responseEntry });
 
-        // Responses are skipped if they can't be correlated
-        Assert.Empty(result);
+        // Response entries now create Response events instead of being silently dropped
+        Assert.Single(result);
+        Assert.Equal(EventType.SearchRecords, result[0].EventType);
+        Assert.Contains("Response entry", result[0].Evidence[0]);
     }
 
     [Fact]
