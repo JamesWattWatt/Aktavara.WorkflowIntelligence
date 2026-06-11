@@ -153,6 +153,24 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
     {
         var events = new List<ActivityEvent>();
 
+        // Handle response-only entries
+        if (entry.Direction == EventType.ResponseReceived && entry.RawXmlPayloads.Count > 0)
+        {
+            var evt = new ActivityEvent
+            {
+                EventId = Guid.NewGuid().ToString(),
+                Timestamp = entry.Timestamp,
+                UserName = entry.UserName,
+                SessionId = entry.SessionId,
+                EventType = EventType.SearchRecords,
+                ActionName = entry.ActionName,
+                IsSuccess = true
+            };
+            evt.Evidence.Add("Response entry without request");
+            events.Add(evt);
+            return events;
+        }
+
         if (entry.RawXmlPayloads.Count == 0)
             return events;
 
@@ -165,8 +183,8 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
             // This has the actual search criteria: TypeKind and TypeId
             var searchRequest = payloadType switch
             {
-                PayloadType.Json => ExtractSearchRequest(payload),
-                PayloadType.Xml => ExtractSearchRequest(payload),
+                PayloadType.Json => ExtractSearchRequestFromJson(payload),
+                PayloadType.Xml => ExtractSearchRequestFromXml(payload),
                 _ => null
             };
 
@@ -231,18 +249,50 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
     }
 
     /// <summary>
-    /// Extracts search criteria from a request payload.
-    /// Returns TypeKind and TypeId from the SearchExpressionItem.
+    /// Extracts search criteria from an XML request payload.
+    /// Returns TypeKind and TypeId from the SearchExpressionItem record attributes.
     /// </summary>
-    private SearchRequestInfo? ExtractSearchRequest(string payload)
+    private SearchRequestInfo? ExtractSearchRequestFromXml(string payload)
     {
         try
         {
-            // Parse JSON to find SearchExpressionItem
+            var records = _xmlExtractor.ExtractRecords(payload);
+            if (records.Count > 0)
+            {
+                var searchRecord = records[0];
+
+                // For SearchExpressionItem, the actual search criteria are in attributes:
+                // - Kind attribute contains the TypeKind (e.g., "Node", "Path")
+                // - TypeId attribute contains the search TypeId (e.g., "MyNodeType")
+                var typeKindValue = searchRecord.FindProperty("Kind")?.Value?.ToString();
+                var typeIdValue = searchRecord.FindProperty("TypeId")?.Value?.ToString();
+
+                if (!string.IsNullOrEmpty(typeKindValue) && !string.IsNullOrEmpty(typeIdValue))
+                {
+                    return new SearchRequestInfo { TypeKind = typeKindValue, TypeId = typeIdValue };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Error extracting search request info from XML");
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extracts search criteria from a JSON request payload.
+    /// Returns TypeKind and TypeId from the SearchExpressionItem.
+    /// </summary>
+    private SearchRequestInfo? ExtractSearchRequestFromJson(string payload)
+    {
+        try
+        {
             var json = System.Text.Json.JsonDocument.Parse(payload);
             var root = json.RootElement;
 
-            // Navigate to SearchExpressionItem
+            // Navigate to SearchExpressionItem in JSON structure
             if (root.TryGetProperty("$data", out var dataArray) && dataArray.ValueKind == System.Text.Json.JsonValueKind.Array)
             {
                 foreach (var item in dataArray.EnumerateArray())
@@ -266,7 +316,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error extracting search request info");
+            _logger.LogDebug(ex, "Error extracting search request info from JSON");
         }
 
         return null;
@@ -365,6 +415,42 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
         Dictionary<string, AktaRecordSnapshot> recordSnapshots)
     {
         var events = new List<ActivityEvent>();
+
+        // Handle response-only entries
+        if (entry.Direction == EventType.ResponseReceived && entry.RawXmlPayloads.Count > 0)
+        {
+            var evt = new ActivityEvent
+            {
+                EventId = Guid.NewGuid().ToString(),
+                Timestamp = entry.Timestamp,
+                UserName = entry.UserName,
+                SessionId = entry.SessionId,
+                EventType = EventType.SaveRecords,
+                ActionName = entry.ActionName,
+                IsSuccess = true
+            };
+            evt.Evidence.Add("Response entry without request");
+            evt.Metadata["direction"] = "Response";
+
+            // Try to extract success status from response
+            var payload = entry.RawXmlPayloads[0];
+            var successResult = _xmlExtractor.ExtractBooleanResult(payload);
+            if (successResult.HasValue)
+            {
+                evt.IsSuccess = successResult.Value;
+                if (successResult.Value)
+                {
+                    evt.Evidence.Add("Response indicates success");
+                }
+                else
+                {
+                    evt.Evidence.Add("Response indicates failure");
+                }
+            }
+
+            events.Add(evt);
+            return events;
+        }
 
         if (entry.RawXmlPayloads.Count == 0)
             return events;
