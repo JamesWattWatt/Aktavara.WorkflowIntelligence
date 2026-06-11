@@ -3,7 +3,11 @@
     "allow": [
       "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; $output = dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" 2>&1; $lines = $output | Select-String -Pattern \"Match 1:\" -A 60; Write-Output \\($lines -join \"`n\"\\))",
       "Read(//c/temp/**)",
-      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_fixed.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\analyze_fixed.txt\" | Select-String \"SaveRecords\" -A 7\\) | Select-Object -First 50)"
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_fixed.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\analyze_fixed.txt\" | Select-String \"SaveRecords\" -A 7\\) | Select-Object -First 50)",
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_workflows.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\analyze_workflows.txt\" | Select-String \"Workflow library|Loaded workflow|Loading\"\\) | Select-Object -First 10)",
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\"; dotnet test > \"c:\\\\temp\\\\test_run.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\test_run.txt\" -Tail 5\\))",
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\final_analyze.txt\" 2>&1; \\(Get-Content \"c:\\\\temp\\\\final_analyze.txt\" | Select-String \"library loaded|Loaded\"\\) | Select-Object -First 3)",
+      "PowerShell(cd \"c:\\\\Users\\\\james.watt\\\\Documents\\\\dev\\\\Aktavara.WorkflowIntelligence\\\\Aktavara.WorkflowIntelligence.Cli\"; dotnet run -- analyze \"..\\\\samples\\\\logs\\\\log20260610.txt\" > \"c:\\\\temp\\\\analyze_debug.txt\" 2>&1; \\(Get-Item \"c:\\\\temp\\\\analyze_debug.txt\"\\).Length; \\(Get-Content \"c:\\\\temp\\\\analyze_debug.txt\" | Measure-Object -Line\\).Lines)"
     ]
   }
 }

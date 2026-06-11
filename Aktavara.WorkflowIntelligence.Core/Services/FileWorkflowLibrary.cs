@@ -48,7 +48,8 @@ public class FileWorkflowLibrary : IWorkflowLibrary
             try
             {
                 var json = await File.ReadAllTextAsync(filePath);
-                var workflow = JsonSerializer.Deserialize<WorkflowDefinition>(json);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var workflow = JsonSerializer.Deserialize<WorkflowDefinition>(json, options);
 
                 if (workflow == null)
                 {
@@ -58,13 +59,21 @@ public class FileWorkflowLibrary : IWorkflowLibrary
 
                 // Validate the workflow
                 var errors = workflow.Validate();
+                _logger.LogInformation(
+                    "Workflow parsed: WorkflowId={WorkflowId}, Name={Name}, Rules={RuleCount}, Validation Errors={ErrorCount}",
+                    workflow.WorkflowId ?? "<null>",
+                    workflow.Name ?? "<null>",
+                    workflow.ActivitySignature?.Count ?? 0,
+                    errors.Count);
+
                 if (errors.Count > 0)
                 {
-                    _logger.LogWarning(
+                    _logger.LogError(
                         "Workflow {WorkflowId} has validation errors: {Errors}",
                         workflow.WorkflowId,
                         string.Join("; ", errors));
                     _validationErrors[workflow.WorkflowId] = errors;
+                    continue;
                 }
 
                 if (_workflows.ContainsKey(workflow.WorkflowId))
