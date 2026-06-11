@@ -119,6 +119,21 @@ public class AssistantContextPacket
     public Dictionary<string, object> Metadata { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the semantic (keyword-based) matches for the user's text.
+    /// </summary>
+    public List<SemanticWorkflowMatch> SemanticMatches { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets ambiguity detection results between activity and semantic matches.
+    /// </summary>
+    public AmbiguitySignal? Ambiguity { get; set; }
+
+    /// <summary>
+    /// Gets or sets the original user text used for semantic search (if provided).
+    /// </summary>
+    public string? UserText { get; set; }
+
+    /// <summary>
     /// Gets the best matching workflow candidate if any.
     /// </summary>
     public WorkflowMatchResult? GetBestWorkflowMatch() =>

@@ -18,4 +18,6 @@ public class AnalyzeResponse
     public List<WorkflowCandidateResult> WorkflowCandidates { get; set; } = new();
     public List<SerializableActiveEntity> ActiveEntities { get; set; } = new();
     public List<string> WorkflowHints { get; set; } = new();
+    public List<SemanticWorkflowMatch> SemanticMatches { get; set; } = new();
+    public AmbiguitySignal? Ambiguity { get; set; }
 }

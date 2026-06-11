@@ -29,11 +29,18 @@ builder.Services.AddSingleton<IHelpGuideStore>(sp =>
     var logger = sp.GetRequiredService<ILogger<FileHelpGuideStore>>();
     return new FileHelpGuideStore(helpGuidesPath, logger);
 });
+builder.Services.AddSingleton<ISemanticWorkflowSearch>(sp =>
+{
+    var workflowLibrary = sp.GetRequiredService<IWorkflowLibrary>();
+    var helpGuideStore = sp.GetRequiredService<IHelpGuideStore>();
+    return new KeywordSemanticWorkflowSearch(workflowLibrary, helpGuideStore);
+});
 builder.Services.AddScoped<IAssistantContextPacketGenerator>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<AssistantContextPacketGenerator>>();
     var helpGuideStore = sp.GetRequiredService<IHelpGuideStore>();
-    return new AssistantContextPacketGenerator(logger, helpGuideStore);
+    var semanticSearch = sp.GetRequiredService<ISemanticWorkflowSearch>();
+    return new AssistantContextPacketGenerator(logger, helpGuideStore, semanticSearch);
 });
 builder.Services.AddScoped<IRecordDiffService, RecordDiffService>();
 
@@ -184,6 +191,11 @@ async Task<IResult> HandleAnalyzeUpload(
             logContent = await reader.ReadToEndAsync();
         }
 
+        // Extract user question if provided
+        var userQuestion = request.Form.TryGetValue("userQuestion", out var questionValues)
+            ? questionValues.FirstOrDefault()
+            : null;
+
         // Parse and process
         var rawEntries = parser.Parse(logContent);
         var events = normalizer.Normalize(rawEntries);
@@ -197,7 +209,7 @@ async Task<IResult> HandleAnalyzeUpload(
         var matches = matcher.FindMatches(context, workflows);
 
         // Generate packet
-        var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary);
+        var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary, userQuestion);
 
         var durationMs = (long)(DateTime.UtcNow - startTime).TotalMilliseconds;
 
@@ -215,6 +227,8 @@ async Task<IResult> HandleAnalyzeUpload(
             ContextNarrative = packet.ContextNarrative ?? string.Empty,
             ActiveEntities = packet.ActiveEntities ?? new(),
             WorkflowHints = packet.WorkflowHints ?? new(),
+            SemanticMatches = packet.SemanticMatches ?? new(),
+            Ambiguity = packet.Ambiguity,
             WorkflowCandidates = packet.AllMatches?.Select(m => new WorkflowCandidateResult
             {
                 WorkflowId = m.WorkflowId,
@@ -279,7 +293,7 @@ async Task<IResult> HandleAnalyzeText(
         var matches = matcher.FindMatches(context, workflows);
 
         // Generate packet
-        var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary);
+        var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary, request.UserQuestion);
 
         var durationMs = (long)(DateTime.UtcNow - startTime).TotalMilliseconds;
 
@@ -297,6 +311,8 @@ async Task<IResult> HandleAnalyzeText(
             ContextNarrative = packet.ContextNarrative ?? string.Empty,
             ActiveEntities = packet.ActiveEntities ?? new(),
             WorkflowHints = packet.WorkflowHints ?? new(),
+            SemanticMatches = packet.SemanticMatches ?? new(),
+            Ambiguity = packet.Ambiguity,
             WorkflowCandidates = packet.AllMatches?.Select(m => new WorkflowCandidateResult
             {
                 WorkflowId = m.WorkflowId,

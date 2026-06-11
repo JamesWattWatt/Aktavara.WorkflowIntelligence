@@ -12,22 +12,29 @@ public class AssistantContextPacketGenerator : IAssistantContextPacketGenerator
 {
     private readonly ILogger<AssistantContextPacketGenerator> _logger;
     private readonly IHelpGuideStore? _helpGuideStore;
+    private readonly ISemanticWorkflowSearch? _semanticSearch;
+    private readonly AmbiguityDetector _ambiguityDetector;
 
     public AssistantContextPacketGenerator(
         ILogger<AssistantContextPacketGenerator> logger,
-        IHelpGuideStore? helpGuideStore = null)
+        IHelpGuideStore? helpGuideStore = null,
+        ISemanticWorkflowSearch? semanticSearch = null)
     {
         _logger = logger;
         _helpGuideStore = helpGuideStore;
+        _semanticSearch = semanticSearch;
+        _ambiguityDetector = new AmbiguityDetector();
     }
 
     /// <summary>
     /// Generates a context packet from activity and workflow matching results.
+    /// Optionally performs semantic search and ambiguity detection if userText is provided.
     /// </summary>
     public AssistantContextPacket GeneratePacket(
         ActivityContext activityContext,
         IReadOnlyList<WorkflowMatchResult> allMatches,
-        IWorkflowLibrary workflowLibrary)
+        IWorkflowLibrary workflowLibrary,
+        string? userText = null)
     {
         var packet = new AssistantContextPacket
         {
@@ -37,6 +44,7 @@ public class AssistantContextPacketGenerator : IAssistantContextPacketGenerator
             CurrentState = FormatCurrentState(activityContext.CurrentState),
             Summary = activityContext.Summary,
             WorkflowHints = activityContext.WorkflowHints,
+            UserText = userText,
         };
 
         // Convert ActiveEntities to serializable form
@@ -79,6 +87,21 @@ public class AssistantContextPacketGenerator : IAssistantContextPacketGenerator
             packet.RelevantGuideSections = relevantSections
                 .Take(2)
                 .ToList();
+        }
+
+        // Perform semantic search if userText provided
+        if (!string.IsNullOrWhiteSpace(userText) && _semanticSearch != null)
+        {
+            var semanticMatches = _semanticSearch.SearchAsync(userText, 5, CancellationToken.None).Result;
+            packet.SemanticMatches = semanticMatches.ToList();
+
+            // Detect ambiguity between activity and semantic matches
+            var bestActivityMatch = packet.BestMatch != null
+                ? allMatches.FirstOrDefault(m => m.WorkflowId == packet.BestMatch.WorkflowId)
+                : null;
+            var bestSemanticMatch = packet.SemanticMatches.FirstOrDefault();
+
+            packet.Ambiguity = _ambiguityDetector.Detect(bestActivityMatch, bestSemanticMatch);
         }
 
         // Build context narrative

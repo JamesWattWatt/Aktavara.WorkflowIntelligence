@@ -30,8 +30,26 @@ services.AddScoped<IWorkflowLibrary>(sp =>
     return library;
 });
 
+// Register help guide store
+var helpGuideDirectory = Path.Combine(
+    AppContext.BaseDirectory,
+    "..", "..", "..", "..", "help-guides"
+);
+var helpGuideDirectoryResolved = Path.GetFullPath(helpGuideDirectory);
+services.AddSingleton<IHelpGuideStore>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<FileHelpGuideStore>>();
+    return new FileHelpGuideStore(helpGuideDirectoryResolved, logger);
+});
+
 services.AddScoped<IWorkflowMatcher, WorkflowMatcher>();
 services.AddScoped<IActivityContextBuilder, ActivityContextBuilder>();
+services.AddSingleton<ISemanticWorkflowSearch>(sp =>
+{
+    var library = sp.GetRequiredService<IWorkflowLibrary>();
+    var helpGuideStore = sp.GetRequiredService<IHelpGuideStore>();
+    return new KeywordSemanticWorkflowSearch(library, helpGuideStore);
+});
 services.AddScoped<IAssistantContextPacketGenerator, AssistantContextPacketGenerator>();
 services.AddScoped<IAssistantContextBuilder, AssistantContextBuilder>();
 
@@ -127,12 +145,20 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
 {
     if (cmdArgs.Length < 2)
     {
-        Console.WriteLine("Usage: analyze <logfile>");
+        Console.WriteLine("Usage: analyze <logfile> [--question <text>] [--verbose]");
         return;
     }
 
     var filePath = cmdArgs[1];
     var verbose = cmdArgs.Contains("--verbose");
+
+    // Extract question if provided
+    string? userQuestion = null;
+    var questionIndex = Array.IndexOf(cmdArgs, "--question");
+    if (questionIndex >= 0 && questionIndex < cmdArgs.Length - 1)
+    {
+        userQuestion = cmdArgs[questionIndex + 1];
+    }
     var parser = sp.GetRequiredService<IActivityLogParser>();
     var normalizer = sp.GetRequiredService<IActivityEventNormalizer>();
     var workflowProvider = sp.GetRequiredService<IWorkflowProvider>();
@@ -419,7 +445,7 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
 
         try
         {
-            var assistantPacket = packetGenerator.GeneratePacket(context, matches, workflowLibrary);
+            var assistantPacket = packetGenerator.GeneratePacket(context, matches, workflowLibrary, userQuestion);
 
             Console.WriteLine($"\nGuidance Level: {assistantPacket.GuidanceLevel}");
             if (!string.IsNullOrEmpty(assistantPacket.RecommendedNextStep))
@@ -428,6 +454,28 @@ async Task AnalyzeLogFile(IServiceProvider sp, string[] cmdArgs)
             }
 
             Console.WriteLine($"\nContext Narrative:\n{assistantPacket.ContextNarrative}");
+
+            // Display semantic matches if provided
+            if (!string.IsNullOrEmpty(userQuestion) && assistantPacket.SemanticMatches.Count > 0)
+            {
+                Console.WriteLine("\nSemantic Matches:");
+                foreach (var match in assistantPacket.SemanticMatches.Take(3))
+                {
+                    Console.WriteLine($"  - {match.WorkflowName} (Score: {match.Score:P0})");
+                    if (match.MatchedTerms.Count > 0)
+                        Console.WriteLine($"    Matched: {string.Join(", ", match.MatchedTerms.Take(3))}");
+                }
+            }
+
+            // Display ambiguity signal if present
+            if (assistantPacket.Ambiguity != null)
+            {
+                Console.WriteLine("\nAmbiguity Detection:");
+                Console.WriteLine($"  Is Ambiguous: {assistantPacket.Ambiguity.IsAmbiguous}");
+                Console.WriteLine($"  Recommended Action: {assistantPacket.Ambiguity.RecommendedAction}");
+                if (!string.IsNullOrEmpty(assistantPacket.Ambiguity.ClarificationQuestion))
+                    Console.WriteLine($"  Question: {assistantPacket.Ambiguity.ClarificationQuestion}");
+            }
 
             // Display as JSON (for API integration in next prompt)
             if (verbose)
