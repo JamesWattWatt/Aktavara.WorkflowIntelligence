@@ -285,7 +285,7 @@ public class AktaXmlExtractor : IAktaXmlExtractor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error extracting boolean result from XML");
+            _logger.LogDebug(ex, "Could not extract boolean result (payload may be in JSON format)");
             return null;
         }
     }

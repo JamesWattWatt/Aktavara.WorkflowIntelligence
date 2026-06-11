@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Aktavara.WorkflowIntelligence.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a647d368710a37274cf0ac6722b0f6dedea353be")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+afd91262d0174b17b5cdb81f03b57859fca51c50")]
 [assembly: System.Reflection.AssemblyProductAttribute("Aktavara.WorkflowIntelligence.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Aktavara.WorkflowIntelligence.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

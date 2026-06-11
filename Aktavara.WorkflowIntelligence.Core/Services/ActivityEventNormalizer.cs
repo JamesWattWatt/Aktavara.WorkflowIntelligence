@@ -435,7 +435,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
 
             // Try to extract success status from response
             var payload = entry.RawXmlPayloads[0];
-            var successResult = _xmlExtractor.ExtractBooleanResult(payload);
+            var successResult = IsJsonPayload(payload) ? null : _xmlExtractor.ExtractBooleanResult(payload);
             if (successResult.HasValue)
             {
                 evt.IsSuccess = successResult.Value;
@@ -593,7 +593,7 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
                 if (potentialResponse.RawXmlPayloads.Count > 0)
                 {
                     var responseXml = potentialResponse.RawXmlPayloads[0];
-                    var successResult = _xmlExtractor.ExtractBooleanResult(responseXml);
+                    var successResult = IsJsonPayload(responseXml) ? null : _xmlExtractor.ExtractBooleanResult(responseXml);
 
                     if (successResult.HasValue)
                     {
@@ -789,5 +789,17 @@ public class ActivityEventNormalizer : IActivityEventNormalizer
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Detects if a payload is in JSON format by checking for leading '{' character.
+    /// </summary>
+    private static bool IsJsonPayload(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return false;
+
+        var trimmed = payload.Trim();
+        return trimmed.StartsWith('{') || trimmed.StartsWith('[');
     }
 }
