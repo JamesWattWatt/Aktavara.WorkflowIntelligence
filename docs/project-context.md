@@ -19,7 +19,7 @@
 - workflow-ui/ (React UI — Prompt 19 in progress)
 
 ## Current status
-- Prompts 1-20 complete
+- Prompts 1-21 complete
 - 197 tests passing, 0 errors
 - API running on http://localhost:5112
 - React UI (Vite) running on http://localhost:5173 with full functionality
@@ -87,11 +87,11 @@ Dev server: http://localhost:5173
 Architecture:
 - src/types/api.ts — Complete TypeScript interfaces matching all API models
 - src/services/apiClient.ts — Typed fetch wrapper with 6 methods
-- src/components/ — 6 components (Prompts 19-20 complete, 21+ planned)
+- src/components/ — 6 components (Prompts 19-21 complete, 22+ planned)
   - LogDropZone: ✓ Full file upload with drag/drop, validation, loading, error handling
   - WorkflowList: ✓ Candidate cards with confidence bars (color-coded), evidence count
   - WorkflowDetail: ✓ Rules, evidence tags, score table, hints, workshop preview
-  - FlowVisualiser: State machine visualization placeholder (Prompt 21)
+  - FlowVisualiser: ✓ Matched/missing step flow, evidence tags, confidence explanation, next hints
   - WorkshopPanel: Qualification questions placeholder (Prompt 22)
   - AnalysisSummary: ✓ Collapsible summary with guidance badge, next step, context
 - src/App.tsx — Two-column layout with tabbed interface
@@ -100,12 +100,14 @@ Architecture:
   - Empty states for no file, no candidates, no selection
   - Dark/light theme with Tailwind classes
 
-Features (Prompt 20):
+Features (Prompts 20-21):
 - LogDropZone: drag-over visual state, file preview, spinner, validation, errors, clear button
 - WorkflowList: colored confidence bars (green/amber/red), evidence count, selected indicator
 - WorkflowDetail: evidence tags, missing rules in red, score breakdown table, hints, workshop preview
+- FlowVisualiser: ✓ Matched steps (green), missing steps (amber), color-coded dots, evidence linking, confidence explanation
 - AnalysisSummary: guidance badge (color-coded), recommended next step, collapsible
 - Error handling: friendly API errors, file validation (type, size), empty states
+- Layout: Fixed header, independently scrollable panels, natural page scroll at 100% zoom
 
 API Proxy: vite.config.ts routes /api to http://localhost:5112
 
@@ -130,11 +132,10 @@ Config for Claude Desktop:
 }
 
 ## Next prompts
-- Prompt 20: Functional log drop zone + candidate list (upload, error handling, loading states)
-- Prompt 21: Flow visualizer (state machine visualization, activity timeline)
 - Prompt 22: Workshop qualification panel (questions, answers, guidance)
-- Prompt 23: Library management UI (workflow CRUD, status updates)
-- Prompt 24: E2E testing + deployment
+- Prompt 23: Library management UI (workflow CRUD, status updates, workflow editor)
+- Prompt 24: E2E testing (Playwright, critical user paths)
+- Prompt 25: Deployment & hosting setup
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
@@ -147,3 +148,21 @@ Config for Claude Desktop:
 - Real embedding provider for semantic search
 - Temporal for governed workflow execution
 - More log samples needed for inference pipeline
+
+
+## Future: Database migration (required for horizontal scaling)
+
+Current FileWorkflowLibrary and FileHelpGuideStore use 
+local JSON/markdown files — not suitable for multi-instance 
+deployment.
+
+Migration path:
+- Add DatabaseWorkflowLibrary implementing IWorkflowLibrary
+- Add DatabaseHelpGuideStore implementing IHelpGuideStore  
+- Swap in Program.cs DI registration
+- Help guide markdown → blob storage (Azure/S3)
+- Help guide metadata/sections → SQL DB
+- Suggested: EF Core + PostgreSQL or Azure SQL
+- Schema design: see docs/DATABASE_SCHEMA.md (to be created)
+
+Trigger: before first hosted/cloud deployment
