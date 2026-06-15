@@ -19,7 +19,7 @@
 - workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
-- Prompts 1-24c complete
+- Prompts 1-24d complete
 - 215 tests passing, 0 errors
 - API running on http://localhost:5112 with all endpoints functional (including PUT/POST/DELETE workflows)
 - React UI (Vite) running on http://localhost:5173 with full functionality
@@ -29,7 +29,7 @@
 - Intelligent help guide matcher: LLM-driven guide discovery with human approval
 - Offline discovery service: fully implemented with 10 inference methods, working inference endpoints
 - Library management UI: full CRUD with inference modal, import/export (Prompt 23b)
-- Layout: full width (1200px min), three-column optimized (280px | 320px | flex), right column fills space (Prompt 24a-24c)
+- Layout: two-column discovery (280px candidates | flex content), horizontal steps, collapsible evidence (Prompt 24d)
 - Contextual help system: sliding panel with markdown rendering, 7 help topics (Prompt 24b)
 
 ## API endpoints (all working)
@@ -301,6 +301,66 @@ that works well at 320px width.
 
 Gives content area maximum width for detailed views while
 maintaining compact workflow list and step diagram visibility.
+
+## Prompt 24d: Two-Column Layout Redesign (COMPLETE)
+
+Major UI restructuring of Discovery tab from three-column to two-column layout:
+
+**Layout Changes:**
+- Left column: 280px fixed (LogDropZone, AnalysisSummary, WorkflowList)
+- Right column: flex-1 (fills remaining space) - three stacked sections
+
+**Section 1 - Workflow Info + Horizontal Detected Steps:**
+- Workflow name (bold, 16px text)
+- Subtitle: confidence % · level badge · current state
+- "DETECTED STEPS" label
+- Horizontal scrolling row of step cards with → arrows
+- Step cards show:
+  - Color dot (grey=search, blue=open, green=save, amber=modify)
+  - Action name
+  - "✓ Matched" or "✗ Missing" badge
+  - Evidence snippet (record kind + timestamp)
+- Matched steps: solid border, blue tint background
+- Missing steps: dashed border, muted/dimmed
+- Smooth horizontal scroll with thin scrollbar
+
+**Section 2 - Evidence & Score (Collapsible):**
+- Header: "Evidence & Score" with collapse/expand toggle
+- Default: expanded (useState(true))
+- Four horizontally scrollable cards (200px each):
+  1. Matched evidence: green pill tags
+  2. Matched rules: with green checkmarks
+  3. Score breakdown: table with green/red values
+  4. Next step: amber card with action hint
+- Cards use overflow-x: auto with flex-shrink: 0
+- Click header to toggle collapse state
+
+**Section 3 - Workflow Details / Workshop Tabs:**
+- Tab bar: "Workflow details" | "Workshop"
+- Full-width content area below tabs
+- Details tab shows:
+  - Confidence explanation (info box)
+  - WorkflowDetail component (rules, questions)
+- Workshop tab shows: full WorkshopPanel
+- Tabs control section 3 content only
+
+**Components:**
+- FlowVisualiser: Redesigned horizontal layout with color dots and arrows
+- EvidenceSection: New collapsible component with 4 evidence cards
+- App.tsx: New two-column discovery structure
+
+**Styling:**
+- Section cards: full width, proper spacing
+- Evidence cards: fixed 200px width, flex-shrink-0
+- Step cards: color-coded with visual flow
+- Scrollbars: thin (4px), theme-aware
+- All sections maintain dark theme support
+
+**Result:**
+- More focus on details (right column gets full width)
+- Cleaner, more scannable layout
+- Evidence and score data more accessible and readable
+- Horizontal flow more intuitive for step sequences
 
 ## Next prompts
 - Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
