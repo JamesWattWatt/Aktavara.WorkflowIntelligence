@@ -256,15 +256,30 @@ async Task<IResult> HandleAnalyzeUpload(
 
         // Get all matched events for context
         var allEventsForContext = events.ToList();
-        var logStartTime = allEventsForContext.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var logEndTime = allEventsForContext.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+
+        // For uploaded logs, apply time window relative to last event (not current time)
+        var timeWindowMinutes = config.GetValue<int>("WorkflowIntelligence:TimeWindowMinutes", 30);
+        var logStartTime = logEndTime.AddMinutes(-timeWindowMinutes);
+
+        Console.WriteLine($"[Upload] Time window: {logStartTime:HH:mm:ss} to {logEndTime:HH:mm:ss} ({timeWindowMinutes} min window, {allEventsForContext.Count} total events)");
+        logger.LogInformation("[Upload] Time window: {Start:HH:mm:ss} to {End:HH:mm:ss}", logStartTime, logEndTime);
+
+        // Filter events to those within the time window and for the detected user
+        var detectedUser = allEventsForContext.LastOrDefault()?.UserName;
+        var windowedEvents = allEventsForContext
+            .Where(e => e.Timestamp >= logStartTime && e.Timestamp <= logEndTime && (detectedUser == null || e.UserName == detectedUser))
+            .ToList();
+
+        Console.WriteLine($"[Upload] Windowed to {windowedEvents.Count} events (user: {detectedUser ?? "unknown"})");
+        logger.LogInformation("[Upload] Windowed to {EventCount} events", windowedEvents.Count);
 
         Console.WriteLine("[Upload] Building activity context...");
         logger.LogInformation("[Upload] Building activity context");
         ActivityContext context;
         try
         {
-            context = contextBuilder.BuildContext(allEventsForContext, null, logStartTime, logEndTime);
+            context = contextBuilder.BuildContext(windowedEvents, detectedUser, logStartTime, logEndTime);
             Console.WriteLine($"[Upload] Activity context built");
             logger.LogInformation("[Upload] Activity context built");
         }
