@@ -4,6 +4,17 @@ using Aktavara.WorkflowIntelligence.Core.Interfaces;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+/// <summary>
+/// Simple mapping entry that extracts values from JsonElement before document disposal.
+/// </summary>
+internal class MappingEntry
+{
+    public string WorkflowId { get; set; } = string.Empty;
+    public string StepId { get; set; } = string.Empty;
+    public string GuideFile { get; set; } = string.Empty;
+    public string? SectionId { get; set; }
+}
+
 public class HelpGuideMappingWriter : IHelpGuideMappingWriter
 {
     private readonly string _mappingFilePath;
@@ -35,42 +46,41 @@ public class HelpGuideMappingWriter : IHelpGuideMappingWriter
 
             lock (_lockObject)
             {
-                var mappingArray = LoadMappingArray();
+                var mappingEntries = LoadMappingArray();
 
                 // Remove existing mapping for this workflow:step
-                mappingArray.RemoveAll(m =>
-                    m.GetProperty("workflowId").GetString() == workflowId &&
-                    m.GetProperty("stepId").GetString() == normalizedStepId);
+                mappingEntries.RemoveAll(m =>
+                    m.WorkflowId == workflowId &&
+                    m.StepId == normalizedStepId);
 
                 // Add new mapping
-                var newMapping = new Dictionary<string, object>
+                mappingEntries.Add(new MappingEntry
                 {
-                    { "workflowId", workflowId },
-                    { "stepId", normalizedStepId },
-                    { "guideFile", guideFile },
-                };
+                    WorkflowId = workflowId,
+                    StepId = normalizedStepId,
+                    GuideFile = guideFile,
+                    SectionId = sectionId
+                });
 
-                if (sectionId != null)
+                // Convert back to dictionaries for JSON serialization
+                var mappingDicts = mappingEntries.Select(m => new Dictionary<string, object?>
                 {
-                    newMapping["sectionId"] = sectionId;
-                }
-                else
-                {
-                    newMapping["sectionId"] = null!;
-                }
-
-                mappingArray.Add(JsonSerializer.SerializeToElement(newMapping));
+                    { "workflowId", m.WorkflowId },
+                    { "stepId", m.StepId },
+                    { "guideFile", m.GuideFile },
+                    { "sectionId", m.SectionId }
+                }).ToList();
 
                 // Write the file with "mappings" wrapper
                 var root = new Dictionary<string, object>
                 {
-                    { "mappings", mappingArray }
+                    { "mappings", mappingDicts }
                 };
 
                 var options = new JsonSerializerOptions
                 {
                     WriteIndented = true,
-                    DefaultIgnoreCondition = JsonIgnoreCondition.Never
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
                 };
 
                 var json = JsonSerializer.Serialize(root, options);
@@ -89,13 +99,13 @@ public class HelpGuideMappingWriter : IHelpGuideMappingWriter
         }
     }
 
-    private List<JsonElement> LoadMappingArray()
+    private List<MappingEntry> LoadMappingArray()
     {
         try
         {
             if (!File.Exists(_mappingFilePath))
             {
-                return new List<JsonElement>();
+                return new List<MappingEntry>();
             }
 
             var json = File.ReadAllText(_mappingFilePath);
@@ -104,15 +114,29 @@ public class HelpGuideMappingWriter : IHelpGuideMappingWriter
 
             if (!root.TryGetProperty("mappings", out var mappingsArray))
             {
-                return new List<JsonElement>();
+                return new List<MappingEntry>();
             }
 
-            return mappingsArray.EnumerateArray().ToList();
+            // Extract all values while JsonDocument is still in scope
+            var entries = new List<MappingEntry>();
+            foreach (var mapping in mappingsArray.EnumerateArray())
+            {
+                var entry = new MappingEntry
+                {
+                    WorkflowId = mapping.TryGetProperty("workflowId", out var wf) ? wf.GetString() ?? string.Empty : string.Empty,
+                    StepId = mapping.TryGetProperty("stepId", out var st) ? st.GetString() ?? string.Empty : string.Empty,
+                    GuideFile = mapping.TryGetProperty("guideFile", out var gf) ? gf.GetString() ?? string.Empty : string.Empty,
+                    SectionId = mapping.TryGetProperty("sectionId", out var si) && si.ValueKind != JsonValueKind.Null ? si.GetString() : null
+                };
+                entries.Add(entry);
+            }
+
+            return entries;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading help guide mappings");
-            return new List<JsonElement>();
+            return new List<MappingEntry>();
         }
     }
 
