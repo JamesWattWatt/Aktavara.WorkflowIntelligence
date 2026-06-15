@@ -175,9 +175,13 @@ async Task<IResult> HandleAnalyzeUpload(
 {
     try
     {
+        logger.LogInformation("[Upload] Starting file upload analysis");
+
         var file = request.Form.Files.FirstOrDefault(f => f.Name == "logFile");
         if (file == null)
             return Results.BadRequest(new { error = "Missing 'logFile' field" });
+
+        logger.LogInformation("[Upload] File received: {FileName} ({FileSize} bytes)", file.FileName, file.Length);
 
         var allowedExtensions = new[] { ".txt" };
         var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -191,11 +195,13 @@ async Task<IResult> HandleAnalyzeUpload(
         var startTime = DateTime.UtcNow;
 
         // Read file content
+        logger.LogInformation("[Upload] Reading file content");
         string logContent;
         using (var reader = new StreamReader(file.OpenReadStream()))
         {
             logContent = await reader.ReadToEndAsync();
         }
+        logger.LogInformation("[Upload] File content read: {ContentLength} characters", logContent.Length);
 
         // Extract user question if provided
         var userQuestion = request.Form.TryGetValue("userQuestion", out var questionValues)
@@ -203,18 +209,29 @@ async Task<IResult> HandleAnalyzeUpload(
             : null;
 
         // Parse and process
+        logger.LogInformation("[Upload] Parsing log entries");
         var rawEntries = parser.Parse(logContent);
+        logger.LogInformation("[Upload] Parsed {EntryCount} raw entries", rawEntries.Count);
+
+        logger.LogInformation("[Upload] Normalizing events");
         var events = normalizer.Normalize(rawEntries);
+        logger.LogInformation("[Upload] Normalized to {EventCount} activity events", events.Count);
 
         // Get all matched events for context
         var allEventsForContext = events.ToList();
         var logStartTime = allEventsForContext.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var logEndTime = allEventsForContext.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+
+        logger.LogInformation("[Upload] Building activity context");
         var context = contextBuilder.BuildContext(allEventsForContext, null, logStartTime, logEndTime);
+
+        logger.LogInformation("[Upload] Matching workflows");
         var workflows = workflowLibrary.GetAll();
         var matches = matcher.FindMatches(context, workflows);
+        logger.LogInformation("[Upload] Found {MatchCount} workflow matches", matches.Count);
 
         // Generate packet
+        logger.LogInformation("[Upload] Generating assistant context packet");
         var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary, userQuestion);
 
         var durationMs = (long)(DateTime.UtcNow - startTime).TotalMilliseconds;
@@ -273,12 +290,25 @@ async Task<IResult> HandleAnalyzeUpload(
             }).ToList() ?? new()
         };
 
+        logger.LogInformation("[Upload] Analysis complete, returning response");
         return Results.Ok(response);
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Error analyzing uploaded file");
-        return Results.BadRequest(new { error = "Error processing file" });
+        logger.LogError(ex, "[Upload] EXCEPTION: {ExceptionType}: {ExceptionMessage}\nStack trace: {StackTrace}",
+            ex.GetType().Name, ex.Message, ex.StackTrace);
+
+        var innerException = ex.InnerException;
+        var depth = 1;
+        while (innerException != null && depth < 5)
+        {
+            logger.LogError("[Upload] Inner exception {Depth}: {InnerExceptionType}: {InnerExceptionMessage}",
+                depth, innerException.GetType().Name, innerException.Message);
+            innerException = innerException.InnerException;
+            depth++;
+        }
+
+        return Results.BadRequest(new { error = "Error processing file", details = ex.Message });
     }
 }
 
