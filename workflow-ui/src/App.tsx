@@ -29,9 +29,9 @@ export function App() {
 
   return (
     <div className="min-h-screen w-full min-w-[1200px] flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Fixed Header - Full width */}
-      <header className="sticky top-0 z-20 w-full border-b border-gray-200 dark:border-gray-800 px-6 py-4 bg-white dark:bg-gray-900">
-        <div className="flex items-center justify-between mb-3">
+      {/* Fixed Header - Full width, flush left */}
+      <header className="sticky top-0 z-20 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="flex items-center justify-between mb-3 px-6 py-4">
           <div>
             <h1 className="text-2xl font-bold">Aktavara Workflow Intelligence</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -41,7 +41,7 @@ export function App() {
         </div>
 
         {/* Top-level tabs */}
-        <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800 -mx-6 px-6">
+        <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800 px-6">
           <button
             onClick={() => setTopLevelTab('discovery')}
             className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
@@ -65,9 +65,9 @@ export function App() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - Flush with left edge */}
       {topLevelTab === 'discovery' ? (
-        <div className="w-full flex flex-1 gap-6 p-6 min-h-0">
+        <div className="w-full flex flex-1 gap-6 py-6 min-h-0">
           {/* Left Sidebar - Fixed 280px */}
           <div className="w-[280px] flex-shrink-0 flex flex-col gap-4 min-h-0">
             <div className="flex-shrink-0">
