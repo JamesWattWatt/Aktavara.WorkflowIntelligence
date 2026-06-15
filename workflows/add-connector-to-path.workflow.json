@@ -60,6 +60,11 @@
       "isTerminal": false,
       "nextStateId": "connector_created",
       "helpGuideId": "guide-open-path-for-connector",
+      "workshopQuestions": [
+        "Which two nodes do you want to connect?",
+        "Is this a direct connection or does the path need intermediate nodes?",
+        "What type of connector will you be using (direct, routed, etc.)?"
+      ],
       "metadata": {}
     },
     {
@@ -71,6 +76,11 @@
       "isTerminal": false,
       "nextStateId": "path_saved",
       "helpGuideId": "guide-connector-created",
+      "workshopQuestions": [
+        "Do you need to configure connector properties (type, attributes)?",
+        "Should you allocate any tags or labels to this connector?",
+        "Are there any validation rules or constraints to apply?"
+      ],
       "metadata": {
         "detectedRecordKind": "Connector"
       }
@@ -84,6 +94,11 @@
       "isTerminal": true,
       "nextStateId": null,
       "helpGuideId": "guide-save-path",
+      "workshopQuestions": [
+        "Did the connector save successfully without errors?",
+        "Are there any other connectors you need to add to this path?",
+        "Should you validate the entire path topology now?"
+      ],
       "metadata": {
         "completion": "workflow_complete"
       }

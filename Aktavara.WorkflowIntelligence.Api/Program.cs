@@ -49,7 +49,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalhost", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "https://localhost:3000", "https://localhost:5173")
+        policy.WithOrigins(
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "https://localhost:3000",
+            "https://localhost:5173",
+            "https://localhost:5174")
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
@@ -229,18 +235,41 @@ async Task<IResult> HandleAnalyzeUpload(
             WorkflowHints = packet.WorkflowHints ?? new(),
             SemanticMatches = packet.SemanticMatches ?? new(),
             Ambiguity = packet.Ambiguity,
-            WorkflowCandidates = packet.AllMatches?.Select(m => new WorkflowCandidateResult
+            WorkflowCandidates = packet.AllMatches?.Select(m =>
             {
-                WorkflowId = m.WorkflowId,
-                WorkflowName = m.WorkflowName,
-                ConfidenceScore = m.ConfidenceScore,
-                ConfidenceLevel = m.ConfidenceLevel,
-                CurrentStateName = m.CurrentStateName,
-                MatchedRules = m.MatchedRules ?? new(),
-                MatchedEvidence = m.MatchedEvidence ?? new(),
-                MissingRules = m.MissingRules ?? new(),
-                NextStepHint = m.NextStepHint,
-                ScoreBreakdown = m.ScoreBreakdown ?? new()
+                var workshopQuestions = new List<string>();
+                try
+                {
+                    var workflow = workflows.FirstOrDefault(w => w.WorkflowId == m.WorkflowId);
+                    if (workflow?.States != null && !string.IsNullOrEmpty(m.CurrentStateName))
+                    {
+                        var state = workflow.States.FirstOrDefault(s => s.StateId == m.CurrentStateName);
+                        if (state?.Metadata?.ContainsKey("workshopQuestions") == true)
+                        {
+                            var questions = state.Metadata["workshopQuestions"];
+                            if (questions is List<string> qList)
+                            {
+                                workshopQuestions = qList;
+                            }
+                        }
+                    }
+                }
+                catch { }
+
+                return new WorkflowCandidateResult
+                {
+                    WorkflowId = m.WorkflowId,
+                    WorkflowName = m.WorkflowName,
+                    ConfidenceScore = m.ConfidenceScore,
+                    ConfidenceLevel = m.ConfidenceLevel,
+                    CurrentStateName = m.CurrentStateName,
+                    MatchedRules = m.MatchedRules ?? new(),
+                    MatchedEvidence = m.MatchedEvidence ?? new(),
+                    MissingRules = m.MissingRules ?? new(),
+                    NextStepHint = m.NextStepHint,
+                    ScoreBreakdown = m.ScoreBreakdown ?? new(),
+                    WorkshopQuestions = workshopQuestions
+                };
             }).ToList() ?? new()
         };
 
@@ -313,18 +342,41 @@ async Task<IResult> HandleAnalyzeText(
             WorkflowHints = packet.WorkflowHints ?? new(),
             SemanticMatches = packet.SemanticMatches ?? new(),
             Ambiguity = packet.Ambiguity,
-            WorkflowCandidates = packet.AllMatches?.Select(m => new WorkflowCandidateResult
+            WorkflowCandidates = packet.AllMatches?.Select(m =>
             {
-                WorkflowId = m.WorkflowId,
-                WorkflowName = m.WorkflowName,
-                ConfidenceScore = m.ConfidenceScore,
-                ConfidenceLevel = m.ConfidenceLevel,
-                CurrentStateName = m.CurrentStateName,
-                MatchedRules = m.MatchedRules ?? new(),
-                MatchedEvidence = m.MatchedEvidence ?? new(),
-                MissingRules = m.MissingRules ?? new(),
-                NextStepHint = m.NextStepHint,
-                ScoreBreakdown = m.ScoreBreakdown ?? new()
+                var workshopQuestions = new List<string>();
+                try
+                {
+                    var workflow = workflows.FirstOrDefault(w => w.WorkflowId == m.WorkflowId);
+                    if (workflow?.States != null && !string.IsNullOrEmpty(m.CurrentStateName))
+                    {
+                        var state = workflow.States.FirstOrDefault(s => s.StateId == m.CurrentStateName);
+                        if (state?.Metadata?.ContainsKey("workshopQuestions") == true)
+                        {
+                            var questions = state.Metadata["workshopQuestions"];
+                            if (questions is List<string> qList)
+                            {
+                                workshopQuestions = qList;
+                            }
+                        }
+                    }
+                }
+                catch { }
+
+                return new WorkflowCandidateResult
+                {
+                    WorkflowId = m.WorkflowId,
+                    WorkflowName = m.WorkflowName,
+                    ConfidenceScore = m.ConfidenceScore,
+                    ConfidenceLevel = m.ConfidenceLevel,
+                    CurrentStateName = m.CurrentStateName,
+                    MatchedRules = m.MatchedRules ?? new(),
+                    MatchedEvidence = m.MatchedEvidence ?? new(),
+                    MissingRules = m.MissingRules ?? new(),
+                    NextStepHint = m.NextStepHint,
+                    ScoreBreakdown = m.ScoreBreakdown ?? new(),
+                    WorkshopQuestions = workshopQuestions
+                };
             }).ToList() ?? new()
         };
 

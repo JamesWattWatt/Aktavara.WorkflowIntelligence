@@ -15,4 +15,5 @@ public class WorkflowCandidateResult
     public List<string> MissingRules { get; set; } = new();
     public string? NextStepHint { get; set; }
     public Dictionary<string, double> ScoreBreakdown { get; set; } = new();
+    public List<string> WorkshopQuestions { get; set; } = new();
 }

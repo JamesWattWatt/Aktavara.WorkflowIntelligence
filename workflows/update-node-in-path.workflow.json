@@ -60,6 +60,11 @@
       "isTerminal": false,
       "nextStateId": "node_saved",
       "helpGuideId": "guide-open-path",
+      "workshopQuestions": [
+        "Which node are you planning to modify?",
+        "Are you changing the node name or other attributes?",
+        "Is this a routine update or a network topology change?"
+      ],
       "metadata": {}
     },
     {
@@ -71,6 +76,11 @@
       "isTerminal": true,
       "nextStateId": null,
       "helpGuideId": "guide-save-node-changes",
+      "workshopQuestions": [
+        "Were all the node properties updated as needed?",
+        "Do you need to save the entire path as well?",
+        "Should you update any connected nodes or connectors?"
+      ],
       "metadata": {
         "completion": "workflow_complete",
         "detectedRecordKind": "Node"
