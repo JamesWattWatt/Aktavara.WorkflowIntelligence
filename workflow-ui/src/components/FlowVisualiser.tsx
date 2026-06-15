@@ -33,7 +33,6 @@ const getDotColorClass = (color: 'grey' | 'blue' | 'green' | 'amber'): string =>
 const findMatchingEvidence = (rule: string, evidence: string[]): string | undefined => {
   const ruleLower = rule.toLowerCase();
 
-  // Match by rule keywords
   if (ruleLower.includes('search')) {
     return evidence.find(e => e.includes('SearchRecords'));
   }
@@ -49,11 +48,7 @@ const findMatchingEvidence = (rule: string, evidence: string[]): string | undefi
 
 export const FlowVisualiser = ({ candidate }: FlowVisualiserProps) => {
   if (!candidate) {
-    return (
-      <div className="p-6 text-center text-gray-500 dark:text-gray-400 flex items-center justify-center min-h-[400px]">
-        <p>Select a workflow candidate to see the flow</p>
-      </div>
-    );
+    return null;
   }
 
   // Build step nodes
@@ -71,122 +66,42 @@ export const FlowVisualiser = ({ candidate }: FlowVisualiserProps) => {
     }))
   ];
 
-  const total = candidate.matchedRules.length + candidate.missingRules.length;
-  const matched = candidate.matchedRules.length;
-
-  // Build confidence explanation
-  let explanation = `${matched} of ${total} rules matched. ${candidate.confidenceLevel} confidence (${(candidate.confidenceScore * 100).toFixed(0)}%).`;
-
-  if ((candidate.scoreBreakdown['Sequence Bonus'] || 0) > 0) {
-    explanation += ' Steps detected in correct sequence (+bonus).';
-  }
-  if ((candidate.scoreBreakdown['Entity Correlation'] || 0) > 0) {
-    explanation += ' Related records confirmed in same session (+bonus).';
-  }
-  if (candidate.missingRules.length > 0) {
-    explanation += ` Missing: ${candidate.missingRules[0]}`;
-  }
-
   return (
-    <div className="p-6 space-y-6 flex flex-col">
-      {/* Step Flow */}
-      <div>
-        <h3 className="font-semibold mb-4 text-sm">Detected Steps</h3>
-        <div className="space-y-4">
-          {steps.map((step, idx) => (
-            <div key={idx}>
-              {/* Step Node */}
-              <div
-                className={`
-                  rounded-lg border-l-4 p-4 transition-all
-                  ${step.type === 'matched'
-                    ? 'border-green-500 bg-gray-800 dark:bg-gray-750'
-                    : 'border-amber-500 bg-gray-900 dark:bg-gray-800 opacity-60'
-                  }
-                `}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Dot */}
-                  <div className={`flex-shrink-0 w-3 h-3 rounded-full mt-1 ${getDotColorClass(step.dotColor)}`} />
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm text-gray-200 dark:text-gray-300">{step.rule}</p>
-                      <span className={`flex-shrink-0 text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap ${
-                        step.type === 'matched'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                      }`}>
-                        {step.type === 'matched' ? '✓ Matched' : '✗ Missing'}
-                      </span>
-                    </div>
-
-                    {/* Evidence */}
-                    {step.evidence && step.type === 'matched' && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                        {step.evidence}
-                      </p>
-                    )}
-                  </div>
-                </div>
+    <div className="w-full overflow-x-auto">
+      <div className="flex gap-2 p-3" style={{ minWidth: 'min-content' }}>
+        {steps.map((step, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            {/* Step Card */}
+            <div
+              className={`flex-shrink-0 flex flex-col gap-2 p-2 rounded border min-w-[140px] ${
+                step.type === 'matched'
+                  ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-dashed border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 opacity-60'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-2.5 h-2.5 rounded-full ${getDotColorClass(step.dotColor)}`} />
+                <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{step.rule}</p>
               </div>
-
-              {/* Connector line and arrow */}
-              {idx < steps.length - 1 && (
-                <div className="flex justify-center py-1">
-                  <div className="w-px h-4 bg-gray-600 dark:bg-gray-500"></div>
-                </div>
-              )}
-              {idx < steps.length - 1 && (
-                <div className="text-center text-gray-500 dark:text-gray-400 -my-3">▼</div>
+              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded w-fit ${
+                step.type === 'matched'
+                  ? 'bg-blue-200 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+              }`}>
+                {step.type === 'matched' ? '✓ Matched' : '✗ Missing'}
+              </span>
+              {step.evidence && (
+                <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{step.evidence}</p>
               )}
             </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Current State Indicator */}
-      {candidate.currentStateName && (
-        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-400">
-          <p className="font-semibold">📍 Current State</p>
-          <p className="mt-1">{candidate.currentStateName}</p>
-        </div>
-      )}
-
-      {/* Evidence Tags */}
-      {candidate.matchedEvidence.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-2">Matched Evidence</p>
-          <div className="flex flex-wrap gap-2">
-            {candidate.matchedEvidence.slice(0, 5).map((evidence, idx) => (
-              <span
-                key={idx}
-                className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
-              >
-                ✓ {evidence}
-              </span>
-            ))}
-            {candidate.matchedEvidence.length > 5 && (
-              <span className="text-xs px-2 py-1 text-gray-500 dark:text-gray-400">
-                +{candidate.matchedEvidence.length - 5} more
-              </span>
+            {/* Arrow */}
+            {idx < steps.length - 1 && (
+              <span className="text-gray-400 dark:text-gray-600 flex-shrink-0">→</span>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Confidence Explanation */}
-      <div className="p-3 bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-400">
-        {explanation}
+        ))}
       </div>
-
-      {/* Next Step Hint */}
-      {candidate.nextStepHint && (
-        <div className="p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-400 font-semibold">
-          → {candidate.nextStepHint}
-        </div>
-      )}
     </div>
   );
 };

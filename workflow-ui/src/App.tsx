@@ -9,6 +9,7 @@ import { AnalysisSummary } from './components/AnalysisSummary';
 import { LibraryPage } from './components/LibraryPage';
 import { HelpIcon } from './components/HelpIcon';
 import { HelpPanel } from './components/HelpPanel';
+import { EvidenceSection } from './components/EvidenceSection';
 import { helpContent } from './help/helpContent';
 
 export function App() {
@@ -91,8 +92,8 @@ export function App() {
 
       {/* Main Content - Flush with left edge */}
       {topLevelTab === 'discovery' ? (
-        <div className="w-full flex flex-1 gap-6 py-6 min-h-0">
-          {/* Left Sidebar - Fixed 280px */}
+        <div className="w-full flex flex-1 gap-6 py-6 min-h-0 px-6">
+          {/* Left Column - Fixed 280px */}
           <div className="w-[280px] flex-shrink-0 flex flex-col gap-4 min-h-0">
             <div className="flex-shrink-0">
               <LogDropZone onResult={handleAnalyzeResult} onError={handleError} />
@@ -120,8 +121,8 @@ export function App() {
             </div>
           </div>
 
-          {/* Middle Column - Flow Visualiser (320px fixed) */}
-          <div className="w-[320px] flex-shrink-0 flex flex-col min-h-0">
+          {/* Right Column - Flex-1 fills remaining space */}
+          <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
                 <div className="text-center text-gray-500 dark:text-gray-400">
@@ -136,43 +137,21 @@ export function App() {
                   <p className="text-sm mt-2">This log file doesn't match any known workflows</p>
                 </div>
               </div>
-            ) : selectedCandidate ? (
-              <div className="border border-gray-200 dark:border-gray-800 rounded-lg min-h-0 overflow-y-auto flex flex-col">
-                <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Detected Steps</h3>
-                </div>
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                  <FlowVisualiser candidate={selectedCandidate} />
-                </div>
-              </div>
-            ) : (
+            ) : !selectedCandidate ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
                 <div className="text-center text-gray-500 dark:text-gray-400">
                   <p className="text-lg font-medium">Select a workflow to view</p>
                   <p className="text-sm mt-2">Choose from the candidates on the left</p>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Right Column - Details/Workshop (flex-1 fills remaining space) */}
-          <div className="flex-1 flex flex-col min-h-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-            {!analyzeResponse || analyzeResponse.workflowCandidates.length === 0 ? (
-              <div className="flex items-center justify-center flex-1 p-6">
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <p className="text-sm font-medium">No workflow selected</p>
-                </div>
-              </div>
-            ) : selectedCandidate ? (
+            ) : (
               <>
-                {/* Sticky Header - Workflow Info */}
-                <div className="flex-shrink-0 sticky top-0 z-10 px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-                  <div className="mb-2">
-                    <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">
-                      {selectedCandidate.workflowName}
-                    </h2>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
+                {/* Section 1 - Workflow name + Horizontal steps */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4">
+                  <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {selectedCandidate.workflowName}
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs mb-3">
                     <span className="font-semibold text-green-600 dark:text-green-400">
                       {(selectedCandidate.confidenceScore * 100).toFixed(0)}%
                     </span>
@@ -184,61 +163,63 @@ export function App() {
                       {selectedCandidate.confidenceLevel}
                     </span>
                     {selectedCandidate.currentStateName && (
-                      <span className="text-gray-500 dark:text-gray-400">
+                      <span className="text-gray-600 dark:text-gray-400">
                         {selectedCandidate.currentStateName}
                       </span>
                     )}
                   </div>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">DETECTED STEPS</p>
+                  <FlowVisualiser candidate={selectedCandidate} />
                 </div>
 
-                {/* Tab Bar */}
-                <div className="flex-shrink-0 flex gap-4 border-b border-gray-200 dark:border-gray-700 px-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setActiveTab('detail')}
-                      className={`py-2 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === 'detail'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Details
-                    </button>
-                    <HelpIcon helpKey="discovery-workflow-details" onOpen={openHelp} />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setActiveTab('workshop')}
-                      className={`py-2 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === 'workshop'
-                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Workshop
-                    </button>
-                    <HelpIcon helpKey="discovery-workshop" onOpen={openHelp} />
-                  </div>
-                </div>
+                {/* Section 2 - Evidence & Score (Collapsible) */}
+                <EvidenceSection candidate={selectedCandidate} />
 
-                {/* Tab Content */}
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                  {activeTab === 'detail' ? (
-                    <WorkflowDetail candidate={selectedCandidate} />
-                  ) : (
-                    <WorkshopPanel
-                      candidate={selectedCandidate}
-                      workflowId={selectedCandidate.workflowId}
-                    />
-                  )}
+                {/* Section 3 - Workflow Details / Workshop tabs */}
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 flex flex-col min-h-0 flex-1 overflow-hidden">
+                  {/* Tab Bar */}
+                  <div className="flex-shrink-0 flex gap-4 border-b border-gray-200 dark:border-gray-700 px-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveTab('detail')}
+                        className={`py-2 font-medium text-sm border-b-2 transition-colors ${
+                          activeTab === 'detail'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        Workflow details
+                      </button>
+                      <HelpIcon helpKey="discovery-workflow-details" onOpen={openHelp} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setActiveTab('workshop')}
+                        className={`py-2 font-medium text-sm border-b-2 transition-colors ${
+                          activeTab === 'workshop'
+                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                        }`}
+                      >
+                        Workshop
+                      </button>
+                      <HelpIcon helpKey="discovery-workshop" onOpen={openHelp} />
+                    </div>
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="flex-1 min-h-0 overflow-y-auto">
+                    {activeTab === 'detail' ? (
+                      <WorkflowDetail candidate={selectedCandidate} />
+                    ) : (
+                      <WorkshopPanel
+                        candidate={selectedCandidate}
+                        workflowId={selectedCandidate.workflowId}
+                      />
+                    )}
+                  </div>
                 </div>
               </>
-            ) : (
-              <div className="flex items-center justify-center flex-1 p-6">
-                <div className="text-center text-gray-500 dark:text-gray-400">
-                  <p className="text-sm font-medium">Select a workflow to view</p>
-                </div>
-              </div>
             )}
           </div>
         </div>
