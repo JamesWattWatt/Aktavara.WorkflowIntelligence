@@ -51,6 +51,9 @@ public class FileHelpGuideStore : IHelpGuideStore
     public IReadOnlyList<HelpGuideSection> GetByWorkflowAndStep(string workflowId, string stepId)
     {
         EnsureLoaded();
+        if (string.IsNullOrEmpty(stepId))
+            return new List<HelpGuideSection>();
+
         var normalizedStepId = NormalizeStepId(stepId);
         var key = $"{workflowId}:{normalizedStepId}";
         return _stepMappings?.GetValueOrDefault(key) ?? new List<HelpGuideSection>();
