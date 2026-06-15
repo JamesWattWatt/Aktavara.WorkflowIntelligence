@@ -66,11 +66,20 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
     }
   };
 
+  const normalizeStepId = (stepId: string): string => {
+    return stepId
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '_')
+      .replace(/-/g, '_');
+  };
+
   const fetchHelpGuide = async () => {
     if (!candidate?.workflowId || !candidate?.currentStateName) return;
     setLoadingGuide(true);
     try {
-      const sections = await apiClient.getHelpGuideSection(candidate.workflowId, candidate.currentStateName);
+      const normalizedStepId = normalizeStepId(candidate.currentStateName);
+      const sections = await apiClient.getHelpGuideSection(candidate.workflowId, normalizedStepId);
       if (sections.length > 0) {
         setHelpGuide(sections[0]);
       }
