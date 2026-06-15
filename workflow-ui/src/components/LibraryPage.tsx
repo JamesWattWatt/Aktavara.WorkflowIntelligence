@@ -3,10 +3,13 @@ import type { WorkflowLibraryItem, WorkflowDefinition } from '../types/api';
 import { apiClient } from '../services/apiClient';
 import { WorkflowEditor } from './WorkflowEditor';
 import { InferenceModal } from './InferenceModal';
+import { HelpIcon } from './HelpIcon';
 
-interface LibraryPageProps {}
+interface LibraryPageProps {
+  onOpenHelp?: (key: string) => void;
+}
 
-export function LibraryPage({}: LibraryPageProps) {
+export function LibraryPage({ onOpenHelp }: LibraryPageProps) {
   const [workflows, setWorkflows] = useState<WorkflowLibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -231,7 +234,12 @@ export function LibraryPage({}: LibraryPageProps) {
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">Rules</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">States</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">Modified</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">Actions</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-gray-100">
+                  <div className="flex items-center gap-2">
+                    Actions
+                    {onOpenHelp && <HelpIcon helpKey="library-edit" onOpen={onOpenHelp} />}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>

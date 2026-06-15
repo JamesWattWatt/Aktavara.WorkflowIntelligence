@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { AnalyzeResponse } from '../types/api';
+import { HelpIcon } from './HelpIcon';
 
 interface AnalysisSummaryProps {
   response: AnalyzeResponse | null;
+  onOpenHelp?: (key: string) => void;
 }
 
 const getGuidanceBadgeColor = (level: string): { bg: string; text: string } => {
@@ -18,7 +20,7 @@ const getGuidanceBadgeColor = (level: string): { bg: string; text: string } => {
   }
 };
 
-export const AnalysisSummary = ({ response }: AnalysisSummaryProps) => {
+export const AnalysisSummary = ({ response, onOpenHelp }: AnalysisSummaryProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   if (!response) {
@@ -38,6 +40,7 @@ export const AnalysisSummary = ({ response }: AnalysisSummaryProps) => {
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">{isExpanded ? '▼' : '▶'}</span>
               <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Analysis</p>
+              {onOpenHelp && <HelpIcon helpKey="discovery-analysis" onOpen={onOpenHelp} />}
             </div>
             <p className="font-medium text-sm truncate">{response.fileName}</p>
           </div>

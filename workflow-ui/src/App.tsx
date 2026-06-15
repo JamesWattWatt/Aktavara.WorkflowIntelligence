@@ -7,6 +7,9 @@ import { FlowVisualiser } from './components/FlowVisualiser';
 import { WorkshopPanel } from './components/WorkshopPanel';
 import { AnalysisSummary } from './components/AnalysisSummary';
 import { LibraryPage } from './components/LibraryPage';
+import { HelpIcon } from './components/HelpIcon';
+import { HelpPanel } from './components/HelpPanel';
+import { helpContent } from './help/helpContent';
 
 export function App() {
   const [topLevelTab, setTopLevelTab] = useState<'discovery' | 'library'>('discovery');
@@ -14,6 +17,21 @@ export function App() {
   const [selectedCandidate, setSelectedCandidate] = useState<WorkflowCandidateResult | null>(null);
   const [activeTab, setActiveTab] = useState<'detail' | 'workshop'>('detail');
   const [error, setError] = useState<string | null>(null);
+  const [helpPanelOpen, setHelpPanelOpen] = useState(false);
+  const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
+
+  const openHelp = (key: string) => {
+    setHelpPanelKey(key);
+    setHelpPanelOpen(true);
+  };
+
+  const closeHelp = () => {
+    setHelpPanelOpen(false);
+  };
+
+  const currentHelpContent = helpPanelKey && helpContent[helpPanelKey]
+    ? helpContent[helpPanelKey]
+    : { title: '', content: '' };
 
   const handleAnalyzeResult = (response: AnalyzeResponse) => {
     setAnalyzeResponse(response);
@@ -34,9 +52,15 @@ export function App() {
         <div className="flex items-center justify-between mb-3 px-6 py-4">
           <div>
             <h1 className="text-2xl font-bold">Aktavara Workflow Intelligence</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {topLevelTab === 'discovery' ? 'Discovery & Workshop Interface' : 'Workflow Library Management'}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {topLevelTab === 'discovery' ? 'Discovery & Workshop Interface' : 'Workflow Library Management'}
+              </p>
+              <HelpIcon
+                helpKey={topLevelTab === 'discovery' ? 'discovery-concept' : 'library-concept'}
+                onOpen={openHelp}
+              />
+            </div>
           </div>
         </div>
 
@@ -82,7 +106,7 @@ export function App() {
 
             {analyzeResponse && (
               <div className="flex-shrink-0">
-                <AnalysisSummary response={analyzeResponse} />
+                <AnalysisSummary response={analyzeResponse} onOpenHelp={openHelp} />
               </div>
             )}
 
@@ -168,27 +192,33 @@ export function App() {
                 </div>
 
                 {/* Tab Bar */}
-                <div className="flex-shrink-0 flex gap-2 border-b border-gray-200 dark:border-gray-700 px-4">
-                  <button
-                    onClick={() => setActiveTab('detail')}
-                    className={`py-2 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === 'detail'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    Details
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('workshop')}
-                    className={`py-2 font-medium text-sm border-b-2 transition-colors ${
-                      activeTab === 'workshop'
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
-                  >
-                    Workshop
-                  </button>
+                <div className="flex-shrink-0 flex gap-4 border-b border-gray-200 dark:border-gray-700 px-4">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveTab('detail')}
+                      className={`py-2 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === 'detail'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      Details
+                    </button>
+                    <HelpIcon helpKey="discovery-workflow-details" onOpen={openHelp} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveTab('workshop')}
+                      className={`py-2 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === 'workshop'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      Workshop
+                    </button>
+                    <HelpIcon helpKey="discovery-workshop" onOpen={openHelp} />
+                  </div>
                 </div>
 
                 {/* Tab Content */}
@@ -214,9 +244,17 @@ export function App() {
         </div>
       ) : (
         <div className="flex-1 min-h-0">
-          <LibraryPage />
+          <LibraryPage onOpenHelp={openHelp} />
         </div>
       )}
+
+      {/* Help Panel */}
+      <HelpPanel
+        isOpen={helpPanelOpen}
+        onClose={closeHelp}
+        title={currentHelpContent.title}
+        content={currentHelpContent.content}
+      />
     </div>
   );
 }
