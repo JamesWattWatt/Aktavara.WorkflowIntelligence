@@ -19,13 +19,14 @@
 - workflow-ui/ (React UI — Prompt 19 in progress)
 
 ## Current status
-- Prompts 1-22a complete
+- Prompts 1-22b complete
 - 200 tests passing, 0 errors
 - API running on http://localhost:5112
 - React UI (Vite) running on http://localhost:5173 with full functionality
 - MCP server: aktavara-workflow-mcp/
 - Help guides: 29 chapters in help-guides/
 - Workflow library: 2 workflows in workflows/
+- Intelligent help guide matcher: LLM-driven guide discovery with human approval
 
 ## API endpoints (all working)
 POST /api/analyze/upload — file upload, full pipeline
@@ -38,6 +39,8 @@ GET  /api/health — health check
 GET  /api/help-guides — list all guides
 GET  /api/help-guides/{helpGuideId} — full guide
 GET  /api/help-guides/section?workflowId=X&stepId=Y
+POST /api/help-guides/suggest — LLM suggest guide for step (Prompt 22b)
+POST /api/help-guides/mapping — save approved guide mapping (Prompt 22b)
 
 ## Important: workflow status mapping
 Storage values → UI values:
@@ -100,18 +103,46 @@ Architecture:
   - Empty states for no file, no candidates, no selection
   - Dark/light theme with Tailwind classes
 
-Features (Prompts 20-22):
+Features (Prompts 20-22b):
 - LogDropZone: drag-over visual state, file preview, spinner, validation, errors, clear button
 - WorkflowList: colored confidence bars (green/amber/red), evidence count, selected indicator
 - WorkflowDetail: evidence tags, missing rules in red, score breakdown table, hints, workshop preview
 - FlowVisualiser: matched steps (green), missing steps (amber), color-coded dots, evidence linking, confidence explanation
-- WorkshopPanel: ✓ Name editor, qualification questions with notes, execution decision (3 options), status controls (Approve/Candidate/Deprecate), session export (JSON), help guide preview
+- WorkshopPanel: ✓ Name editor, questions with notes, execution decision (3 options), status controls, session export (JSON), help guide preview with LLM suggestion UI (Prompt 22b)
 - AnalysisSummary: guidance badge (color-coded), recommended next step, collapsible
 - Error handling: friendly API errors, file validation (type, size), empty states
 - Layout: Fixed header, independently scrollable panels, natural page scroll at 100% zoom
 - State management: React useState for all data, no localStorage persistence
+- Guide suggestion (22b): "Suggest guide" button when no mapping exists, shows LLM suggestion with approval/dismiss buttons
 
 API Proxy: vite.config.ts routes /api to http://localhost:5112
+
+## Intelligent Help Guide Matcher (Prompt 22b)
+
+IntelligentHelpGuideMatcher service (Api/Services/):
+- Calls Claude Sonnet 4.6 API to suggest best guide section for a workflow step
+- Input: workflowId, workflowName, stepId, currentStateName, matchedRules, matchedEvidence
+- Builds available sections list from IHelpGuideStore (max 100)
+- Constructs LLM prompt with workflow context and available guides
+- Parses JSON response: { guideFile, sectionId, sectionHeading, reason }
+- Returns GuideSuggestion with parsed result or null on failure
+- Graceful degradation if API key not configured
+
+HelpGuideMappingWriter service (Api/Services/):
+- Reads/writes workflow-guide-mapping.json with atomic locking
+- Normalizes stepId (spaces/hyphens to underscores, lowercase)
+- Removes old mapping, adds new one, writes file with pretty-print JSON
+- Calls IHelpGuideStore.Reload() to cache-invalidate after write
+- Used by WorkshopPanel to persist user-approved suggestions
+
+API Endpoints (Prompt 22b):
+- POST /api/help-guides/suggest — LLM suggests guide for workflow step
+- POST /api/help-guides/mapping — save approved guide mapping to file
+
+React Integration (Prompt 22b):
+- WorkshopPanel: suggestGuideMapping(), approveSuggestion(), dismissSuggestion()
+- UI state: guideSuggestion, suggestingGuide, showSuggestionUI
+- Shows suggestion with approval/dismiss when no existing mapping
 
 ## MCP server
 Location: aktavara-workflow-mcp/
