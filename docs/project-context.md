@@ -19,16 +19,17 @@
 - workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
-- Prompts 1-23a complete
+- Prompts 1-24a complete
 - 215 tests passing, 0 errors
-- API running on http://localhost:5112 with all endpoints functional
+- API running on http://localhost:5112 with all endpoints functional (including PUT/POST/DELETE workflows)
 - React UI (Vite) running on http://localhost:5173 with full functionality
 - MCP server: aktavara-workflow-mcp/
 - Help guides: 29 chapters in help-guides/
 - Workflow library: 2 workflows in workflows/
 - Intelligent help guide matcher: LLM-driven guide discovery with human approval
 - Offline discovery service: fully implemented with 10 inference methods, working inference endpoints
-- POST /api/analyze/text: fixed null reference issue, working correctly
+- Library management UI: full CRUD with inference modal, import/export (Prompt 23b)
+- Layout: full width (1200px min), three-column layout with sticky workflow header (Prompt 24a)
 
 ## API endpoints (all working)
 POST /api/analyze/upload — file upload, full pipeline
@@ -195,9 +196,36 @@ Core inference service for workflow discovery from activity logs:
 - **Tests**: 15 unit tests covering basic inference, risk detection, session clustering, variant detection, tag extraction, question generation, threshold calculation, weight normalization
 - Status: 215 tests passing, 0 errors, all endpoints functional and tested
 
+## Prompt 24a: Layout Fixes (COMPLETE)
+
+Three layout improvements for the Discovery interface:
+
+**FIX 1 - Full width layout (1200px minimum)**
+- Added `min-w-[1200px]` to outer container
+- Removed max-width centering constraints
+- Three-column layout fills available width without horizontal scroll:
+  - Left: 280px fixed (LogDropZone, AnalysisSummary, WorkflowList)
+  - Middle: flexible width (FlowVisualiser with "Detected Steps" header)
+  - Right: 380px fixed (Workflow Details/Workshop with sticky header)
+
+**FIX 2 - Tab bar alignment**
+- Moved Details/Workshop tabs above right column only (not both columns)
+- Added "Detected Steps" header to middle column
+- Clarifies visual hierarchy: tabs control right panel, not middle column
+- Renamed full tab names to "Details"/"Workshop" to save space
+
+**FIX 3 - Sticky workflow header**
+- Added sticky header to top of right column showing:
+  - Workflow name (bold, large)
+  - Confidence score percentage (bold, green)
+  - Confidence level badge (color-coded: green/yellow/red)
+  - Current state name
+- Header remains visible when scrolling Details/Workshop content
+- z-index set to stay above tab bar during scroll
+- Updates when different candidate selected
+
 ## Next prompts
-- Prompt 23b: React library management UI — new page for workflow CRUD operations, discovery results preview, workflow creation from inferred suggestions, library search/filter, status management (Approved/Candidate/Deprecated), bulk operations, validation UI
-- Prompt 24: E2E testing (Playwright, critical user paths, accessibility)
+- Prompt 24b+: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
 
 ## Key design rules
