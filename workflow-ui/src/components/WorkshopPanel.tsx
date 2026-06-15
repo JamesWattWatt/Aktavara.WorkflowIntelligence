@@ -252,28 +252,33 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
         <h3 className="font-semibold mb-3">Execution Decision</h3>
         <div className="space-y-3">
           {['Guidance only', 'Assisted action', 'Governed execution'].map((option) => (
-            <label key={option} className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <input
-                type="radio"
-                name="execution"
-                value={option}
-                checked={executionDecision === option}
-                onChange={(e) => setExecutionDecision(e.target.value)}
-                className="mt-1 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{option}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {option === 'Guidance only' &&
-                    'The assistant provides step-by-step instructions but the user performs all actions manually.'}
-                  {option === 'Assisted action' &&
-                    'The assistant can perform individual steps on behalf of the user with explicit confirmation at each step.'}
-                  {option === 'Governed execution' &&
-                    'The full workflow runs automatically with pre-approved governance rules. Requires Temporal workflow engine integration.'}
-                </p>
+            <label
+              key={option}
+              className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="execution"
+                  value={option}
+                  checked={executionDecision === option}
+                  onChange={(e) => setExecutionDecision(e.target.value)}
+                  className="mt-1 flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{option}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {option === 'Guidance only' &&
+                      'The assistant provides step-by-step instructions but the user performs all actions manually.'}
+                    {option === 'Assisted action' &&
+                      'The assistant can perform individual steps on behalf of the user with explicit confirmation at each step.'}
+                    {option === 'Governed execution' &&
+                      'The full workflow runs automatically with pre-approved governance rules. Requires Temporal workflow engine integration.'}
+                  </p>
+                </div>
               </div>
               {option === 'Governed execution' && (
-                <div className="flex-shrink-0 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded whitespace-nowrap">
+                <div className="mt-2 ml-7 inline-block px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded">
                   ⚠️ Implementation required
                 </div>
               )}
