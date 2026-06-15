@@ -173,14 +173,16 @@ async Task<IResult> HandleAnalyzeUpload(
     IConfiguration config,
     ILogger<Program> logger)
 {
+    Console.WriteLine("\n=== [Upload] STARTING FILE UPLOAD HANDLER ===");
+    logger.LogInformation("[Upload] Starting file upload analysis");
+
     try
     {
-        logger.LogInformation("[Upload] Starting file upload analysis");
-
         var file = request.Form.Files.FirstOrDefault(f => f.Name == "logFile");
         if (file == null)
             return Results.BadRequest(new { error = "Missing 'logFile' field" });
 
+        Console.WriteLine($"[Upload] File received: {file.FileName} ({file.Length} bytes)");
         logger.LogInformation("[Upload] File received: {FileName} ({FileSize} bytes)", file.FileName, file.Length);
 
         var allowedExtensions = new[] { ".txt" };
@@ -195,13 +197,24 @@ async Task<IResult> HandleAnalyzeUpload(
         var startTime = DateTime.UtcNow;
 
         // Read file content
+        Console.WriteLine("[Upload] Reading file content...");
         logger.LogInformation("[Upload] Reading file content");
         string logContent;
-        using (var reader = new StreamReader(file.OpenReadStream()))
+        try
         {
-            logContent = await reader.ReadToEndAsync();
+            using (var reader = new StreamReader(file.OpenReadStream()))
+            {
+                logContent = await reader.ReadToEndAsync();
+            }
+            Console.WriteLine($"[Upload] File content read: {logContent.Length} characters");
+            logger.LogInformation("[Upload] File content read: {ContentLength} characters", logContent.Length);
         }
-        logger.LogInformation("[Upload] File content read: {ContentLength} characters", logContent.Length);
+        catch (Exception readEx)
+        {
+            Console.WriteLine($"[Upload] ERROR READING FILE: {readEx.GetType().Name}: {readEx.Message}");
+            logger.LogError(readEx, "[Upload] ERROR READING FILE");
+            throw;
+        }
 
         // Extract user question if provided
         var userQuestion = request.Form.TryGetValue("userQuestion", out var questionValues)
@@ -209,33 +222,97 @@ async Task<IResult> HandleAnalyzeUpload(
             : null;
 
         // Parse and process
+        Console.WriteLine("[Upload] Parsing log entries...");
         logger.LogInformation("[Upload] Parsing log entries");
-        var rawEntries = parser.Parse(logContent);
-        logger.LogInformation("[Upload] Parsed {EntryCount} raw entries", rawEntries.Count);
+        IReadOnlyList<RawActivityLogEntry> rawEntries;
+        try
+        {
+            rawEntries = parser.Parse(logContent);
+            Console.WriteLine($"[Upload] Parsed {rawEntries.Count} raw entries");
+            logger.LogInformation("[Upload] Parsed {EntryCount} raw entries", rawEntries.Count);
+        }
+        catch (Exception parseEx)
+        {
+            Console.WriteLine($"[Upload] ERROR PARSING: {parseEx.GetType().Name}: {parseEx.Message}\n{parseEx.StackTrace}");
+            logger.LogError(parseEx, "[Upload] ERROR PARSING");
+            throw;
+        }
 
+        Console.WriteLine("[Upload] Normalizing events...");
         logger.LogInformation("[Upload] Normalizing events");
-        var events = normalizer.Normalize(rawEntries);
-        logger.LogInformation("[Upload] Normalized to {EventCount} activity events", events.Count);
+        IReadOnlyList<ActivityEvent> events;
+        try
+        {
+            events = normalizer.Normalize(rawEntries);
+            Console.WriteLine($"[Upload] Normalized to {events.Count} activity events");
+            logger.LogInformation("[Upload] Normalized to {EventCount} activity events", events.Count);
+        }
+        catch (Exception normEx)
+        {
+            Console.WriteLine($"[Upload] ERROR NORMALIZING: {normEx.GetType().Name}: {normEx.Message}\n{normEx.StackTrace}");
+            logger.LogError(normEx, "[Upload] ERROR NORMALIZING");
+            throw;
+        }
 
         // Get all matched events for context
         var allEventsForContext = events.ToList();
         var logStartTime = allEventsForContext.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var logEndTime = allEventsForContext.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
 
+        Console.WriteLine("[Upload] Building activity context...");
         logger.LogInformation("[Upload] Building activity context");
-        var context = contextBuilder.BuildContext(allEventsForContext, null, logStartTime, logEndTime);
+        ActivityContext context;
+        try
+        {
+            context = contextBuilder.BuildContext(allEventsForContext, null, logStartTime, logEndTime);
+            Console.WriteLine($"[Upload] Activity context built");
+            logger.LogInformation("[Upload] Activity context built");
+        }
+        catch (Exception contextEx)
+        {
+            Console.WriteLine($"[Upload] ERROR BUILDING CONTEXT: {contextEx.GetType().Name}: {contextEx.Message}\n{contextEx.StackTrace}");
+            logger.LogError(contextEx, "[Upload] ERROR BUILDING CONTEXT");
+            throw;
+        }
 
+        Console.WriteLine("[Upload] Matching workflows...");
         logger.LogInformation("[Upload] Matching workflows");
-        var workflows = workflowLibrary.GetAll();
-        var matches = matcher.FindMatches(context, workflows);
-        logger.LogInformation("[Upload] Found {MatchCount} workflow matches", matches.Count);
+        IReadOnlyList<WorkflowDefinition> workflows;
+        IReadOnlyList<WorkflowMatchResult> matches;
+        try
+        {
+            workflows = workflowLibrary.GetAll();
+            matches = matcher.FindMatches(context, workflows);
+            Console.WriteLine($"[Upload] Found {matches.Count} workflow matches");
+            logger.LogInformation("[Upload] Found {MatchCount} workflow matches", matches.Count);
+        }
+        catch (Exception matchEx)
+        {
+            Console.WriteLine($"[Upload] ERROR MATCHING: {matchEx.GetType().Name}: {matchEx.Message}\n{matchEx.StackTrace}");
+            logger.LogError(matchEx, "[Upload] ERROR MATCHING");
+            throw;
+        }
 
         // Generate packet
+        Console.WriteLine("[Upload] Generating assistant context packet...");
         logger.LogInformation("[Upload] Generating assistant context packet");
-        var packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary, userQuestion);
+        AssistantContextPacket packet;
+        try
+        {
+            packet = packetGenerator.GeneratePacket(context, matches, workflowLibrary, userQuestion);
+            Console.WriteLine($"[Upload] Assistant context packet generated");
+            logger.LogInformation("[Upload] Assistant context packet generated");
+        }
+        catch (Exception packetEx)
+        {
+            Console.WriteLine($"[Upload] ERROR GENERATING PACKET: {packetEx.GetType().Name}: {packetEx.Message}\n{packetEx.StackTrace}");
+            logger.LogError(packetEx, "[Upload] ERROR GENERATING PACKET");
+            throw;
+        }
 
         var durationMs = (long)(DateTime.UtcNow - startTime).TotalMilliseconds;
 
+        Console.WriteLine("[Upload] Building response...");
         var response = new AnalyzeResponse
         {
             SessionId = Guid.NewGuid().ToString(),
@@ -271,7 +348,10 @@ async Task<IResult> HandleAnalyzeUpload(
                         }
                     }
                 }
-                catch { }
+                catch (Exception wsEx)
+                {
+                    Console.WriteLine($"[Upload] Warning: Failed to extract workshop questions: {wsEx.Message}");
+                }
 
                 return new WorkflowCandidateResult
                 {
@@ -290,23 +370,34 @@ async Task<IResult> HandleAnalyzeUpload(
             }).ToList() ?? new()
         };
 
+        Console.WriteLine($"[Upload] SUCCESS: Response ready ({durationMs}ms)");
         logger.LogInformation("[Upload] Analysis complete, returning response");
         return Results.Ok(response);
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "[Upload] EXCEPTION: {ExceptionType}: {ExceptionMessage}\nStack trace: {StackTrace}",
-            ex.GetType().Name, ex.Message, ex.StackTrace);
+        Console.WriteLine("\n╔══════════════════════════════════════════════════════╗");
+        Console.WriteLine("║           [Upload] UNHANDLED EXCEPTION               ║");
+        Console.WriteLine("╚══════════════════════════════════════════════════════╝");
+        Console.WriteLine($"Exception Type: {ex.GetType().FullName}");
+        Console.WriteLine($"Message: {ex.Message}");
+        Console.WriteLine($"Stack Trace:\n{ex.StackTrace}");
 
         var innerException = ex.InnerException;
         var depth = 1;
         while (innerException != null && depth < 5)
         {
-            logger.LogError("[Upload] Inner exception {Depth}: {InnerExceptionType}: {InnerExceptionMessage}",
-                depth, innerException.GetType().Name, innerException.Message);
+            Console.WriteLine($"\n--- Inner Exception {depth} ---");
+            Console.WriteLine($"Type: {innerException.GetType().FullName}");
+            Console.WriteLine($"Message: {innerException.Message}");
+            Console.WriteLine($"Stack: {innerException.StackTrace}");
             innerException = innerException.InnerException;
             depth++;
         }
+        Console.WriteLine("╚══════════════════════════════════════════════════════╝\n");
+
+        logger.LogError(ex, "[Upload] CRITICAL ERROR: {ExceptionType}: {ExceptionMessage}", ex.GetType().FullName, ex.Message);
+        logger.LogError("[Upload] Stack Trace: {StackTrace}", ex.StackTrace);
 
         return Results.BadRequest(new { error = "Error processing file", details = ex.Message });
     }
