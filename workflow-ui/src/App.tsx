@@ -26,23 +26,23 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Header */}
-      <header className="border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      {/* Fixed Header */}
+      <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-800 px-6 py-4 bg-white dark:bg-gray-900">
         <h1 className="text-2xl font-bold">Aktavara Workflow Intelligence</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Discovery & Workshop Interface</p>
       </header>
 
-      {/* Main Content */}
-      <div className="flex flex-1 gap-6 p-6 overflow-hidden">
-        {/* Left Sidebar */}
-        <div className="w-80 flex flex-col gap-4 overflow-hidden">
+      {/* Main Content - Scrollable */}
+      <div className="flex flex-1 gap-6 p-6 min-h-0">
+        {/* Left Sidebar - Scrollable */}
+        <div className="w-80 flex flex-col gap-4 min-h-0">
           <div className="flex-shrink-0">
             <LogDropZone onResult={handleAnalyzeResult} onError={handleError} />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+            <div className="flex-shrink-0 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
               {error}
             </div>
           )}
@@ -53,7 +53,8 @@ export function App() {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto border border-gray-200 dark:border-gray-800 rounded-lg">
+          {/* Scrollable candidate list */}
+          <div className="flex-1 min-h-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-y-auto">
             <WorkflowList
               candidates={analyzeResponse?.workflowCandidates || []}
               selectedId={selectedCandidate?.workflowId}
@@ -62,17 +63,17 @@ export function App() {
           </div>
         </div>
 
-        {/* Right Main Content */}
-        <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+        {/* Right Main Content - Scrollable */}
+        <div className="flex-1 flex flex-col gap-4 min-h-0">
           {!analyzeResponse ? (
-            <div className="flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg">
+            <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
               <div className="text-center text-gray-500 dark:text-gray-400">
                 <p className="text-lg font-medium">Drop a log file to begin</p>
                 <p className="text-sm mt-2">Discover workflow patterns in your activity logs</p>
               </div>
             </div>
           ) : analyzeResponse.workflowCandidates.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg">
+            <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
               <div className="text-center text-gray-500 dark:text-gray-400">
                 <p className="text-lg font-medium">No workflow patterns detected</p>
                 <p className="text-sm mt-2">This log file doesn't match any known workflows</p>
@@ -81,7 +82,7 @@ export function App() {
           ) : selectedCandidate ? (
             <>
               {/* Tabs */}
-              <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800">
+              <div className="flex-shrink-0 flex gap-2 border-b border-gray-200 dark:border-gray-800">
                 <button
                   onClick={() => setActiveTab('detail')}
                   className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
@@ -104,15 +105,15 @@ export function App() {
                 </button>
               </div>
 
-              {/* Tab Content */}
-              <div className="flex-1 grid grid-cols-2 gap-4 overflow-hidden">
+              {/* Tab Content - Two column grid, scrollable */}
+              <div className="flex-1 min-h-0 grid grid-cols-2 gap-4">
                 {/* Left: Flow Visualiser */}
-                <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                <div className="border border-gray-200 dark:border-gray-800 rounded-lg min-h-0 overflow-y-auto">
                   <FlowVisualiser candidate={selectedCandidate} />
                 </div>
 
                 {/* Right: Details or Workshop */}
-                <div className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-y-auto">
+                <div className="border border-gray-200 dark:border-gray-800 rounded-lg min-h-0 overflow-y-auto">
                   {activeTab === 'detail' ? (
                     <WorkflowDetail candidate={selectedCandidate} />
                   ) : (
@@ -125,7 +126,7 @@ export function App() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg">
+            <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
               <div className="text-center text-gray-500 dark:text-gray-400">
                 <p className="text-lg font-medium">Select a workflow to view</p>
                 <p className="text-sm mt-2">Choose from the candidates on the left</p>

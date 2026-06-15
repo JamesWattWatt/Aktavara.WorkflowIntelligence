@@ -14,7 +14,7 @@ export const WorkflowDetail = ({ candidate }: WorkflowDetailProps) => {
   }
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto">
+    <div className="p-6 space-y-6">
       {/* Title and confidence */}
       <div>
         <h2 className="text-xl font-bold mb-3">{candidate.workflowName}</h2>
