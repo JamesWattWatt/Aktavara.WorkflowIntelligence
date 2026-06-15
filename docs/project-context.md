@@ -225,9 +225,23 @@
 
 **Supports:** Claude Desktop, VS Code Copilot, Cursor, any MCP-compatible client
 
+## Prompt 17 Completed (API Endpoint Audit)
+**API Audit and Completion** — Verified all endpoints are production-ready for React UI integration
+- Audited 10 endpoints: 2 analyze endpoints + 8 workflow/help-guide endpoints
+- All endpoints verified working with correct validation and error handling
+- Added WorkshopQuestions field to WorkflowCandidateResult (state-specific guidance)
+- Updated workflow JSON files: added workshopQuestions to all states
+  - update-node-in-path: 2 states × 3 questions each
+  - add-connector-to-path: 3 states × 3 questions each
+- API handlers now populate WorkshopQuestions from workflow metadata
+- Enhanced CORS: added support for Vite's alternate port (localhost:5174)
+- All 197 .NET tests passing, 0 errors
+- Full AnalyzeResponse includes: session ID, timing, state, guidance, matches, ambiguity, active entities, hints, workflow candidates with workshop questions
+
 ## Next prompts
-- Prompt 16+: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch)
-- React UI integration, frontend, and extended features
+- Prompt 18: React UI (frontend/dashboard)
+- Prompt 19+: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch)
+- Extended features and optimizations
 
 ## Key design rule
 LLM does not parse, match, or make safety decisions.
