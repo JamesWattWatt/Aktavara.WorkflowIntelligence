@@ -19,7 +19,7 @@
 - workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
-- Prompts 1-24b complete
+- Prompts 1-24c complete
 - 215 tests passing, 0 errors
 - API running on http://localhost:5112 with all endpoints functional (including PUT/POST/DELETE workflows)
 - React UI (Vite) running on http://localhost:5173 with full functionality
@@ -29,7 +29,7 @@
 - Intelligent help guide matcher: LLM-driven guide discovery with human approval
 - Offline discovery service: fully implemented with 10 inference methods, working inference endpoints
 - Library management UI: full CRUD with inference modal, import/export (Prompt 23b)
-- Layout: full width (1200px min), three-column layout with sticky workflow header (Prompt 24a)
+- Layout: full width (1200px min), three-column optimized (280px | 320px | flex), right column fills space (Prompt 24a-24c)
 - Contextual help system: sliding panel with markdown rendering, 7 help topics (Prompt 24b)
 
 ## API endpoints (all working)
@@ -263,6 +263,44 @@ Help system providing contextual guidance via sliding drawer panel:
 - Non-intrusive: Overlay allows dismissal, doesn't block interaction
 - Accessible: Escape key closes panel
 - Responsive: Works at all viewport sizes
+
+## Prompt 24c: Column Proportions Fix (COMPLETE)
+
+Fixed the three-column layout proportions for optimal content display:
+
+**Layout Before:**
+- Left: 280px fixed (LogDropZone, candidates list)
+- Middle: flex-1 (fills remaining space)
+- Right: 380px fixed (Workflow details/workshop)
+
+**Layout After (Corrected):**
+- Left: 280px fixed (drop zone, candidates)
+- Middle: 320px fixed (Flow Visualiser/steps diagram)
+- Right: flex-1 (fills all remaining width)
+
+**Rationale:**
+The right column contains the most critical content:
+- Score breakdown table
+- Matched rules and evidence
+- Workshop questions and notes
+- Requires maximum width for readability
+
+The middle column (FlowVisualiser) is a vertical flow diagram
+that works well at 320px width.
+
+**Implementation:**
+- Changed middle column from `flex-1` to `w-[320px] flex-shrink-0`
+- Changed right column from `w-[380px] flex-shrink-0` to `flex-1`
+- WorkflowDetail and WorkshopPanel use `w-full` on tables/content
+- All padding and spacing maintained
+
+**Proportions at 1920px viewport:**
+- Left: 280px (14.6%)
+- Middle: 320px (16.7%)
+- Right: ~1300px (67.7%)
+
+Gives content area maximum width for detailed views while
+maintaining compact workflow list and step diagram visibility.
 
 ## Next prompts
 - Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
