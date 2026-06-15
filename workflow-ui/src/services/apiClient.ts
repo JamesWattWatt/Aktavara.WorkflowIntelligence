@@ -3,7 +3,8 @@ import type {
   WorkflowSummary,
   WorkflowDefinition,
   HelpGuideSection,
-  HealthCheckResponse
+  HealthCheckResponse,
+  GuideSuggestion
 } from '../types/api';
 
 const BASE_URL = '/api';
@@ -110,6 +111,60 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  async suggestGuideMapping(
+    workflowId: string,
+    workflowName: string,
+    stepId: string,
+    currentStateName: string,
+    matchedRules: string[] = [],
+    matchedEvidence: string[] = []
+  ): Promise<GuideSuggestion> {
+    const response = await fetch(`${BASE_URL}/help-guides/suggest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        workflowId,
+        workflowName,
+        stepId,
+        currentStateName,
+        matchedRules,
+        matchedEvidence
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to suggest guide mapping: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async saveGuideMapping(
+    workflowId: string,
+    stepId: string,
+    guideFile: string,
+    sectionId?: string
+  ): Promise<void> {
+    const response = await fetch(`${BASE_URL}/help-guides/mapping`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        workflowId,
+        stepId,
+        guideFile,
+        sectionId: sectionId || null
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to save guide mapping: ${response.statusText}`);
+    }
   }
 }
 

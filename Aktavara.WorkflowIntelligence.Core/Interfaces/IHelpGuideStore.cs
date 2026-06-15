@@ -37,4 +37,10 @@ public interface IHelpGuideStore
     /// Gets all distinct workspace types represented in loaded guides.
     /// </summary>
     IReadOnlyList<string> GetWorkspaceTypes();
+
+    /// <summary>
+    /// Reloads all help guides and mappings from disk.
+    /// Used when mappings are updated via API.
+    /// </summary>
+    void Reload();
 }

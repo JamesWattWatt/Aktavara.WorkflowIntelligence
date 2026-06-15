@@ -72,6 +72,14 @@ public class FileHelpGuideStore : IHelpGuideStore
             .ToList() ?? new List<string>();
     }
 
+    public void Reload()
+    {
+        _loaded = false;
+        _cache = null;
+        _stepMappings = null;
+        EnsureLoaded();
+    }
+
     private void EnsureLoaded()
     {
         if (_loaded)

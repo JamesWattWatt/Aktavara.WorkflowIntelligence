@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { WorkflowCandidateResult, HelpGuideSection } from '../types/api';
+import type { WorkflowCandidateResult, HelpGuideSection, GuideSuggestion } from '../types/api';
 import { apiClient } from '../services/apiClient';
 
 interface WorkshopPanelProps {
@@ -42,6 +42,9 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
   const [loadingGuide, setLoadingGuide] = useState(false);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [showDeprecateConfirm, setShowDeprecateConfirm] = useState(false);
+  const [guideSuggestion, setGuideSuggestion] = useState<GuideSuggestion | null>(null);
+  const [suggestingGuide, setSuggestingGuide] = useState(false);
+  const [showSuggestionUI, setShowSuggestionUI] = useState(false);
 
   useEffect(() => {
     if (candidate) {
@@ -88,6 +91,52 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
     } finally {
       setLoadingGuide(false);
     }
+  };
+
+  const suggestGuideMapping = async () => {
+    if (!candidate?.workflowId || !candidate?.currentStateName) return;
+    setSuggestingGuide(true);
+    try {
+      const suggestion = await apiClient.suggestGuideMapping(
+        candidate.workflowId,
+        candidate.workflowName,
+        candidate.currentStateName,
+        candidate.currentStateName,
+        candidate.matchedRules || [],
+        candidate.matchedEvidence || []
+      );
+      setGuideSuggestion(suggestion);
+      setShowSuggestionUI(true);
+    } catch (error) {
+      console.error('Failed to suggest guide mapping:', error);
+    } finally {
+      setSuggestingGuide(false);
+    }
+  };
+
+  const approveSuggestion = async () => {
+    if (!guideSuggestion || !candidate?.workflowId) return;
+    try {
+      await apiClient.saveGuideMapping(
+        guideSuggestion.workflowId,
+        guideSuggestion.stepId,
+        guideSuggestion.suggestedGuideFile,
+        guideSuggestion.suggestedSectionId || undefined
+      );
+      setShowSuggestionUI(false);
+      setGuideSuggestion(null);
+      setSavedMessage('Guide mapping saved successfully');
+      setTimeout(() => setSavedMessage(null), 3000);
+      // Re-fetch the guide to show the approved mapping
+      fetchHelpGuide();
+    } catch (error) {
+      console.error('Failed to save guide mapping:', error);
+    }
+  };
+
+  const dismissSuggestion = () => {
+    setShowSuggestionUI(false);
+    setGuideSuggestion(null);
   };
 
   const handleSaveName = async () => {
@@ -400,8 +449,47 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
           </div>
         </div>
       ) : candidate.nextStepHint ? (
-        <div className="p-3 text-sm text-gray-500 dark:text-gray-400">
-          No guide available for this step
+        <div className="space-y-3">
+          {showSuggestionUI && guideSuggestion ? (
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <h4 className="font-semibold mb-2 text-sm text-blue-900 dark:text-blue-300">
+                Suggested Guide
+              </h4>
+              <div className="space-y-2 mb-3">
+                <p className="text-sm text-blue-800 dark:text-blue-400">
+                  <span className="font-medium">File:</span> {guideSuggestion.suggestedGuideFile}
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-400">
+                  <span className="font-medium">Section:</span> {guideSuggestion.suggestedSectionHeading}
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-400">
+                  <span className="font-medium">Reason:</span> {guideSuggestion.confidenceReason}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={approveSuggestion}
+                  className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  ✓ Approve
+                </button>
+                <button
+                  onClick={dismissSuggestion}
+                  className="flex-1 px-3 py-2 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 rounded text-sm font-medium hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                >
+                  ✗ Dismiss
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={suggestGuideMapping}
+              disabled={suggestingGuide}
+              className="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              {suggestingGuide ? 'Suggesting...' : '✨ Suggest Guide'}
+            </button>
+          )}
         </div>
       ) : null}
     </div>

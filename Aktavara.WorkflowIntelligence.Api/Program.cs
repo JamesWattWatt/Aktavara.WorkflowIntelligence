@@ -1,3 +1,4 @@
+using Aktavara.WorkflowIntelligence.Api.Services;
 using Aktavara.WorkflowIntelligence.Core.Interfaces;
 using Aktavara.WorkflowIntelligence.Core.Models;
 using Aktavara.WorkflowIntelligence.Core.Models.Api;
@@ -43,6 +44,9 @@ builder.Services.AddScoped<IAssistantContextPacketGenerator>(sp =>
     return new AssistantContextPacketGenerator(logger, helpGuideStore, semanticSearch);
 });
 builder.Services.AddScoped<IRecordDiffService, RecordDiffService>();
+builder.Services.AddScoped<IIntelligentHelpGuideMatcher, IntelligentHelpGuideMatcher>();
+builder.Services.AddScoped<IHelpGuideMappingWriter, HelpGuideMappingWriter>();
+builder.Services.AddHttpClient<IntelligentHelpGuideMatcher>();
 
 // Add CORS for React UI and localhost development
 builder.Services.AddCors(options =>
@@ -165,6 +169,22 @@ app.MapGet("/api/help-guides/workspace/{workspaceType}", GetHelpGuidesByWorkspac
 .WithOpenApi()
 .WithDescription("Get all guides for a specific workspace type")
 .Produces<List<HelpGuide>>(200);
+
+// Suggest help guide mapping endpoint
+app.MapPost("/api/help-guides/suggest", SuggestGuideMapping)
+.WithName("SuggestGuideMapping")
+.WithOpenApi()
+.WithDescription("Get LLM-suggested help guide for a workflow step")
+.Produces<GuideSuggestion>(200)
+.ProducesProblem(400);
+
+// Save help guide mapping endpoint
+app.MapPost("/api/help-guides/mapping", SaveGuideMapping)
+.WithName("SaveGuideMapping")
+.WithOpenApi()
+.WithDescription("Save a help guide mapping for a workflow step")
+.Produces(200)
+.ProducesProblem(400);
 
 app.Run();
 
@@ -735,4 +755,55 @@ IResult GetHelpGuidesByWorkspaceType(string workspaceType, IHelpGuideStore helpG
     var allGuides = helpGuideStore.GetAll();
     var guides = allGuides.Where(g => g.WorkspaceType == workspaceType).ToList();
     return Results.Ok(guides);
+}
+
+async Task<IResult> SuggestGuideMapping(
+    SuggestGuideMappingRequest request,
+    IIntelligentHelpGuideMatcher matcher,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(request.WorkflowId) || string.IsNullOrEmpty(request.StepId))
+            return Results.BadRequest(new { error = "workflowId and stepId are required" });
+
+        var suggestion = await matcher.SuggestAsync(
+            request.WorkflowId,
+            request.WorkflowName,
+            request.StepId,
+            request.CurrentStateName,
+            request.MatchedRules ?? new List<string>(),
+            request.MatchedEvidence ?? new List<string>());
+
+        if (suggestion == null)
+            return Results.BadRequest(new { error = "Failed to generate guide suggestion" });
+
+        return Results.Ok(suggestion);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error suggesting guide mapping");
+        return Results.BadRequest(new { error = "Error suggesting guide mapping" });
+    }
+}
+
+async Task<IResult> SaveGuideMapping(
+    SaveGuideMappingRequest request,
+    IHelpGuideMappingWriter writer,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(request.WorkflowId) || string.IsNullOrEmpty(request.StepId) || string.IsNullOrEmpty(request.GuideFile))
+            return Results.BadRequest(new { error = "workflowId, stepId, and guideFile are required" });
+
+        await writer.SaveMappingAsync(request.WorkflowId, request.StepId, request.GuideFile, request.SectionId);
+
+        return Results.Ok();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error saving guide mapping");
+        return Results.BadRequest(new { error = "Error saving guide mapping" });
+    }
 }
