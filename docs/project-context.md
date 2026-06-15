@@ -12,14 +12,14 @@
 - Tests (xUnit)
 
 ## Current status
-- Prompts 1-15 complete ✓
+- Prompts 1-18 complete ✓
 - 197 tests passing (.NET), TypeScript compiles clean, 0 errors
 - CLI: 5 commands with --question flag for semantic search (parse, analyze, guided, list-workflows, validate)
-- API: 10 endpoints with semantic search support (analyze, workflows, help-guides with section extraction)
+- API: 11 endpoints with semantic search support (analyze, workflows with status persistence, help-guides with section extraction)
 - Help guides: 29 Aktavara documentation chapters with section parsing, workflow-step mapping
 - Parser: working, handles JSON and XML formats
 - AktavaraSchemaTypes.cs: complete enum set from Swagger
-- WorkflowLibrary: loads *.workflow.json from workflows/ folder
+- WorkflowLibrary: loads *.workflow.json from workflows/ folder with hot reload support
 - WorkflowMatcher: 10-factor scoring, confidence levels High/Medium/Low
 - ActivityContextBuilder: determines current state, active entities, workflow hints
 - Normalizer: fully working with WorkspaceKind extraction
@@ -27,6 +27,7 @@
 - AmbiguityDetection: 8 decision rules for activity vs semantic match scenarios
 - MCP Server: TypeScript proxy to API, 5 tools, 4 resources, stdio transport
 - Supports: Claude Desktop, VS Code, Cursor, any MCP client
+- Upload endpoint: processes historical logs with time-window relative to last event
 
 ## Prompt 9 Completed (Activity Context Service)
 - IActivityContextBuilder interface with single BuildContext method
@@ -237,10 +238,37 @@
 - Enhanced CORS: added support for Vite's alternate port (localhost:5174)
 - All 197 .NET tests passing, 0 errors
 - Full AnalyzeResponse includes: session ID, timing, state, guidance, matches, ambiguity, active entities, hints, workflow candidates with workshop questions
+- Fixed upload endpoint time window: now calculates relative to last event in historical logs (not current time)
+
+## Prompt 18 Completed (Workflow Endpoints Audit)
+**Workflow Management Endpoints** — Verified and enhanced all 3 workflow endpoints + added reload
+- **GET /api/workflows** — Returns List<WorkflowSummary>
+  - Status: reads from workflow.Status enum (displays as "Active", "Draft", etc.)
+  - Version: reads from workflow.Version definition
+  - Tags: reads from workflow.Tags (populated from workflow JSON)
+  - ConfidenceThreshold: reads from workflow.MinimumConfidenceThreshold (0.6, 0.65)
+  - RiskLevel: reads from workflow.Metadata["riskLevel"] with fallback to "Medium"
+  - All 9 required fields present and populated from actual workflow data
+- **GET /api/workflows/{id}** — Returns full WorkflowDefinition with all metadata
+  - Complete workflow definition including states, actions, activitySignature
+  - All nested objects and collections properly serialized
+- **PATCH /api/workflows/{id}/status** — Updates and persists workflow status
+  - Accepts UI statuses: "Approved", "Candidate", "Deprecated"
+  - Maps to JSON values: "Active" (Approved), "Draft" (Candidate), "Deprecated"
+  - Persists changes to workflow JSON files on disk
+  - Updates lastModifiedDate timestamp automatically
+  - Returns updated WorkflowSummary confirming change
+- **POST /api/workflows/reload** — Development-only endpoint (new)
+  - Forces reload of all workflow definitions from disk
+  - Returns ReloadResponse: { reloadedCount, timestamp, loadedWorkflowIds }
+  - Only available when environment = Development
+- All endpoints tested and verified production-ready
+- All 197 .NET tests passing
+- UI-to-storage mapping enables React components to use "Approved/Candidate" terminology
 
 ## Next prompts
-- Prompt 18: React UI (frontend/dashboard)
-- Prompt 19+: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch)
+- Prompt 19: React UI (frontend/dashboard)
+- Prompt 20+: Real embedding-based semantic search (swap KeywordSemanticWorkflowSearch for EmbeddingSemanticWorkflowSearch)
 - Extended features and optimizations
 
 ## Key design rule
