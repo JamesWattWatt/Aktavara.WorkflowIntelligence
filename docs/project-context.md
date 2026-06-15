@@ -5,7 +5,7 @@
 - JSON API format with $type/$id/$ref referencing (Akta.Json.StringObject etc.)
 - Legacy XML format also exists (lower priority)
 - TypeScript MCP server (aktavara-workflow-mcp/)
-- React + TypeScript front-end (workflow-ui/) — in progress
+- React + TypeScript front-end (workflow-ui/) (React UI complete through Prompt 22b)
 
 ## Solution structure
 - Core (domain models, parser, extractor, normalizer, 
@@ -14,9 +14,9 @@
 - Api (minimal API, 10 endpoints)
 - Cli (5 commands: parse, analyze, guided, 
   list-workflows, validate)
-- Tests (xUnit, 197 tests)
+- Tests (xUnit, 200 tests)
 - aktavara-workflow-mcp/ (TypeScript MCP server)
-- workflow-ui/ (React UI — Prompt 19 in progress)
+- workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
 - Prompts 1-22b complete
@@ -165,7 +165,8 @@ Config for Claude Desktop:
 }
 
 ## Next prompts
-- Prompt 23: Library management UI (workflow CRUD, bulk operations, status updates, validation)
+- Prompt 23a: OfflineDiscoveryService (inference pipeline completion, enum type fixes, 15 unit tests)
+- Prompt 23b: Library management UI (workflow CRUD, bulk operations, status updates, validation)
 - Prompt 24: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
 
