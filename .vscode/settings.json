@@ -1,0 +1,12 @@
+{
+  "claude.mcpServers": {
+    "aktavara-workflow": {
+      "command": "node",
+      "args": ["aktavara-workflow-mcp/dist/index.js"],
+      "env": {
+        "AKTAVARA_API_URL": "https://localhost:7200",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0"
+      }
+    }
+  }
+}
