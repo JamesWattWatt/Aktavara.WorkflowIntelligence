@@ -120,8 +120,8 @@ export function App() {
             </div>
           </div>
 
-          {/* Middle Column - Flow Visualiser (flex-1 fills remaining space) */}
-          <div className="flex-1 flex flex-col min-h-0">
+          {/* Middle Column - Flow Visualiser (320px fixed) */}
+          <div className="w-[320px] flex-shrink-0 flex flex-col min-h-0">
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
                 <div className="text-center text-gray-500 dark:text-gray-400">
@@ -155,8 +155,8 @@ export function App() {
             )}
           </div>
 
-          {/* Right Column - Details/Workshop with tabs and sticky header */}
-          <div className="w-[380px] flex-shrink-0 flex flex-col min-h-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+          {/* Right Column - Details/Workshop (flex-1 fills remaining space) */}
+          <div className="flex-1 flex flex-col min-h-0 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
             {!analyzeResponse || analyzeResponse.workflowCandidates.length === 0 ? (
               <div className="flex items-center justify-center flex-1 p-6">
                 <div className="text-center text-gray-500 dark:text-gray-400">
