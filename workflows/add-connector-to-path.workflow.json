@@ -5,11 +5,15 @@
   "category": "path-operations",
   "version": "1.0",
   "status": "Active",
-  "tags": ["path-operations", "connector-management", "design-workflow"],
+  "tags": [
+    "path-operations",
+    "connector-management",
+    "design-workflow"
+  ],
   "minimumConfidenceThreshold": 0.65,
   "createdBy": "system",
   "createdDate": "2026-06-10T00:00:00Z",
-  "lastModifiedDate": "2026-06-10T00:00:00Z",
+  "lastModifiedDate": "2026-06-15T10:54:37.8496725Z",
   "metadata": {
     "domain": "Path Workspace",
     "complexity": "Medium",
@@ -55,7 +59,9 @@
       "stateId": "path_opened",
       "name": "Path Opened",
       "description": "The path workspace is open and ready for connector creation.",
-      "requiredEvidence": ["OpenWorkspace"],
+      "requiredEvidence": [
+        "OpenWorkspace"
+      ],
       "sequence": 0,
       "isTerminal": false,
       "nextStateId": "connector_created",
@@ -71,7 +77,10 @@
       "stateId": "connector_created",
       "name": "Connector Created and Saved",
       "description": "A new connector has been created between nodes and saved in the path.",
-      "requiredEvidence": ["OpenWorkspace", "SaveRecords"],
+      "requiredEvidence": [
+        "OpenWorkspace",
+        "SaveRecords"
+      ],
       "sequence": 1,
       "isTerminal": false,
       "nextStateId": "path_saved",
@@ -89,7 +98,10 @@
       "stateId": "path_saved",
       "name": "Path Saved",
       "description": "The path with the new connector has been saved, completing the workflow.",
-      "requiredEvidence": ["OpenWorkspace", "SaveRecords"],
+      "requiredEvidence": [
+        "OpenWorkspace",
+        "SaveRecords"
+      ],
       "sequence": 2,
       "isTerminal": true,
       "nextStateId": null,
@@ -132,7 +144,7 @@
       "executionMode": "Automatic",
       "availableInStateId": "connector_configured",
       "metadata": {
-        "hotkey": "Ctrl+S"
+        "hotkey": "Ctrl\u002BS"
       }
     },
     {
