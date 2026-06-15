@@ -7,6 +7,12 @@
       "sectionId": null
     },
     {
+      "workflowId": "add-connector-to-path",
+      "stepId": "path_saved",
+      "guideFile": "Connections_Workspace.md",
+      "sectionId": "saving-finalizing"
+    },
+    {
       "workflowId": "update-node-in-path",
       "stepId": "path_workspace_open",
       "guideFile": "Path_Workspace.md",

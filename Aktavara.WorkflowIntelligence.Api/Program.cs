@@ -46,6 +46,7 @@ builder.Services.AddScoped<IAssistantContextPacketGenerator>(sp =>
 builder.Services.AddScoped<IRecordDiffService, RecordDiffService>();
 builder.Services.AddScoped<IIntelligentHelpGuideMatcher, IntelligentHelpGuideMatcher>();
 builder.Services.AddScoped<IHelpGuideMappingWriter, HelpGuideMappingWriter>();
+builder.Services.AddScoped<IOfflineDiscoveryService, OfflineDiscoveryService>();
 builder.Services.AddHttpClient<IntelligentHelpGuideMatcher>();
 
 // Add CORS for React UI and localhost development
@@ -140,6 +141,29 @@ app.MapPost("/api/workflows/reload", ReloadWorkflows)
 .WithDescription("Force reload of all workflow definitions from disk (development only)")
 .Produces<ReloadResponse>(200)
 .ProducesProblem(403);
+
+// Get workflows library endpoint
+app.MapGet("/api/workflows/library", GetWorkflowsLibrary)
+.WithName("GetWorkflowsLibrary")
+.WithOpenApi()
+.WithDescription("Get all workflows in library with metadata")
+.Produces<List<WorkflowLibraryItem>>(200);
+
+// Infer workflow endpoint
+app.MapPost("/api/workflows/infer", InferWorkflow)
+.WithName("InferWorkflow")
+.WithOpenApi()
+.WithDescription("Infer a workflow from activity logs")
+.Produces<InferredWorkflowSuggestion>(200)
+.ProducesProblem(400);
+
+// Infer workflow name endpoint
+app.MapPost("/api/workflows/infer/name", InferWorkflowName)
+.WithName("InferWorkflowName")
+.WithOpenApi()
+.WithDescription("Get LLM-suggested name and description for inferred workflow")
+.Produces<InferredNameSuggestion>(200)
+.ProducesProblem(503);
 
 // List help guides endpoint
 app.MapGet("/api/help-guides", GetHelpGuideSummaries)
@@ -805,5 +829,140 @@ async Task<IResult> SaveGuideMapping(
     {
         logger.LogError(ex, "Error saving guide mapping");
         return Results.BadRequest(new { error = "Error saving guide mapping" });
+    }
+}
+
+IResult GetWorkflowsLibrary(IWorkflowLibrary workflowLibrary)
+{
+    var workflows = workflowLibrary.GetAll();
+    var items = workflows.Select(w => new WorkflowLibraryItem
+    {
+        Id = w.WorkflowId,
+        Name = w.Name,
+        Status = w.Status.ToString(),
+        Version = w.Version ?? "1.0",
+        RiskLevel = w.Metadata?.ContainsKey("riskLevel") == true ? w.Metadata["riskLevel"]?.ToString() ?? "Medium" : "Medium",
+        Tags = w.Tags ?? new(),
+        Description = w.Description ?? string.Empty,
+        IsValid = true,
+        ValidationErrors = new(),
+        RuleCount = w.ActivitySignature?.Count ?? 0,
+        StateCount = w.States?.Count ?? 0,
+        LastModified = DateTime.UtcNow,
+        FileName = $"{w.WorkflowId}.workflow.json"
+    }).ToList();
+
+    return Results.Ok(items);
+}
+
+IResult InferWorkflow(
+    InferWorkflowRequest request,
+    IActivityLogParser parser,
+    IActivityEventNormalizer normalizer,
+    IOfflineDiscoveryService discoveryService,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(request.RawLogContent))
+            return Results.BadRequest(new { error = "rawLogContent is required" });
+
+        var rawEntries = parser.Parse(request.RawLogContent);
+        var events = normalizer.Normalize(rawEntries);
+
+        var suggestion = discoveryService.InferWorkflowSuggestion(events, request.CandidateWorkflowId);
+
+        return Results.Ok(suggestion);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error inferring workflow");
+        return Results.BadRequest(new { error = "Error inferring workflow" });
+    }
+}
+
+async Task<IResult> InferWorkflowName(
+    InferredWorkflowSuggestion suggestion,
+    IConfiguration config,
+    ILogger<Program> logger)
+{
+    try
+    {
+        var apiKey = config.GetValue<string>("Anthropic:ApiKey");
+        if (string.IsNullOrEmpty(apiKey))
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        var rulesText = string.Join("\n", suggestion.SuggestedRules.Select(r => $"- {r.Description}"));
+        var statesText = string.Join(", ", suggestion.SuggestedStates.Select(s => s.Name));
+        var tagsText = string.Join(", ", suggestion.SuggestedTags);
+
+        var prompt = $@"Workflow steps detected:
+{rulesText}
+
+States: {statesText}
+Tags: {tagsText}
+Risk level: {suggestion.SuggestedRiskLevel}
+
+Suggest a short business-friendly name (3-5 words) and a one-sentence description for this workflow.";
+
+        var request = new
+        {
+            model = "claude-sonnet-4-6",
+            max_tokens = 300,
+            messages = new object[]
+            {
+                new { role = "user", content = prompt }
+            },
+            system = "You are helping name Aktavara workflows detected from activity logs. Respond only with JSON: { \"name\": \"...\", \"description\": \"...\", \"alternativeNames\": [\"...\", \"...\"] }"
+        };
+
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+        {
+            Content = System.Net.Http.Json.JsonContent.Create(request)
+        };
+
+        httpRequest.Headers.Add("x-api-key", apiKey);
+        httpRequest.Headers.Add("anthropic-version", "2023-06-01");
+
+        using var httpClient = new HttpClient();
+        var response = await httpClient.SendAsync(httpRequest);
+        response.EnsureSuccessStatusCode();
+
+        var responseContent = await response.Content.ReadAsStringAsync();
+        using var doc = System.Text.Json.JsonDocument.Parse(responseContent);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("content", out var contentArray) || contentArray.GetArrayLength() == 0)
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        var firstContent = contentArray[0];
+        if (!firstContent.TryGetProperty("text", out var textElement))
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        var text = textElement.GetString() ?? "";
+        var jsonStart = text.IndexOf('{');
+        var jsonEnd = text.LastIndexOf('}');
+
+        if (jsonStart < 0 || jsonEnd < 0)
+            return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+
+        var jsonStr = text[jsonStart..(jsonEnd + 1)];
+        using var jsonDoc = System.Text.Json.JsonDocument.Parse(jsonStr);
+        var nameData = jsonDoc.RootElement;
+
+        var result = new InferredNameSuggestion
+        {
+            SuggestedName = nameData.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "",
+            SuggestedDescription = nameData.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "",
+            AlternativeNames = nameData.TryGetProperty("alternativeNames", out var alt) ?
+                alt.EnumerateArray().Select(a => a.GetString() ?? "").ToList() : new()
+        };
+
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error inferring workflow name");
+        return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     }
 }
