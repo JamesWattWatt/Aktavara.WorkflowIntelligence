@@ -28,9 +28,9 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen min-w-[1200px] flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen w-full min-w-[1200px] flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* Fixed Header - Full width */}
-      <header className="sticky top-0 z-20 border-b border-gray-200 dark:border-gray-800 px-6 py-4 bg-white dark:bg-gray-900">
+      <header className="sticky top-0 z-20 w-full border-b border-gray-200 dark:border-gray-800 px-6 py-4 bg-white dark:bg-gray-900">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold">Aktavara Workflow Intelligence</h1>
@@ -67,7 +67,7 @@ export function App() {
 
       {/* Main Content */}
       {topLevelTab === 'discovery' ? (
-        <div className="flex flex-1 gap-6 p-6 min-h-0">
+        <div className="w-full flex flex-1 gap-6 p-6 min-h-0">
           {/* Left Sidebar - Fixed 280px */}
           <div className="w-[280px] flex-shrink-0 flex flex-col gap-4 min-h-0">
             <div className="flex-shrink-0">
@@ -96,7 +96,7 @@ export function App() {
             </div>
           </div>
 
-          {/* Middle Column - Flow Visualiser */}
+          {/* Middle Column - Flow Visualiser (flex-1 fills remaining space) */}
           <div className="flex-1 flex flex-col min-h-0">
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
