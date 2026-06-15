@@ -5,11 +5,15 @@
   "category": "path-operations",
   "version": "1.0",
   "status": "Active",
-  "tags": ["path-operations", "node-management", "edit-workflow"],
+  "tags": [
+    "path-operations",
+    "node-management",
+    "edit-workflow"
+  ],
   "minimumConfidenceThreshold": 0.6,
   "createdBy": "system",
   "createdDate": "2026-06-10T00:00:00Z",
-  "lastModifiedDate": "2026-06-10T00:00:00Z",
+  "lastModifiedDate": "2026-06-15T08:58:28.7804528Z",
   "metadata": {
     "domain": "Path Workspace",
     "complexity": "Medium",
@@ -55,7 +59,9 @@
       "stateId": "path_workspace_open",
       "name": "Path Workspace Opened",
       "description": "The path workspace has been opened and is ready for node editing.",
-      "requiredEvidence": ["OpenWorkspace"],
+      "requiredEvidence": [
+        "OpenWorkspace"
+      ],
       "sequence": 0,
       "isTerminal": false,
       "nextStateId": "node_saved",
@@ -71,7 +77,10 @@
       "stateId": "node_saved",
       "name": "Node Changes Saved",
       "description": "A node within the path has been modified and saved.",
-      "requiredEvidence": ["OpenWorkspace", "SaveRecords"],
+      "requiredEvidence": [
+        "OpenWorkspace",
+        "SaveRecords"
+      ],
       "sequence": 1,
       "isTerminal": true,
       "nextStateId": null,
@@ -95,7 +104,7 @@
       "executionMode": "Automatic",
       "availableInStateId": "node_modified",
       "metadata": {
-        "hotkey": "Ctrl+S"
+        "hotkey": "Ctrl\u002BS"
       }
     },
     {

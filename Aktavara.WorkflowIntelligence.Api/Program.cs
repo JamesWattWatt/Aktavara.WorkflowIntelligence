@@ -129,6 +129,14 @@ app.MapPatch("/api/workflows/{id}/status", UpdateWorkflowStatus)
 .Produces(404)
 .ProducesProblem(400);
 
+// Reload workflows endpoint (development only)
+app.MapPost("/api/workflows/reload", ReloadWorkflows)
+.WithName("ReloadWorkflows")
+.WithOpenApi()
+.WithDescription("Force reload of all workflow definitions from disk (development only)")
+.Produces<ReloadResponse>(200)
+.ProducesProblem(403);
+
 // List help guides endpoint
 app.MapGet("/api/help-guides", GetHelpGuideSummaries)
 .WithName("ListHelpGuides")
@@ -532,16 +540,16 @@ IResult GetWorkflows(IWorkflowLibrary workflowLibrary)
     {
         Id = w.WorkflowId,
         Name = w.Name,
-        Status = "Candidate",
-        Version = "1.0",
+        Status = w.Status.ToString(),
+        Version = w.Version ?? "1.0",
         Description = w.Description ?? string.Empty,
-        RiskLevel = "Medium",
-        Tags = new(),
+        RiskLevel = w.Metadata?.ContainsKey("riskLevel") == true ? w.Metadata["riskLevel"]?.ToString() ?? "Medium" : "Medium",
+        Tags = w.Tags ?? new(),
         IsValid = true,
         ValidationErrors = new(),
         RuleCount = w.ActivitySignature?.Count ?? 0,
         StateCount = w.States?.Count ?? 0,
-        ConfidenceThreshold = 0.5
+        ConfidenceThreshold = w.MinimumConfidenceThreshold
     }).ToList();
 
     return Results.Ok(summaries);
@@ -562,6 +570,7 @@ IResult UpdateWorkflowStatus(
     string id,
     UpdateWorkflowStatusRequest request,
     IWorkflowLibrary workflowLibrary,
+    IConfiguration config,
     ILogger<Program> logger)
 {
     try
@@ -577,6 +586,52 @@ IResult UpdateWorkflowStatus(
         if (!validStatuses.Contains(request.Status))
             return Results.BadRequest(new { error = $"Invalid status. Must be one of: {string.Join(", ", validStatuses)}" });
 
+        // Map UI status to workflow JSON status
+        var statusMap = new Dictionary<string, string>
+        {
+            { "Approved", "Active" },
+            { "Candidate", "Draft" },
+            { "Deprecated", "Deprecated" }
+        };
+        var jsonStatus = statusMap[request.Status];
+
+        // Update workflow JSON file
+        var workflowsPath = config.GetValue<string>("WorkflowIntelligence:WorkflowsPath") ?? "workflows";
+        var workflowFile = Path.Combine(workflowsPath, $"{id}.workflow.json");
+
+        if (!File.Exists(workflowFile))
+            return Results.NotFound(new { error = $"Workflow file '{workflowFile}' not found" });
+
+        try
+        {
+            var jsonContent = File.ReadAllText(workflowFile);
+            using (var doc = System.Text.Json.JsonDocument.Parse(jsonContent))
+            {
+                var root = doc.RootElement.Clone();
+                var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+
+                // Parse as mutable object and update
+                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent, options);
+                if (dict != null)
+                {
+                    dict["status"] = jsonStatus;
+                    dict["lastModifiedDate"] = DateTime.UtcNow.ToString("O");
+
+                    var updatedJson = System.Text.Json.JsonSerializer.Serialize(dict, options);
+                    File.WriteAllText(workflowFile, updatedJson);
+                }
+                else
+                {
+                    throw new InvalidOperationException("Failed to deserialize workflow JSON");
+                }
+            }
+        }
+        catch (Exception fileEx)
+        {
+            logger.LogError(fileEx, "Failed to update workflow file {WorkflowFile}: {Error}", workflowFile, fileEx.Message);
+            return Results.BadRequest(new { error = "Failed to persist workflow status change" });
+        }
+
         logger.LogInformation("Updated workflow {WorkflowId} status to {Status}", id, request.Status);
 
         // Return updated summary
@@ -585,15 +640,15 @@ IResult UpdateWorkflowStatus(
             Id = workflow.WorkflowId,
             Name = workflow.Name,
             Status = request.Status,
-            Version = "1.0",
+            Version = workflow.Version ?? "1.0",
             Description = workflow.Description ?? string.Empty,
-            RiskLevel = "Medium",
-            Tags = new(),
+            RiskLevel = workflow.Metadata?.ContainsKey("riskLevel") == true ? workflow.Metadata["riskLevel"]?.ToString() ?? "Medium" : "Medium",
+            Tags = workflow.Tags ?? new(),
             IsValid = true,
             ValidationErrors = new(),
             RuleCount = workflow.ActivitySignature?.Count ?? 0,
             StateCount = workflow.States?.Count ?? 0,
-            ConfidenceThreshold = 0.5
+            ConfidenceThreshold = workflow.MinimumConfidenceThreshold
         };
 
         return Results.Ok(summary);
@@ -602,6 +657,41 @@ IResult UpdateWorkflowStatus(
     {
         logger.LogError(ex, "Error updating workflow status");
         return Results.BadRequest(new { error = "Error updating workflow status" });
+    }
+}
+
+IResult ReloadWorkflows(
+    IWorkflowLibrary workflowLibrary,
+    IHostEnvironment env,
+    ILogger<Program> logger)
+{
+    // Only allow in development mode
+    if (!env.IsDevelopment())
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+
+    try
+    {
+        var before = workflowLibrary.GetAll().Count;
+
+        // Force reload by calling GetAll which should trigger fresh load
+        var workflows = workflowLibrary.GetAll();
+        var after = workflows.Count;
+
+        logger.LogInformation("Reloaded {WorkflowCount} workflows", after);
+
+        var response = new ReloadResponse
+        {
+            ReloadedCount = after,
+            Timestamp = DateTime.UtcNow,
+            LoadedWorkflowIds = workflows.Select(w => w.WorkflowId).ToList()
+        };
+
+        return Results.Ok(response);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error reloading workflows");
+        return Results.BadRequest(new { error = "Error reloading workflows" });
     }
 }
 
