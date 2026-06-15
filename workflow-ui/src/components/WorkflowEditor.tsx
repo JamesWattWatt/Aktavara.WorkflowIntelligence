@@ -221,7 +221,7 @@ function OverviewTab({ definition, onChange, onShowInference }: OverviewTabProps
       <div>
         <label className="block text-sm font-medium mb-1">Risk Level</label>
         <select
-          value={definition.metadata?.riskLevel || 'Medium'}
+          value={(definition.metadata?.riskLevel as string) || 'Medium'}
           onChange={e => onChange({
             ...definition,
             metadata: { ...definition.metadata, riskLevel: e.target.value }

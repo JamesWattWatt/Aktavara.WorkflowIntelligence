@@ -32,12 +32,12 @@ export function EvidenceSection({ candidate }: EvidenceSectionProps) {
         <div className="overflow-x-auto">
           <div className="flex gap-3 p-4" style={{ minWidth: 'min-content' }}>
             {/* Card 1 - Matched Evidence */}
-            <div className="flex-shrink-0 w-[200px] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex-shrink-0 w-[280px] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">MATCHED EVIDENCE</p>
               <div className="space-y-1">
                 {candidate.matchedEvidence?.slice(0, 5).map((evidence, idx) => (
-                  <div key={idx} className="inline-block">
-                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full whitespace-nowrap overflow-hidden text-ellipsis block">
+                  <div key={idx}>
+                    <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full inline-block break-words">
                       {evidence}
                     </span>
                   </div>
@@ -51,13 +51,13 @@ export function EvidenceSection({ candidate }: EvidenceSectionProps) {
             </div>
 
             {/* Card 2 - Matched Rules */}
-            <div className="flex-shrink-0 w-[200px] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex-shrink-0 w-[260px] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">MATCHED RULES</p>
               <ul className="space-y-1 text-xs">
                 {candidate.matchedRules?.slice(0, 5).map((rule, idx) => (
                   <li key={idx} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
                     <span className="text-green-600 dark:text-green-400 flex-shrink-0">✓</span>
-                    <span className="line-clamp-2">{rule}</span>
+                    <span className="break-words">{rule}</span>
                   </li>
                 ))}
                 {(candidate.matchedRules?.length || 0) > 5 && (
@@ -69,7 +69,7 @@ export function EvidenceSection({ candidate }: EvidenceSectionProps) {
             </div>
 
             {/* Card 3 - Score Breakdown */}
-            <div className="flex-shrink-0 w-[200px] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div className="flex-shrink-0 w-[180px] p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">SCORE</p>
               <div className="space-y-1 text-xs">
                 {Object.entries(candidate.scoreBreakdown || {}).slice(0, 5).map(([key, value]) => (
@@ -84,7 +84,7 @@ export function EvidenceSection({ candidate }: EvidenceSectionProps) {
             </div>
 
             {/* Card 4 - Next Step */}
-            <div className="flex-shrink-0 w-[200px] p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex-shrink-0 w-[180px] p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-2">NEXT STEP</p>
               {candidate.nextStepHint ? (
                 <>
