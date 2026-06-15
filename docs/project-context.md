@@ -21,22 +21,23 @@
 ## Current status
 - Prompts 1-23a complete
 - 215 tests passing, 0 errors
-- API running on http://localhost:5112
+- API running on http://localhost:5112 with all endpoints functional
 - React UI (Vite) running on http://localhost:5173 with full functionality
 - MCP server: aktavara-workflow-mcp/
 - Help guides: 29 chapters in help-guides/
 - Workflow library: 2 workflows in workflows/
 - Intelligent help guide matcher: LLM-driven guide discovery with human approval
-- Offline discovery service: workflow inference from activity logs (Prompt 23a)
+- Offline discovery service: fully implemented with 10 inference methods, working inference endpoints
+- POST /api/analyze/text: fixed null reference issue, working correctly
 
 ## API endpoints (all working)
 POST /api/analyze/upload — file upload, full pipeline
-POST /api/analyze/text — raw text, full pipeline
+POST /api/analyze/text — raw text, full pipeline (fixed null reference issue)
 GET  /api/workflows — list all workflows
 GET  /api/workflows/{id} — full workflow definition
 GET  /api/workflows/library — list workflows with metadata (Prompt 23a)
-POST /api/workflows/infer — infer workflow from activity logs (Prompt 23a)
-POST /api/workflows/infer/name — get LLM-suggested workflow name (Prompt 23a)
+POST /api/workflows/infer — infer workflow from activity logs, returns InferredWorkflowSuggestion (Prompt 23a)
+POST /api/workflows/infer/name — get LLM-suggested workflow name via Claude API (Prompt 23a)
 PATCH /api/workflows/{id}/status — update status
 POST /api/workflows/reload — force reload (dev only)
 GET  /api/health — health check
@@ -183,17 +184,19 @@ Core inference service for workflow discovery from activity logs:
   - SuggestTags: extract from RecordKind and WorkspaceKind
   - GenerateWorkshopQuestions: context-aware questions for refinement
 - **API Endpoints** (3 new):
-  - POST /api/workflows/infer: accepts RawLogContent, returns InferredWorkflowSuggestion
-  - POST /api/workflows/infer/name: calls Claude Sonnet to suggest workflow name
-  - GET /api/workflows/library: lists all workflows with metadata
+  - POST /api/workflows/infer: accepts RawLogContent, returns InferredWorkflowSuggestion with rules, states, variants, evidence counts
+  - POST /api/workflows/infer/name: calls Claude Sonnet to suggest business-friendly workflow names
+  - GET /api/workflows/library: lists all workflows with metadata for library view
 - **Models**:
-  - InferredWorkflowSuggestion: rules, states, variants, risk level, evidence counts
-  - WorkflowVariant: detected variations with occurrence % and different steps
+  - InferredWorkflowSuggestion: rules, states, variants, risk level, evidence counts, inference notes
+  - WorkflowVariant: detected variations with occurrence %, different steps, description
+- **Enum Fixes**: Changed from integer tuples (int, int) to proper enum tuples (EventType, RecordKind?)
+- **Bug Fix**: Fixed POST /api/analyze/text null reference in FileHelpGuideStore.GetByWorkflowAndStep
 - **Tests**: 15 unit tests covering basic inference, risk detection, session clustering, variant detection, tag extraction, question generation, threshold calculation, weight normalization
-- Status: 215 tests passing, 0 errors, manual API test successful
+- Status: 215 tests passing, 0 errors, all endpoints functional and tested
 
 ## Next prompts
-- Prompt 23b: Library management UI (workflow CRUD, bulk operations, status updates, validation)
+- Prompt 23b: React library management UI — new page for workflow CRUD operations, discovery results preview, workflow creation from inferred suggestions, library search/filter, status management (Approved/Candidate/Deprecated), bulk operations, validation UI
 - Prompt 24: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
 
