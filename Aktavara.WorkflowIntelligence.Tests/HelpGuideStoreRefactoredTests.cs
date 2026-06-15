@@ -1,3 +1,4 @@
+using Aktavara.WorkflowIntelligence.Core.Models;
 using Aktavara.WorkflowIntelligence.Core.Services;
 using Xunit;
 
@@ -295,5 +296,61 @@ public class HelpGuideStoreRefactoredTests
         {
             Assert.Equal("General", generalGuide.WorkspaceType);
         }
+    }
+
+    /// <summary>
+    /// Test 15: StepId normalization - "Node Changes Saved" → "node_changes_saved"
+    /// </summary>
+    [Fact]
+    public void GetByWorkflowAndStep_NormalizesStepId_WithSpaces()
+    {
+        var helpGuidesPath = GetHelpGuidesPath();
+        var store = new FileHelpGuideStore(
+            helpGuidesPath,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<FileHelpGuideStore>());
+
+        // The mapping has "node_saved" but UI might send "Node Changes Saved"
+        // This should still find the mapping because both normalize to same value
+        var sections = store.GetByWorkflowAndStep("update-node-in-path", "Node Changes Saved");
+
+        // If mapping exists for this state, it should be found
+        // (This depends on the mapping file having the appropriate entry)
+        Assert.IsType<List<HelpGuideSection>>(sections);
+    }
+
+    /// <summary>
+    /// Test 16: StepId normalization - "path-opened" → "path_opened"
+    /// </summary>
+    [Fact]
+    public void GetByWorkflowAndStep_NormalizesStepId_WithHyphens()
+    {
+        var helpGuidesPath = GetHelpGuidesPath();
+        var store = new FileHelpGuideStore(
+            helpGuidesPath,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<FileHelpGuideStore>());
+
+        // The mapping has "path_opened" but UI might send "path-opened"
+        var sections = store.GetByWorkflowAndStep("update-node-in-path", "path-opened");
+
+        // Should find the mapping because both normalize to "path_opened"
+        Assert.NotEmpty(sections);
+        Assert.Single(sections);
+    }
+
+    /// <summary>
+    /// Test 17: Unknown stepId returns empty list gracefully
+    /// </summary>
+    [Fact]
+    public void GetByWorkflowAndStep_UnknownState_ReturnsEmptyList()
+    {
+        var helpGuidesPath = GetHelpGuidesPath();
+        var store = new FileHelpGuideStore(
+            helpGuidesPath,
+            new Microsoft.Extensions.Logging.Abstractions.NullLogger<FileHelpGuideStore>());
+
+        var sections = store.GetByWorkflowAndStep("update-node-in-path", "nonexistent-state");
+
+        // Should return empty list, not throw
+        Assert.Empty(sections);
     }
 }

@@ -51,7 +51,8 @@ public class FileHelpGuideStore : IHelpGuideStore
     public IReadOnlyList<HelpGuideSection> GetByWorkflowAndStep(string workflowId, string stepId)
     {
         EnsureLoaded();
-        var key = $"{workflowId}:{stepId}";
+        var normalizedStepId = NormalizeStepId(stepId);
+        var key = $"{workflowId}:{normalizedStepId}";
         return _stepMappings?.GetValueOrDefault(key) ?? new List<HelpGuideSection>();
     }
 
@@ -231,6 +232,15 @@ public class FileHelpGuideStore : IHelpGuideStore
         return sections;
     }
 
+    private string NormalizeStepId(string stepId)
+    {
+        return stepId
+            .ToLowerInvariant()
+            .Trim()
+            .Replace(" ", "_")
+            .Replace("-", "_");
+    }
+
     private string SlugifyHeading(string heading)
     {
         var slug = heading.ToLowerInvariant();
@@ -316,7 +326,8 @@ public class FileHelpGuideStore : IHelpGuideStore
 
                 section.RelevantStepIds.Add(stepId);
 
-                var key = $"{workflowId}:{stepId}";
+                var normalizedStepId = NormalizeStepId(stepId);
+                var key = $"{workflowId}:{normalizedStepId}";
                 if (!_stepMappings!.ContainsKey(key))
                 {
                     _stepMappings[key] = new List<HelpGuideSection>();
