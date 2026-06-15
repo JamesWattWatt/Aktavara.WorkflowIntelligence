@@ -64,7 +64,21 @@ export function App() {
 
         {/* Right Main Content */}
         <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-          {selectedCandidate ? (
+          {!analyzeResponse ? (
+            <div className="flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg">
+              <div className="text-center text-gray-500 dark:text-gray-400">
+                <p className="text-lg font-medium">Drop a log file to begin</p>
+                <p className="text-sm mt-2">Discover workflow patterns in your activity logs</p>
+              </div>
+            </div>
+          ) : analyzeResponse.workflowCandidates.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg">
+              <div className="text-center text-gray-500 dark:text-gray-400">
+                <p className="text-lg font-medium">No workflow patterns detected</p>
+                <p className="text-sm mt-2">This log file doesn't match any known workflows</p>
+              </div>
+            </div>
+          ) : selectedCandidate ? (
             <>
               {/* Tabs */}
               <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800">
@@ -113,8 +127,8 @@ export function App() {
           ) : (
             <div className="flex-1 flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg">
               <div className="text-center text-gray-500 dark:text-gray-400">
-                <p className="text-lg">No workflow selected</p>
-                <p className="text-sm mt-2">Upload a log file and select a workflow to begin</p>
+                <p className="text-lg font-medium">Select a workflow to view</p>
+                <p className="text-sm mt-2">Choose from the candidates on the left</p>
               </div>
             </div>
           )}
