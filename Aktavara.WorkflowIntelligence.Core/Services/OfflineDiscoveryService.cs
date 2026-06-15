@@ -90,19 +90,19 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         return sessions;
     }
 
-    private List<List<(int eventType, int recordKind)>> ExtractActionSequences(
+    private List<List<(EventType eventType, RecordKind? recordKind)>> ExtractActionSequences(
         Dictionary<string, List<ActivityEvent>> sessions)
     {
-        var sequences = new List<List<(int, int)>>();
+        var sequences = new List<List<(EventType, RecordKind?)>>();
 
         foreach (var session in sessions.Values)
         {
-            var sequence = new List<(int, int)>();
+            var sequence = new List<(EventType, RecordKind?)>();
             var sortedEvents = session.OrderBy(e => e.Timestamp).ToList();
 
             foreach (var evt in sortedEvents)
             {
-                var pair = ((int)evt.EventType, (int)evt.RecordKind);
+                var pair = (evt.EventType, evt.RecordKind);
                 if (sequence.Count == 0 || sequence.Last() != pair)
                 {
                     sequence.Add(pair);
@@ -118,10 +118,10 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         return sequences;
     }
 
-    private Dictionary<(int eventType, int recordKind), double> CalculateActionFrequencies(
-        List<List<(int, int)>> sequences)
+    private Dictionary<(EventType eventType, RecordKind? recordKind), double> CalculateActionFrequencies(
+        List<List<(EventType, RecordKind?)>> sequences)
     {
-        var frequencies = new Dictionary<(int, int), int>();
+        var frequencies = new Dictionary<(EventType, RecordKind?), int>();
         var totalSessions = sequences.Count;
 
         foreach (var sequence in sequences)
@@ -142,10 +142,10 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
             kvp => totalSessions > 0 ? (double)kvp.Value / totalSessions : 0);
     }
 
-    private List<List<(int eventType, int recordKind)>> FindCommonSequences(
-        List<List<(int, int)>> sequences)
+    private List<List<(EventType, RecordKind?)>> FindCommonSequences(
+        List<List<(EventType, RecordKind?)>> sequences)
     {
-        var sequenceFrequencies = new Dictionary<string, (int count, List<(int, int)> sequence)>();
+        var sequenceFrequencies = new Dictionary<string, (int count, List<(EventType, RecordKind?)> sequence)>();
 
         foreach (var sequence in sequences)
         {
@@ -154,7 +154,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
                 for (int i = 0; i <= sequence.Count - len; i++)
                 {
                     var subseq = sequence.Skip(i).Take(len).ToList();
-                    var key = string.Join("|", subseq.Select(p => $"{p.eventType}:{p.recordKind}"));
+                    var key = string.Join("|", subseq.Select(p => $"{p.Item1}:{p.Item2}"));
 
                     if (!sequenceFrequencies.ContainsKey(key))
                     {
@@ -174,7 +174,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
     }
 
     private List<WorkflowSignatureRule> DeriveSignatureRules(
-        Dictionary<(int eventType, int recordKind), double> frequencies)
+        Dictionary<(EventType eventType, RecordKind? recordKind), double> frequencies)
     {
         var rules = new List<WorkflowSignatureRule>();
 
@@ -190,8 +190,8 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
                 _ => (false, 0.10)
             };
 
-            var eventTypeName = Enum.GetName((ActivityEventType)pair.eventType) ?? "Unknown";
-            var recordKindName = Enum.GetName((RecordKind)pair.recordKind) ?? "Unknown";
+            var eventTypeName = Enum.GetName(pair.eventType) ?? "Unknown";
+            var recordKindName = pair.recordKind.HasValue ? Enum.GetName(pair.recordKind.Value) ?? "Unknown" : "Unknown";
 
             rules.Add(new WorkflowSignatureRule
             {
@@ -219,15 +219,15 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         return rules;
     }
 
-    private List<WorkflowStateDefinition> BuildStateModel(List<(int eventType, int recordKind)> sequence)
+    private List<WorkflowStateDefinition> BuildStateModel(List<(EventType eventType, RecordKind? recordKind)> sequence)
     {
         var states = new List<WorkflowStateDefinition>();
 
         for (int i = 0; i < sequence.Count; i++)
         {
             var (eventType, recordKind) = sequence[i];
-            var eventTypeName = Enum.GetName((ActivityEventType)eventType) ?? "Unknown";
-            var recordKindName = Enum.GetName((RecordKind)recordKind) ?? "Unknown";
+            var eventTypeName = Enum.GetName(eventType) ?? "Unknown";
+            var recordKindName = recordKind.HasValue ? Enum.GetName(recordKind.Value) ?? "Unknown" : "Unknown";
 
             states.Add(new WorkflowStateDefinition
             {
@@ -236,7 +236,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
                 Description = $"User has {Humanize(eventTypeName).ToLower()} {recordKindName.ToLower()} records",
                 Sequence = i,
                 IsTerminal = i == sequence.Count - 1,
-                NextStateId = i < sequence.Count - 1 ? SlugifyName($"{Enum.GetName((ActivityEventType)sequence[i + 1].eventType)}_{Enum.GetName((RecordKind)sequence[i + 1].recordKind)}") : null,
+                NextStateId = i < sequence.Count - 1 ? SlugifyName($"{Enum.GetName(sequence[i + 1].eventType)}_{(sequence[i + 1].recordKind.HasValue ? Enum.GetName(sequence[i + 1].recordKind.Value) : "Unknown")}") : null,
                 HelpGuideId = string.Empty,
                 Metadata = new Dictionary<string, object>()
             });
@@ -246,8 +246,8 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
     }
 
     private List<WorkflowVariant> DetectVariants(
-        List<List<(int, int)>> sequences,
-        List<(int, int)> commonSequence)
+        List<List<(EventType, RecordKind?)>> sequences,
+        List<(EventType, RecordKind?)> commonSequence)
     {
         if (commonSequence.Count == 0)
             return new List<WorkflowVariant>();
@@ -272,7 +272,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         }
 
         var result = new List<WorkflowVariant>();
-        foreach (var (steps, (count, _)) in variants.Where(v => v.Value.count > 1))
+        foreach (var (key, (count, steps)) in variants.Where(v => v.Value.count > 1))
         {
             result.Add(new WorkflowVariant
             {
@@ -289,18 +289,18 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
 
     private string InferRiskLevel(List<ActivityEvent> events)
     {
-        var hasDeleteRecords = events.Any(e => e.EventType == ActivityEventType.DeleteRecords);
+        var hasDeleteRecords = events.Any(e => e.EventType == EventType.RecordDeleted);
         if (hasDeleteRecords)
             return "High";
 
-        var saveRecordsEvents = events.Where(e => e.EventType == ActivityEventType.SaveRecords).ToList();
+        var saveRecordsEvents = events.Where(e => e.EventType == EventType.SaveRecords).ToList();
         var hasAddedRecords = saveRecordsEvents.Any(e => e.RecordState == "Added");
         if (hasAddedRecords)
             return "High";
 
         var uniqueSaveRecordIds = events
-            .Where(e => e.EventType == ActivityEventType.SaveRecords)
-            .Select(e => e.AggregateId)
+            .Where(e => e.EventType == EventType.SaveRecords)
+            .Select(e => e.RecordId)
             .Distinct()
             .Count();
 
@@ -319,7 +319,9 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         var tags = new HashSet<string>();
 
         // Add record kinds
-        var recordKinds = events.Select(e => Enum.GetName((RecordKind)e.RecordKind))
+        var recordKinds = events
+            .Where(e => e.RecordKind.HasValue)
+            .Select(e => Enum.GetName(e.RecordKind.Value))
             .Where(name => name != null)
             .Cast<string>()
             .Distinct();
@@ -327,7 +329,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
 
         // Add workspace types from OpenWorkspace events
         var workspaceEvents = events
-            .Where(e => e.EventType == ActivityEventType.OpenWorkspace && !string.IsNullOrEmpty(e.WorkspaceKind))
+            .Where(e => e.EventType == EventType.OpenWorkspace && !string.IsNullOrEmpty(e.WorkspaceKind))
             .Select(e => e.WorkspaceKind!)
             .Distinct();
         tags.UnionWith(workspaceEvents);
@@ -371,15 +373,15 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         }
 
         // Pattern 3: Save operations
-        if (rules.Any(r => r.EventType == (int)ActivityEventType.SaveRecords))
+        if (rules.Any(r => r.EventType == EventType.SaveRecords))
         {
             questions.Add("What validation checks does the user perform before saving?");
         }
 
         // Pattern 4: Multiple record types
         var recordTypesInSave = events
-            .Where(e => e.EventType == ActivityEventType.SaveRecords)
-            .Select(e => Enum.GetName((RecordKind)e.RecordKind))
+            .Where(e => e.EventType == EventType.SaveRecords && e.RecordKind.HasValue)
+            .Select(e => Enum.GetName(e.RecordKind.Value))
             .Distinct()
             .Count();
 
@@ -396,7 +398,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
     }
 
     private double CalculateThreshold(
-        List<List<(int, int)>> sequences,
+        List<List<(EventType, RecordKind?)>> sequences,
         List<WorkflowSignatureRule> rules)
     {
         if (sequences.Count == 0 || rules.Count == 0)
@@ -406,7 +408,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         foreach (var sequence in sequences)
         {
             var matchedRules = sequence.Where(pair =>
-                rules.Any(r => r.EventType == pair.eventType && r.RecordKind == pair.recordKind)).Count();
+                rules.Any(r => r.EventType == pair.Item1 && r.RecordKind == pair.Item2)).Count();
             var score = rules.Count > 0 ? (double)matchedRules / rules.Count : 0;
             scores.Add(score);
         }
@@ -419,7 +421,7 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
     private List<string> GenerateInferenceNotes(
         int sessionCount,
         int eventCount,
-        List<List<(int, int)>> commonSequences,
+        List<List<(EventType, RecordKind?)>> commonSequences,
         List<WorkflowVariant> variants,
         string riskLevel)
     {
@@ -445,29 +447,29 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         return notes;
     }
 
-    private bool SequencesEqual(List<(int, int)> seq1, List<(int, int)> seq2)
+    private bool SequencesEqual(List<(EventType, RecordKind?)> seq1, List<(EventType, RecordKind?)> seq2)
     {
         return seq1.Count == seq2.Count && seq1.SequenceEqual(seq2);
     }
 
-    private List<string> FindDifferentSteps(List<(int, int)> sequence, List<(int, int)> commonSequence)
+    private List<string> FindDifferentSteps(List<(EventType, RecordKind?)> sequence, List<(EventType, RecordKind?)> commonSequence)
     {
         var differences = new List<string>();
 
-        var seqSet = new HashSet<(int, int)>(sequence);
-        var commonSet = new HashSet<(int, int)>(commonSequence);
+        var seqSet = new HashSet<(EventType, RecordKind?)>(sequence);
+        var commonSet = new HashSet<(EventType, RecordKind?)>(commonSequence);
 
         var onlyInSeq = seqSet.Except(commonSet).ToList();
         var onlyInCommon = commonSet.Except(seqSet).ToList();
 
         foreach (var (eventType, recordKind) in onlyInSeq)
         {
-            differences.Add($"added {Enum.GetName((ActivityEventType)eventType)}");
+            differences.Add($"added {Enum.GetName(eventType)}");
         }
 
         foreach (var (eventType, recordKind) in onlyInCommon)
         {
-            differences.Add($"skipped {Enum.GetName((ActivityEventType)eventType)}");
+            differences.Add($"skipped {Enum.GetName(eventType)}");
         }
 
         return differences;
