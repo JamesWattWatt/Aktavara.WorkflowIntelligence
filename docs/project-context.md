@@ -19,9 +19,10 @@
 - workflow-ui/ (React UI — Prompt 19 in progress)
 
 ## Current status
-- Prompts 1-18 complete
+- Prompts 1-19 complete
 - 197 tests passing, 0 errors
 - API running on http://localhost:5112
+- React UI (Vite) running on http://localhost:5173
 - MCP server: aktavara-workflow-mcp/
 - Help guides: 29 chapters in help-guides/
 - Workflow library: 2 workflows in workflows/
@@ -78,6 +79,28 @@ Mapping file: help-guides/workflow-guide-mapping.json
 Key files: Path_Workspace.md, Connections_Workspace.md,
 Network_Explorer.md, Topology_Workspace.md
 
+## React UI
+Location: workflow-ui/
+Framework: React 18 + TypeScript + Vite + Tailwind CSS
+Dev server: http://localhost:5173
+
+Architecture:
+- src/types/api.ts — Complete TypeScript interfaces matching all API models
+- src/services/apiClient.ts — Typed fetch wrapper with 6 methods
+- src/components/ — 6 placeholder components for Prompts 20-23
+  - LogDropZone: file upload handler
+  - WorkflowList: candidate list with selection
+  - WorkflowDetail: rule matching details
+  - FlowVisualiser: state machine visualization (Prompt 21)
+  - WorkshopPanel: qualification questions (Prompt 22)
+  - AnalysisSummary: upload results summary
+- src/App.tsx — Two-column layout with tabbed interface
+  - Left (280px): drop zone, summary, candidate list
+  - Right: tabs for Details and Workshop, flow visualization
+  - Dark/light theme with Tailwind classes
+
+API Proxy: vite.config.ts routes /api to http://localhost:5112
+
 ## MCP server
 Location: aktavara-workflow-mcp/
 5 tools: analyze_activity, detect_current_task,
@@ -99,11 +122,11 @@ Config for Claude Desktop:
 }
 
 ## Next prompts
-- Prompt 19: React scaffold (Vite + TypeScript)
-- Prompt 20: Log drop zone + candidate list
-- Prompt 21: Flow visualiser
-- Prompt 22: Workshop qualification panel
-- Prompt 23: Library management UI + inference
+- Prompt 20: Functional log drop zone + candidate list (upload, error handling, loading states)
+- Prompt 21: Flow visualizer (state machine visualization, activity timeline)
+- Prompt 22: Workshop qualification panel (questions, answers, guidance)
+- Prompt 23: Library management UI (workflow CRUD, status updates)
+- Prompt 24: E2E testing + deployment
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
