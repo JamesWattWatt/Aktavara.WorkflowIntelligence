@@ -19,10 +19,10 @@
 - workflow-ui/ (React UI — Prompt 19 in progress)
 
 ## Current status
-- Prompts 1-19 complete
+- Prompts 1-20 complete
 - 197 tests passing, 0 errors
 - API running on http://localhost:5112
-- React UI (Vite) running on http://localhost:5173
+- React UI (Vite) running on http://localhost:5173 with full functionality
 - MCP server: aktavara-workflow-mcp/
 - Help guides: 29 chapters in help-guides/
 - Workflow library: 2 workflows in workflows/
@@ -87,17 +87,25 @@ Dev server: http://localhost:5173
 Architecture:
 - src/types/api.ts — Complete TypeScript interfaces matching all API models
 - src/services/apiClient.ts — Typed fetch wrapper with 6 methods
-- src/components/ — 6 placeholder components for Prompts 20-23
-  - LogDropZone: file upload handler
-  - WorkflowList: candidate list with selection
-  - WorkflowDetail: rule matching details
-  - FlowVisualiser: state machine visualization (Prompt 21)
-  - WorkshopPanel: qualification questions (Prompt 22)
-  - AnalysisSummary: upload results summary
+- src/components/ — 6 components (Prompts 19-20 complete, 21+ planned)
+  - LogDropZone: ✓ Full file upload with drag/drop, validation, loading, error handling
+  - WorkflowList: ✓ Candidate cards with confidence bars (color-coded), evidence count
+  - WorkflowDetail: ✓ Rules, evidence tags, score table, hints, workshop preview
+  - FlowVisualiser: State machine visualization placeholder (Prompt 21)
+  - WorkshopPanel: Qualification questions placeholder (Prompt 22)
+  - AnalysisSummary: ✓ Collapsible summary with guidance badge, next step, context
 - src/App.tsx — Two-column layout with tabbed interface
-  - Left (280px): drop zone, summary, candidate list
+  - Left (280px): drop zone, summary, candidate list with selection
   - Right: tabs for Details and Workshop, flow visualization
+  - Empty states for no file, no candidates, no selection
   - Dark/light theme with Tailwind classes
+
+Features (Prompt 20):
+- LogDropZone: drag-over visual state, file preview, spinner, validation, errors, clear button
+- WorkflowList: colored confidence bars (green/amber/red), evidence count, selected indicator
+- WorkflowDetail: evidence tags, missing rules in red, score breakdown table, hints, workshop preview
+- AnalysisSummary: guidance badge (color-coded), recommended next step, collapsible
+- Error handling: friendly API errors, file validation (type, size), empty states
 
 API Proxy: vite.config.ts routes /api to http://localhost:5112
 
