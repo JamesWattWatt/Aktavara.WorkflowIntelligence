@@ -41,4 +41,18 @@ public interface IWorkflowLibrary
     /// <param name="workflowId">The ID of the workflow to validate.</param>
     /// <returns>List of validation errors; empty if valid.</returns>
     IReadOnlyList<string> GetValidationErrors(string workflowId);
+
+    /// <summary>
+    /// Saves or updates a workflow definition to the library.
+    /// </summary>
+    /// <param name="workflow">The workflow definition to save.</param>
+    /// <returns>True if successful, false otherwise.</returns>
+    Task<bool> SaveWorkflowAsync(WorkflowDefinition workflow);
+
+    /// <summary>
+    /// Deletes a workflow from the library.
+    /// </summary>
+    /// <param name="workflowId">The ID of the workflow to delete.</param>
+    /// <returns>True if successful, false otherwise.</returns>
+    Task<bool> DeleteWorkflowAsync(string workflowId);
 }

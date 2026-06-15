@@ -201,4 +201,101 @@ public class FileWorkflowLibrary : IWorkflowLibrary
 
         return new List<string>().AsReadOnly();
     }
+
+    /// <summary>
+    /// Saves or updates a workflow definition to the library.
+    /// </summary>
+    public async Task<bool> SaveWorkflowAsync(WorkflowDefinition workflow)
+    {
+        try
+        {
+            await EnsureLoadedAsync();
+
+            if (string.IsNullOrWhiteSpace(workflow.WorkflowId))
+            {
+                _logger.LogError("Cannot save workflow with null or empty WorkflowId");
+                return false;
+            }
+
+            // Validate the workflow
+            var errors = workflow.Validate();
+            if (errors.Count > 0)
+            {
+                _logger.LogError("Cannot save invalid workflow {WorkflowId}: {Errors}",
+                    workflow.WorkflowId, string.Join("; ", errors));
+                _validationErrors[workflow.WorkflowId] = errors;
+                return false;
+            }
+
+            // Ensure directory exists
+            if (!Directory.Exists(_workflowDirectory))
+            {
+                Directory.CreateDirectory(_workflowDirectory);
+            }
+
+            // Write to file
+            var fileName = $"{workflow.WorkflowId}.workflow.json";
+            var filePath = Path.Combine(_workflowDirectory, fileName);
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                WriteIndented = true
+            };
+            options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+
+            var json = JsonSerializer.Serialize(workflow, options);
+            await File.WriteAllTextAsync(filePath, json);
+
+            // Update in-memory cache
+            _workflows[workflow.WorkflowId] = workflow;
+            _validationErrors.Remove(workflow.WorkflowId);
+
+            _logger.LogInformation("Saved workflow: {WorkflowId} to {FilePath}", workflow.WorkflowId, filePath);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving workflow {WorkflowId}", workflow?.WorkflowId ?? "<unknown>");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a workflow from the library.
+    /// </summary>
+    public async Task<bool> DeleteWorkflowAsync(string workflowId)
+    {
+        try
+        {
+            await EnsureLoadedAsync();
+
+            if (string.IsNullOrWhiteSpace(workflowId))
+            {
+                _logger.LogError("Cannot delete workflow with null or empty ID");
+                return false;
+            }
+
+            var fileName = $"{workflowId}.workflow.json";
+            var filePath = Path.Combine(_workflowDirectory, fileName);
+
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+                _logger.LogInformation("Deleted workflow file: {FilePath}", filePath);
+            }
+
+            // Remove from in-memory cache
+            _workflows.Remove(workflowId);
+            _validationErrors.Remove(workflowId);
+
+            _logger.LogInformation("Deleted workflow: {WorkflowId}", workflowId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting workflow {WorkflowId}", workflowId);
+            return false;
+        }
+    }
 }

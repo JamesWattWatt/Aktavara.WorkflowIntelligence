@@ -165,6 +165,32 @@ app.MapPost("/api/workflows/infer/name", InferWorkflowName)
 .Produces<InferredNameSuggestion>(200)
 .ProducesProblem(503);
 
+// Create workflow endpoint
+app.MapPost("/api/workflows", CreateWorkflow)
+.WithName("CreateWorkflow")
+.WithOpenApi()
+.WithDescription("Create a new workflow")
+.Produces<WorkflowLibraryItem>(201)
+.ProducesProblem(400);
+
+// Update workflow endpoint
+app.MapPut("/api/workflows/{id}", UpdateWorkflow)
+.WithName("UpdateWorkflow")
+.WithOpenApi()
+.WithDescription("Update an existing workflow")
+.Produces<WorkflowLibraryItem>(200)
+.ProducesProblem(400)
+.Produces(404);
+
+// Delete workflow endpoint
+app.MapDelete("/api/workflows/{id}", DeleteWorkflow)
+.WithName("DeleteWorkflow")
+.WithOpenApi()
+.WithDescription("Delete a workflow")
+.Produces(204)
+.Produces(404)
+.ProducesProblem(400);
+
 // List help guides endpoint
 app.MapGet("/api/help-guides", GetHelpGuideSummaries)
 .WithName("ListHelpGuides")
@@ -964,5 +990,118 @@ Suggest a short business-friendly name (3-5 words) and a one-sentence descriptio
     {
         logger.LogError(ex, "Error inferring workflow name");
         return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    }
+}
+
+async Task<IResult> CreateWorkflow(
+    WorkflowDefinition workflow,
+    IWorkflowLibrary workflowLibrary,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(workflow.WorkflowId))
+            return Results.BadRequest(new { error = "WorkflowId is required" });
+
+        if (string.IsNullOrEmpty(workflow.Name))
+            return Results.BadRequest(new { error = "Name is required" });
+
+        var success = await workflowLibrary.SaveWorkflowAsync(workflow);
+        if (!success)
+            return Results.BadRequest(new { error = "Failed to save workflow" });
+
+        var item = new WorkflowLibraryItem
+        {
+            Id = workflow.WorkflowId,
+            Name = workflow.Name,
+            Status = workflow.Status.ToString(),
+            Version = workflow.Version ?? "1.0",
+            RiskLevel = workflow.Metadata?.ContainsKey("riskLevel") == true ? workflow.Metadata["riskLevel"]?.ToString() ?? "Medium" : "Medium",
+            Tags = workflow.Tags ?? new(),
+            Description = workflow.Description ?? string.Empty,
+            IsValid = true,
+            ValidationErrors = new(),
+            RuleCount = workflow.ActivitySignature?.Count ?? 0,
+            StateCount = workflow.States?.Count ?? 0,
+            LastModified = DateTime.UtcNow,
+            FileName = $"{workflow.WorkflowId}.workflow.json"
+        };
+
+        return Results.Created($"/api/workflows/{workflow.WorkflowId}", item);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error creating workflow");
+        return Results.BadRequest(new { error = "Error creating workflow" });
+    }
+}
+
+async Task<IResult> UpdateWorkflow(
+    string id,
+    WorkflowDefinition workflow,
+    IWorkflowLibrary workflowLibrary,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(id))
+            return Results.BadRequest(new { error = "Workflow ID is required" });
+
+        // Ensure the ID matches
+        workflow.WorkflowId = id;
+
+        if (string.IsNullOrEmpty(workflow.Name))
+            return Results.BadRequest(new { error = "Name is required" });
+
+        var success = await workflowLibrary.SaveWorkflowAsync(workflow);
+        if (!success)
+            return Results.BadRequest(new { error = "Failed to update workflow" });
+
+        var item = new WorkflowLibraryItem
+        {
+            Id = workflow.WorkflowId,
+            Name = workflow.Name,
+            Status = workflow.Status.ToString(),
+            Version = workflow.Version ?? "1.0",
+            RiskLevel = workflow.Metadata?.ContainsKey("riskLevel") == true ? workflow.Metadata["riskLevel"]?.ToString() ?? "Medium" : "Medium",
+            Tags = workflow.Tags ?? new(),
+            Description = workflow.Description ?? string.Empty,
+            IsValid = true,
+            ValidationErrors = new(),
+            RuleCount = workflow.ActivitySignature?.Count ?? 0,
+            StateCount = workflow.States?.Count ?? 0,
+            LastModified = DateTime.UtcNow,
+            FileName = $"{workflow.WorkflowId}.workflow.json"
+        };
+
+        return Results.Ok(item);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error updating workflow");
+        return Results.BadRequest(new { error = "Error updating workflow" });
+    }
+}
+
+async Task<IResult> DeleteWorkflow(
+    string id,
+    IWorkflowLibrary workflowLibrary,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(id))
+            return Results.BadRequest(new { error = "Workflow ID is required" });
+
+        var success = await workflowLibrary.DeleteWorkflowAsync(id);
+        if (!success)
+            return Results.BadRequest(new { error = "Failed to delete workflow" });
+
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error deleting workflow");
+        return Results.BadRequest(new { error = "Error deleting workflow" });
     }
 }

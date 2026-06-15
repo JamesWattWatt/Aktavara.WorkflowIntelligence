@@ -4,7 +4,10 @@ import type {
   WorkflowDefinition,
   HelpGuideSection,
   HealthCheckResponse,
-  GuideSuggestion
+  GuideSuggestion,
+  WorkflowLibraryItem,
+  InferredWorkflowSuggestion,
+  InferredNameSuggestion
 } from '../types/api';
 
 const BASE_URL = '/api';
@@ -165,6 +168,105 @@ class ApiClient {
     if (!response.ok) {
       throw new Error(`Failed to save guide mapping: ${response.statusText}`);
     }
+  }
+
+  async getWorkflowLibrary(): Promise<WorkflowLibraryItem[]> {
+    const response = await fetch(`${BASE_URL}/workflows/library`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch workflow library: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async updateWorkflow(
+    id: string,
+    definition: WorkflowDefinition
+  ): Promise<WorkflowLibraryItem> {
+    const response = await fetch(`${BASE_URL}/workflows/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(definition)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update workflow: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async createWorkflow(definition: WorkflowDefinition): Promise<WorkflowLibraryItem> {
+    const response = await fetch(`${BASE_URL}/workflows`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(definition)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create workflow: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async deleteWorkflow(id: string, permanent: boolean = false): Promise<void> {
+    const response = await fetch(`${BASE_URL}/workflows/${id}?permanent=${permanent}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete workflow: ${response.statusText}`);
+    }
+  }
+
+  async inferWorkflow(logContent: string): Promise<InferredWorkflowSuggestion> {
+    const response = await fetch(`${BASE_URL}/workflows/infer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ rawLogContent: logContent })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to infer workflow: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async inferWorkflowName(suggestion: InferredWorkflowSuggestion): Promise<InferredNameSuggestion> {
+    const response = await fetch(`${BASE_URL}/workflows/infer/name`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        suggestedRules: suggestion.suggestedRules,
+        suggestedTags: suggestion.suggestedTags,
+        evidenceSessions: suggestion.evidenceSessions
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to infer workflow name: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 }
 
