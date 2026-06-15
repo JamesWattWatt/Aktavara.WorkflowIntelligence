@@ -19,20 +19,24 @@
 - workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
-- Prompts 1-22b complete
-- 200 tests passing, 0 errors
+- Prompts 1-23a complete
+- 215 tests passing, 0 errors
 - API running on http://localhost:5112
 - React UI (Vite) running on http://localhost:5173 with full functionality
 - MCP server: aktavara-workflow-mcp/
 - Help guides: 29 chapters in help-guides/
 - Workflow library: 2 workflows in workflows/
 - Intelligent help guide matcher: LLM-driven guide discovery with human approval
+- Offline discovery service: workflow inference from activity logs (Prompt 23a)
 
 ## API endpoints (all working)
 POST /api/analyze/upload — file upload, full pipeline
 POST /api/analyze/text — raw text, full pipeline
 GET  /api/workflows — list all workflows
 GET  /api/workflows/{id} — full workflow definition
+GET  /api/workflows/library — list workflows with metadata (Prompt 23a)
+POST /api/workflows/infer — infer workflow from activity logs (Prompt 23a)
+POST /api/workflows/infer/name — get LLM-suggested workflow name (Prompt 23a)
 PATCH /api/workflows/{id}/status — update status
 POST /api/workflows/reload — force reload (dev only)
 GET  /api/health — health check
@@ -164,8 +168,31 @@ Config for Claude Desktop:
   }
 }
 
+## Prompt 23a: OfflineDiscoveryService (COMPLETE)
+Core inference service for workflow discovery from activity logs:
+- **IOfflineDiscoveryService**: Main interface for inference
+- **OfflineDiscoveryService**: Implements 10 internal methods:
+  - ClusterBySessions: group events by user/session with 60-min time breaks
+  - ExtractActionSequences: convert events to (EventType, RecordKind) pairs
+  - FindCommonSequences: identify patterns appearing in multiple sessions
+  - CalculateActionFrequencies: frequency-based rule weighting
+  - DeriveSignatureRules: generate WorkflowSignatureRule objects with required/optional flags
+  - BuildStateModel: create WorkflowStateDefinition from sequences
+  - DetectVariants: find workflow variations across sessions
+  - InferRiskLevel: classify as High/Medium/Low based on operations
+  - SuggestTags: extract from RecordKind and WorkspaceKind
+  - GenerateWorkshopQuestions: context-aware questions for refinement
+- **API Endpoints** (3 new):
+  - POST /api/workflows/infer: accepts RawLogContent, returns InferredWorkflowSuggestion
+  - POST /api/workflows/infer/name: calls Claude Sonnet to suggest workflow name
+  - GET /api/workflows/library: lists all workflows with metadata
+- **Models**:
+  - InferredWorkflowSuggestion: rules, states, variants, risk level, evidence counts
+  - WorkflowVariant: detected variations with occurrence % and different steps
+- **Tests**: 15 unit tests covering basic inference, risk detection, session clustering, variant detection, tag extraction, question generation, threshold calculation, weight normalization
+- Status: 215 tests passing, 0 errors, manual API test successful
+
 ## Next prompts
-- Prompt 23a: OfflineDiscoveryService (inference pipeline completion, enum type fixes, 15 unit tests)
 - Prompt 23b: Library management UI (workflow CRUD, bulk operations, status updates, validation)
 - Prompt 24: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
