@@ -19,7 +19,7 @@
 - workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
-- Prompts 1-24a complete
+- Prompts 1-24b complete
 - 215 tests passing, 0 errors
 - API running on http://localhost:5112 with all endpoints functional (including PUT/POST/DELETE workflows)
 - React UI (Vite) running on http://localhost:5173 with full functionality
@@ -30,6 +30,7 @@
 - Offline discovery service: fully implemented with 10 inference methods, working inference endpoints
 - Library management UI: full CRUD with inference modal, import/export (Prompt 23b)
 - Layout: full width (1200px min), three-column layout with sticky workflow header (Prompt 24a)
+- Contextual help system: sliding panel with markdown rendering, 7 help topics (Prompt 24b)
 
 ## API endpoints (all working)
 POST /api/analyze/upload — file upload, full pipeline
@@ -224,8 +225,47 @@ Three layout improvements for the Discovery interface:
 - z-index set to stay above tab bar during scroll
 - Updates when different candidate selected
 
+## Prompt 24b: Contextual Help System (COMPLETE)
+
+Help system providing contextual guidance via sliding drawer panel:
+
+**Components:**
+- HelpPanel.tsx: Right-side sliding drawer (380px wide)
+  - Smooth CSS transform transition (translateX)
+  - Semi-transparent dark overlay (can click to close)
+  - Sticky header with close button (×)
+  - Markdown rendering: headings (## ###), bold (**text**), lists (- items), paragraphs
+  - Closes on Escape key or overlay click
+  - Dark theme support
+
+- HelpIcon.tsx: Small (?) circle button (18px)
+  - Grey border/text, blue on hover
+  - Cursor: pointer, title: "Help"
+  - Opens HelpPanel with content for specified key
+
+**Help Content Library (7 topics):**
+1. discovery-concept: About Workflow Discovery (upload, parse, match, confidence)
+2. discovery-analysis: Analysis Panel (metrics, guidance level, context narrative)
+3. discovery-workflow-details: Workflow Details (score, breakdown, evidence, rules, hints)
+4. discovery-workshop: Workshop Qualification (name, questions, execution decision, approval)
+5. library-concept: About Workflow Library (statuses, definitions, creation methods)
+6. library-edit: Editing Workflows (5 editor tabs: Overview, Rules, States, Guides, JSON)
+
+**Integration Points:**
+- Header: Help icon next to Discovery/Library subtitle
+- Discovery: Help icons next to Details and Workshop tab labels
+- Analysis panel: Help icon next to ANALYSIS label
+- Library: Help icon in Actions table column header
+- State management: openHelp(key) callback passed to components
+
+**Features:**
+- Context-aware: Help key changes based on current tab/location
+- Non-intrusive: Overlay allows dismissal, doesn't block interaction
+- Accessible: Escape key closes panel
+- Responsive: Works at all viewport sizes
+
 ## Next prompts
-- Prompt 24b+: E2E testing (Playwright, critical user paths, accessibility)
+- Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
 
 ## Key design rules
