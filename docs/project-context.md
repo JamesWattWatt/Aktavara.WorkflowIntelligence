@@ -406,6 +406,44 @@ LLM-driven auto-generation of workshop questions for workflow states during crea
 - Backfill endpoint tested: { updated: 2, states: 6 }
 - All compilation errors resolved
 
+## Prompt 25c: Pass Detected User Context Through UI (COMPLETE)
+
+User context tracking for correct API calls in subsequent operations:
+
+**API Changes:**
+- Added `DetectedUser: string` field to AnalyzeResponse model
+- HandleAnalyzeUpload: extracts detected user from events, sets `response.DetectedUser = detectedUser ?? ""`
+- HandleAnalyzeText: sets `response.DetectedUser = userName ?? ""` after auto-detection
+- Both endpoints now return the actual user that was used for analysis
+
+**React UI Changes:**
+- Updated TypeScript AnalyzeResponse interface to include `detectedUser: string`
+- App.tsx: added state `const [detectedUser, setDetectedUser] = useState<string | null>(null)`
+- handleAnalyzeResult: extracts `response.detectedUser` and stores in state
+- Passes `detectedUser` prop to WorkshopPanel component
+
+**WorkshopPanel Updates:**
+- Added `detectedUser?: string | null` to props interface
+- Component receives detected user for future analyze endpoint calls
+- Currently used only for status updates, ready for future enhancement
+
+**Verification:**
+- API returns: `"detectedUser":"XAdmin"` from test log (log20260610.txt)
+- React TypeScript: 0 errors after build
+- Tests: 215 passing, 0 errors
+- User context now flows from initial upload through to workshop panel
+
+**Result:**
+Any future analyze calls from WorkshopPanel can now pass the correct user context:
+```
+{
+  "logContent": "...",
+  "userName": detectedUser ?? "",
+  "autoDetectUser": true,
+  "timeWindowMinutes": 30
+}
+```
+
 ## Next prompts
 - Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
