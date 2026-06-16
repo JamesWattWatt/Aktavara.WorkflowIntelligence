@@ -191,5 +191,28 @@ Click **"Change mapping"** to pick a different guide section.
 
 ### JSON tab
 Shows the complete workflow definition as JSON. Use Download to save a copy or share with other installations.`
+  },
+  'library-state-terminal': {
+    title: 'Terminal state',
+    content: `## What is a terminal state?
+
+A terminal state is the final step in a workflow — the point at which the task is considered complete.
+
+### How it works
+When a user reaches a terminal state, the system knows the workflow is finished and stops suggesting next steps. Instead it may show a completion message or prompt the user to start a new task.
+
+### Example
+In the 'Add connector to path' workflow:
+- Path Opened — not terminal (more steps follow)
+- Connector Created — not terminal (path needs saving)
+- Path Saved — terminal (workflow complete)
+
+### When to mark a state as terminal
+Mark a state as terminal when:
+- The user has completed all required actions
+- There are no further steps in this workflow
+- The system should stop providing next-step guidance
+
+Only one state should typically be terminal, though complex workflows may have multiple terminal states for different completion paths.`
   }
 };

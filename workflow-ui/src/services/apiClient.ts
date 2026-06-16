@@ -269,8 +269,12 @@ class ApiClient {
     return response.json();
   }
 
-  async generateWorkflowQuestions(id: string): Promise<WorkflowDefinition> {
-    const response = await fetch(`${BASE_URL}/workflows/${id}/generate-questions`, {
+  async generateWorkflowQuestions(id: string, stateId?: string): Promise<WorkflowDefinition> {
+    const url = stateId
+      ? `${BASE_URL}/workflows/${id}/generate-questions?stateId=${encodeURIComponent(stateId)}`
+      : `${BASE_URL}/workflows/${id}/generate-questions`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

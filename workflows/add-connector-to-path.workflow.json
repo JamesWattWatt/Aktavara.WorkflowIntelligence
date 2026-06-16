@@ -1,169 +1,197 @@
 {
-  "workflowId": "add-connector-to-path",
-  "name": "Add connector to path",
-  "description": "User opens a path, selects two nodes to connect, creates a new connector between them, configures connector properties, and saves the path. This workflow represents the fundamental connectivity operation in path design.",
-  "category": "path-operations",
-  "version": "1.0",
-  "status": "Active",
-  "tags": [
-    "path-operations",
-    "connector-management",
-    "design-workflow"
-  ],
-  "minimumConfidenceThreshold": 0.65,
-  "createdBy": "system",
-  "createdDate": "2026-06-10T00:00:00Z",
-  "lastModifiedDate": "2026-06-16T07:45:34.5182507Z",
-  "metadata": {
-    "domain": "Path Workspace",
-    "complexity": "Medium",
-    "estimatedDuration": "8-15 minutes"
-  },
-  "activitySignature": [
+  "WorkflowId": "add-connector-to-path",
+  "Name": "Add connector to path",
+  "Description": "User opens a path, selects two nodes to connect, creates a new connector between them, configures connector properties, and saves the path. This workflow represents the fundamental connectivity operation in path design.",
+  "Version": "1.0",
+  "Status": "Active",
+  "ActivitySignature": [
     {
-      "eventType": "SearchRecords",
-      "recordKind": "Path",
-      "required": false,
-      "weight": 0.12,
-      "description": "User searches for the path to modify (optional)",
-      "missingPenalty": 0.05
+      "RuleId": "3988006c-947a-48b3-87c3-9b9dffba0326",
+      "EventType": "SearchRecords",
+      "RecordKind": "Path",
+      "WorkspaceKind": null,
+      "Required": false,
+      "Weight": 0.12,
+      "MissingPenalty": 0.05,
+      "MaxAgeMinutes": null,
+      "Description": "User searches for the path to modify (optional)"
     },
     {
-      "eventType": "OpenWorkspace",
-      "recordKind": "Path",
-      "workspaceKind": "Path",
-      "required": true,
-      "weight": 0.30,
-      "description": "User opens a path workspace for adding a connector (required)",
-      "missingPenalty": 0.25
+      "RuleId": "ba00092b-14c4-46de-9b04-0b25c57382ed",
+      "EventType": "OpenWorkspace",
+      "RecordKind": "Path",
+      "WorkspaceKind": "Path",
+      "Required": true,
+      "Weight": 0.3,
+      "MissingPenalty": 0.25,
+      "MaxAgeMinutes": null,
+      "Description": "User opens a path workspace for adding a connector (required)"
     },
     {
-      "eventType": "SaveRecords",
-      "recordKind": "Connector",
-      "required": true,
-      "weight": 0.50,
-      "description": "A new connector has been created and saved (required)",
-      "missingPenalty": 0.30
+      "RuleId": "4556216e-d3ae-4857-9357-f7f69d587102",
+      "EventType": "SaveRecords",
+      "RecordKind": "Connector",
+      "WorkspaceKind": null,
+      "Required": true,
+      "Weight": 0.5,
+      "MissingPenalty": 0.3,
+      "MaxAgeMinutes": null,
+      "Description": "A new connector has been created and saved (required)"
     },
     {
-      "eventType": "SaveRecords",
-      "recordKind": "Path",
-      "required": false,
-      "weight": 0.08,
-      "description": "The path with the new connector has been saved (optional)",
-      "missingPenalty": 0.05
+      "RuleId": "11189422-e92c-457d-8343-9cb3fe631806",
+      "EventType": "SaveRecords",
+      "RecordKind": "Path",
+      "WorkspaceKind": null,
+      "Required": false,
+      "Weight": 0.08,
+      "MissingPenalty": 0.05,
+      "MaxAgeMinutes": null,
+      "Description": "The path with the new connector has been saved (optional)"
     }
   ],
-  "states": [
+  "States": [
     {
-      "stateId": "path_opened",
-      "name": "Path Opened",
-      "description": "The path workspace is open and ready for connector creation.",
-      "requiredEvidence": [
+      "StateId": "path_opened",
+      "Name": "Path Opened",
+      "Description": "The path workspace is open and ready for connector creation.",
+      "RequiredEvidence": [
         "OpenWorkspace"
       ],
-      "sequence": 0,
-      "isTerminal": false,
-      "nextStateId": "connector_created",
-      "helpGuideId": "guide-open-path-for-connector",
-      "workshopQuestions": [
+      "NextStateId": "connector_created",
+      "HelpGuideId": "guide-open-path-for-connector",
+      "Sequence": 0,
+      "IsTerminal": false,
+      "Metadata": {},
+      "WorkshopQuestions": [
         "Which two nodes do you want to connect?",
         "Is this a direct connection or does the path need intermediate nodes?",
         "What type of connector will you be using (direct, routed, etc.)?"
-      ],
-      "metadata": {}
+      ]
     },
     {
-      "stateId": "connector_created",
-      "name": "Connector Created",
-      "description": "A new connector has been created between nodes and saved in the path.",
-      "requiredEvidence": [
+      "StateId": "connector_created",
+      "Name": "Connector Created",
+      "Description": "A new connector has been created between nodes and saved in the path.",
+      "RequiredEvidence": [
         "OpenWorkspace",
         "SaveRecords"
       ],
-      "sequence": 1,
-      "isTerminal": false,
-      "nextStateId": "path_saved",
-      "helpGuideId": "guide-connector-created",
-      "workshopQuestions": [
+      "NextStateId": "path_saved",
+      "HelpGuideId": "guide-connector-created",
+      "Sequence": 1,
+      "IsTerminal": false,
+      "Metadata": {
+        "detectedRecordKind": "Connector"
+      },
+      "WorkshopQuestions": [
         "Do you need to configure connector properties (type, attributes)?",
         "Should you allocate any tags or labels to this connector?",
         "Are there any validation rules or constraints to apply?"
-      ],
-      "metadata": {
-        "detectedRecordKind": "Connector"
-      }
+      ]
     },
     {
-      "stateId": "path_saved",
-      "name": "Path Saved",
-      "description": "The path with the new connector has been saved, completing the workflow.",
-      "requiredEvidence": [
+      "StateId": "path_saved",
+      "Name": "Path Saved",
+      "Description": "The path with the new connector has been saved, completing the workflow.",
+      "RequiredEvidence": [
         "OpenWorkspace",
         "SaveRecords"
       ],
-      "sequence": 2,
-      "isTerminal": true,
-      "nextStateId": null,
-      "helpGuideId": "guide-save-path",
-      "workshopQuestions": [
+      "NextStateId": null,
+      "HelpGuideId": "guide-save-path",
+      "Sequence": 2,
+      "IsTerminal": true,
+      "Metadata": {
+        "completion": "workflow_complete"
+      },
+      "WorkshopQuestions": [
         "Did the connector save successfully without errors?",
         "Are there any other connectors you need to add to this path?",
         "Should you validate the entire path topology now?"
-      ],
-      "metadata": {
-        "completion": "workflow_complete"
-      }
+      ]
+    },
+    {
+      "StateId": "state-1781608366925",
+      "Name": "Path Edited",
+      "Description": "the user has edited the path. ",
+      "RequiredEvidence": [],
+      "NextStateId": null,
+      "HelpGuideId": "",
+      "Sequence": 3,
+      "IsTerminal": true,
+      "Metadata": {},
+      "WorkshopQuestions": [
+        "When you add a connector to an existing path, what information do you typically need to search for and locate the correct path \u2014 for example, do you search by path name, ID, region, or something else?",
+        "After a new connector is added and the path is saved, are there any approval steps, notifications, or downstream teams that need to be informed before the change is considered complete?",
+        "Are there situations where adding a connector to a path would need to be rolled back or undone \u2014 and if so, how do you currently handle reversing that kind of change?"
+      ]
     }
   ],
-  "actions": [
-    {
-      "actionId": "create-connector",
-      "name": "Create Connector",
-      "description": "Create a connector between the selected start and end nodes",
-      "executionMode": "Prompt",
-      "availableInStateId": "end_node_selected",
-      "metadata": {
-        "requires_both_nodes": "true"
-      }
-    },
-    {
-      "actionId": "configure-connector-properties",
-      "name": "Configure Connector Properties",
-      "description": "Set the connector type, attributes, and other properties",
-      "executionMode": "Prompt",
-      "availableInStateId": "connector_created",
-      "metadata": {
-        "optional": "true"
-      }
-    },
-    {
-      "actionId": "save-path-changes",
-      "name": "Save Path Changes",
-      "description": "Save the path with the new connector",
-      "executionMode": "Automatic",
-      "availableInStateId": "connector_configured",
-      "metadata": {
-        "hotkey": "Ctrl\u002BS"
-      }
-    },
-    {
-      "actionId": "cancel-connector-creation",
-      "name": "Cancel Connector Creation",
-      "description": "Discard the connector being created",
-      "executionMode": "Prompt",
-      "availableInStateId": "connector_created",
-      "metadata": {
-        "destructive": "true"
-      }
-    }
-  ],
-  "helpGuideIds": [
+  "HelpGuideIds": [
     "guide-open-path-for-connector",
     "guide-select-start-node",
     "guide-select-end-node",
     "guide-connector-created",
     "guide-configure-connector",
     "guide-save-path"
-  ]
+  ],
+  "Actions": [
+    {
+      "ActionId": "create-connector",
+      "Name": "Create Connector",
+      "Description": "Create a connector between the selected start and end nodes",
+      "ExecutionMode": "Prompt",
+      "AvailableInStateId": "end_node_selected",
+      "Metadata": {
+        "requires_both_nodes": "true"
+      }
+    },
+    {
+      "ActionId": "configure-connector-properties",
+      "Name": "Configure Connector Properties",
+      "Description": "Set the connector type, attributes, and other properties",
+      "ExecutionMode": "Prompt",
+      "AvailableInStateId": "connector_created",
+      "Metadata": {
+        "optional": "true"
+      }
+    },
+    {
+      "ActionId": "save-path-changes",
+      "Name": "Save Path Changes",
+      "Description": "Save the path with the new connector",
+      "ExecutionMode": "Automatic",
+      "AvailableInStateId": "connector_configured",
+      "Metadata": {
+        "hotkey": "Ctrl\u002BS"
+      }
+    },
+    {
+      "ActionId": "cancel-connector-creation",
+      "Name": "Cancel Connector Creation",
+      "Description": "Discard the connector being created",
+      "ExecutionMode": "Prompt",
+      "AvailableInStateId": "connector_created",
+      "Metadata": {
+        "destructive": "true"
+      }
+    }
+  ],
+  "Tags": [
+    "path-operations",
+    "connector-management",
+    "design-workflow"
+  ],
+  "MinimumConfidenceThreshold": 0.65,
+  "CreatedBy": "system",
+  "CreatedDate": "2026-06-10T00:00:00Z",
+  "LastModifiedDate": "2026-06-16T07:45:34.5182507Z",
+  "Metadata": {
+    "domain": "Path Workspace",
+    "complexity": "Medium",
+    "estimatedDuration": "8-15 minutes",
+    "riskLevel": "Low"
+  },
+  "IsActive": true
 }

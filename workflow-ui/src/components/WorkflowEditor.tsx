@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import type { WorkflowLibraryItem, WorkflowDefinition, ActivitySignatureRule, WorkflowState } from '../types/api';
 import { apiClient } from '../services/apiClient';
+import { HelpIcon } from './HelpIcon';
 
 interface WorkflowEditorProps {
   workflow: WorkflowLibraryItem | null;
   onClose: () => void;
   onShowInference: () => void;
+  onOpenHelp?: (key: string) => void;
 }
 
-export function WorkflowEditor({ workflow, onClose, onShowInference }: WorkflowEditorProps) {
+export function WorkflowEditor({ workflow, onClose, onShowInference, onOpenHelp }: WorkflowEditorProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'rules' | 'states' | 'guides' | 'json'>('overview');
   const [definition, setDefinition] = useState<WorkflowDefinition | null>(null);
   const [loading, setLoading] = useState(!!workflow);
@@ -140,6 +142,7 @@ export function WorkflowEditor({ workflow, onClose, onShowInference }: WorkflowE
           <StatesTab
             definition={definition}
             onChange={setDefinition}
+            onOpenHelp={onOpenHelp}
           />
         )}
         {activeTab === 'guides' && (
@@ -430,14 +433,18 @@ function RulesTab({ definition, onChange }: RulesTabProps) {
 interface StatesTabProps {
   definition: WorkflowDefinition;
   onChange: (def: WorkflowDefinition) => void;
+  onOpenHelp?: (key: string) => void;
 }
 
-function StatesTab({ definition, onChange }: StatesTabProps) {
+function StatesTab({ definition, onChange, onOpenHelp }: StatesTabProps) {
   const [states, setStates] = useState<WorkflowState[]>(definition.states || []);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingState, setGeneratingState] = useState<string | null>(null);
   const [editingQuestions, setEditingQuestions] = useState<string | null>(null);
   const [editQuestionText, setEditQuestionText] = useState<string>('');
+  const [toast, setToast] = useState<{ message: string; stateId: string } | null>(null);
+
+  const hasUnsavedChanges = JSON.stringify(states) !== JSON.stringify(definition.states || []);
 
   const handleStateChange = (index: number, field: string, value: any) => {
     const newStates = [...states];
@@ -471,14 +478,26 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
   };
 
   const handleGenerateQuestions = async (index: number) => {
-    if (!definition.workflowId) return;
+    if (!definition.workflowId || hasUnsavedChanges) return;
+
+    const stateId = states[index].stateId;
+    const stateName = states[index].name;
 
     try {
-      setGeneratingState(states[index].stateId);
-      const updated = await apiClient.generateWorkflowQuestions(definition.workflowId);
-      const newStates = updated.states || [];
-      setStates(newStates);
-      onChange({ ...definition, states: newStates });
+      setGeneratingState(stateId);
+      const updated = await apiClient.generateWorkflowQuestions(definition.workflowId, stateId);
+      const updatedStateFromAPI = updated.states?.find(s => s.stateId === stateId);
+
+      if (updatedStateFromAPI) {
+        const newStates = states.map((s, i) =>
+          i === index ? { ...s, workshopQuestions: updatedStateFromAPI.workshopQuestions } : s
+        );
+        setStates(newStates);
+        onChange({ ...definition, states: newStates });
+
+        setToast({ message: `Questions generated for ${stateName}`, stateId });
+        setTimeout(() => setToast(null), 3000);
+      }
     } catch (err) {
       console.error('Error generating questions:', err);
     } finally {
@@ -487,7 +506,7 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
   };
 
   const handleGenerateAllQuestions = async () => {
-    if (!definition.workflowId) return;
+    if (!definition.workflowId || hasUnsavedChanges) return;
 
     try {
       setGeneratingAll(true);
@@ -523,13 +542,18 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <button
-          onClick={handleGenerateAllQuestions}
-          disabled={generatingAll}
-          className="flex-1 px-3 py-2 bg-blue-600 text-white dark:bg-blue-500 dark:text-gray-900 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 text-sm font-medium disabled:opacity-50"
+        <div
+          className="flex-1 relative"
+          title={hasUnsavedChanges ? 'Save changes first' : ''}
         >
-          {generatingAll ? 'Generating...' : 'Generate all questions'}
-        </button>
+          <button
+            onClick={handleGenerateAllQuestions}
+            disabled={generatingAll || hasUnsavedChanges}
+            className="w-full px-3 py-2 bg-blue-600 text-white dark:bg-blue-500 dark:text-gray-900 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingAll ? 'Generating...' : 'Generate questions for all steps'}
+          </button>
+        </div>
         <button
           onClick={handleAddState}
           className="flex-1 px-3 py-2 border border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm font-medium"
@@ -569,18 +593,24 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
               onChange={e => handleStateChange(i, 'isTerminal', e.target.checked)}
             />
             <span className="text-sm">Is terminal state</span>
+            {onOpenHelp && <HelpIcon helpKey="library-state-terminal" onOpen={onOpenHelp} />}
           </label>
 
           <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium">Workshop Questions</span>
-              <button
-                onClick={() => handleGenerateQuestions(i)}
-                disabled={generatingState === state.stateId}
-                className="text-sm px-2 py-1 border border-blue-500 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50"
+              <div
+                className="relative"
+                title={hasUnsavedChanges ? 'Save changes first' : ''}
               >
-                {generatingState === state.stateId ? 'Generating...' : 'Generate'}
-              </button>
+                <button
+                  onClick={() => handleGenerateQuestions(i)}
+                  disabled={generatingState === state.stateId || hasUnsavedChanges}
+                  className="text-sm px-2 py-1 border border-blue-500 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generatingState === state.stateId ? 'Generating...' : 'Generate questions for this step'}
+                </button>
+              </div>
             </div>
 
             {editingQuestions === state.stateId ? (
@@ -631,6 +661,12 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
           </div>
         </div>
       ))}
+
+      {toast && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm animate-pulse">
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

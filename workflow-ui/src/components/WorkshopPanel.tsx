@@ -73,7 +73,7 @@ export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPan
       setGeneratingQuestions(true);
       await apiClient.generateWorkflowQuestions(workflowId);
       // Refresh the workflow to get updated questions
-      const workflow = await apiClient.getWorkflow(workflowId);
+      await apiClient.getWorkflow(workflowId);
       // Note: The candidate object won't be updated directly, but the next time
       // the parent refreshes data, it will have the new questions
     } catch (error) {

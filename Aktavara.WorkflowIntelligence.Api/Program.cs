@@ -1376,6 +1376,7 @@ async Task<IResult> UpdateWorkflow(
 
 async Task<IResult> GenerateWorkflowQuestions(
     string id,
+    string? stateId,
     IWorkflowLibrary workflowLibrary,
     IWorkshopQuestionGenerator questionGenerator,
     ILogger<Program> logger)
@@ -1389,7 +1390,14 @@ async Task<IResult> GenerateWorkflowQuestions(
         if (workflow == null)
             return Results.NotFound(new { error = "Workflow not found" });
 
-        await GenerateWorkshopQuestionsForWorkflow(workflow, questionGenerator, workflowLibrary, logger);
+        if (!string.IsNullOrEmpty(stateId))
+        {
+            await GenerateWorkshopQuestionsForState(workflow, stateId, questionGenerator, workflowLibrary, logger);
+        }
+        else
+        {
+            await GenerateWorkshopQuestionsForWorkflow(workflow, questionGenerator, workflowLibrary, logger);
+        }
 
         return Results.Ok(workflow);
     }
@@ -1468,6 +1476,51 @@ async Task GenerateWorkshopQuestionsForWorkflow(
     if (hasChanges)
     {
         await workflowLibrary.SaveWorkflowAsync(workflow);
+    }
+}
+
+async Task GenerateWorkshopQuestionsForState(
+    WorkflowDefinition workflow,
+    string stateId,
+    IWorkshopQuestionGenerator questionGenerator,
+    IWorkflowLibrary workflowLibrary,
+    ILogger<Program> logger)
+{
+    if (workflow.States == null || workflow.States.Count == 0)
+        return;
+
+    var state = workflow.States.FirstOrDefault(s => s.StateId == stateId);
+    if (state == null)
+    {
+        logger.LogWarning("State {StateId} not found in workflow {WorkflowId}", stateId, workflow.WorkflowId);
+        return;
+    }
+
+    var riskLevel = workflow.Metadata?.ContainsKey("riskLevel") == true
+        ? workflow.Metadata["riskLevel"]?.ToString() ?? "Medium"
+        : "Medium";
+    var tags = workflow.Tags ?? new();
+    var rules = workflow.ActivitySignature?.Select(r => r.Description).ToList() ?? new();
+
+    try
+    {
+        var questions = await questionGenerator.GenerateQuestionsAsync(
+            workflow.Name,
+            state.StateId,
+            state.Name,
+            state.Description,
+            rules,
+            tags,
+            riskLevel);
+
+        state.WorkshopQuestions = questions;
+        logger.LogInformation("Generated {QuestionCount} questions for state {StateId}", questions.Count, state.StateId);
+
+        await workflowLibrary.SaveWorkflowAsync(workflow);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error generating questions for state {StateId}", state.StateId);
     }
 }
 

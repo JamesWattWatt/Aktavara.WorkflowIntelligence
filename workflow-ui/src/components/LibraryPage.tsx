@@ -335,6 +335,7 @@ export function LibraryPage({ onOpenHelp }: LibraryPageProps) {
             setShowEditor(false);
             setShowInference(true);
           }}
+          onOpenHelp={onOpenHelp}
         />
       )}
 
