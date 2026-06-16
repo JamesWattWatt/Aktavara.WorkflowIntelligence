@@ -263,6 +263,13 @@ app.MapPost("/api/help-guides/mapping", SaveGuideMapping)
 .Produces(200)
 .ProducesProblem(400);
 
+// Log Anthropic API key status for diagnostics
+var apiKey = builder.Configuration.GetValue<string>("Anthropic:ApiKey");
+var keyStatus = string.IsNullOrEmpty(apiKey)
+    ? "NOT CONFIGURED"
+    : $"{apiKey.Substring(0, Math.Min(10, apiKey.Length))}...[masked]";
+app.Logger.LogInformation("Anthropic API key: {KeyStatus}", keyStatus);
+
 app.Run();
 
 // Endpoint handlers
