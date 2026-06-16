@@ -495,12 +495,108 @@ Any future analyze calls from WorkshopPanel can now pass the correct user contex
 }
 ```
 
+## Prompt 26a: Chat API Endpoint (COMPLETE)
+
+Conversational chat API for providing contextual workflow guidance with LLM integration and session management.
+
+**Architecture:**
+- Strategy pattern for LLM providers (Anthropic/Mock implementations)
+- Thread-safe in-memory session store with automatic expiration
+- Full message history support for multi-turn conversations
+- Configurable model, max tokens, and system prompt templates
+
+**Core Models:**
+- ChatMessage: role (user/assistant), content, timestamp, toolsUsed
+- ChatSession: sessionId, createdAt, lastActivityAt, messages[], logFileName, analyzeResponse
+- ChatRequest: sessionId?, message, logContent?, userName?, userQuestion?
+- ChatResponse: sessionId, reply, toolsUsed[], workflowContext, sources[]
+
+**LLM Provider Interface:**
+- IChatLlmProvider: CompleteAsync(messages, systemPrompt, cancellationToken)
+- AnthropicChatProvider: calls /v1/messages with full message history
+  - Model: claude-sonnet-4-6 (configurable)
+  - Max tokens: 1000 (configurable)
+  - Auto-extracts text content from Anthropic response
+- MockChatProvider: canned responses for testing without API keys
+  - Keyword-based response routing (next, help, error)
+
+**ChatSessionStore Service:**
+- Singleton with thread-safe locking (lock _lockObject)
+- Max 50 concurrent sessions
+- 2-hour session expiration (auto-cleanup when at capacity)
+- Methods: GetOrCreateSession, GetSession, AddMessage, RemoveSession, GetAllSessions, GetSessionCount
+
+**API Endpoints (5 total):**
+1. POST /api/chat
+   - Creates new session (or uses existing sessionId if provided)
+   - Accepts: message, logContent?, userName?, userQuestion?
+   - Calls AnthropicChatProvider.CompleteAsync with full message history
+   - Returns: ChatResponse { sessionId, reply, toolsUsed, workflowContext, sources }
+   - Message history auto-persisted in ChatSessionStore
+
+2. GET /api/chat/{sessionId}
+   - Retrieves session with complete message history
+   - Returns: ChatSession with all messages, timestamps, analysis
+
+3. POST /api/chat/{sessionId}/save
+   - Saves session to disk (chat-sessions/{sessionId}-{timestamp}.json)
+   - Returns: { path: "chat-sessions/{sessionId}-{timestamp}.json" }
+
+4. DELETE /api/chat/{sessionId}
+   - Removes session from in-memory store
+   - Returns: 204 No Content
+
+5. GET /api/chat/sessions/list
+   - Lists all active sessions with message counts
+   - Returns: ChatSession[] with basic metadata
+
+**Configuration (appsettings.json):**
+```json
+"ChatLlm": {
+  "Provider": "Anthropic",
+  "Model": "claude-sonnet-4-6",
+  "MaxTokens": 1000,
+  "SystemPromptTemplate": "You are a workflow guidance assistant for Aktavara..."
+}
+```
+
+**System Prompt Template Variables:**
+- {contextNarrative}: activity summary from AnalyzeResponse
+- {workflowName}: detected workflow name
+- {confidence}: confidence percentage
+- {currentState}: current workflow state
+
+**Service Registration (Program.cs):**
+```csharp
+builder.Services.AddSingleton<ChatSessionStore>();
+builder.Services.AddScoped<IChatLlmProvider>(sp => 
+    provider == "Mock" ? new MockChatProvider(...) : new AnthropicChatProvider(...));
+```
+
+**Testing:**
+- All 5 endpoints tested with PowerShell
+- Message history verified: 4 messages after 2 API calls
+- Session persistence verified: saves to disk with proper JSON format
+- Session deletion verified: 404 on GET after DELETE
+- 215 unit tests passing, 0 errors
+
+**Status:**
+- ✅ LLM provider strategy pattern implemented
+- ✅ Thread-safe session management with expiration
+- ✅ Full message history support
+- ✅ All 5 API endpoints working
+- ✅ Anthropic integration functional
+- ✅ Configuration-driven provider selection
+- ✅ Prompt 26a 100% COMPLETE
+
 ## Completed Prompts
 - ✅ Prompt 25a: Auto-generate Workshop Questions
 - ✅ Prompt 25b: Auto-suggest Guide Mappings (Parts A-E complete)
 - ✅ Prompt 25c: Pass Detected User Context Through UI
+- ✅ Prompt 26a: Chat API endpoint, LLM provider strategy, session management
 
 ## Next prompts
+- Prompt 26b: Chat UI panel (React integration, message display, send button)
 - Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
 
