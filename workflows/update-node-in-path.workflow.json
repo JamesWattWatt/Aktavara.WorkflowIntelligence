@@ -64,7 +64,7 @@
       ],
       "sequence": 0,
       "isTerminal": false,
-      "nextStateId": "node_saved",
+      "nextStateId": "node_changes_saved",
       "helpGuideId": "guide-open-path",
       "workshopQuestions": [
         "Which node are you planning to modify?",
@@ -74,7 +74,7 @@
       "metadata": {}
     },
     {
-      "stateId": "node_saved",
+      "stateId": "node_changes_saved",
       "name": "Node Changes Saved",
       "description": "A node within the path has been modified and saved.",
       "requiredEvidence": [

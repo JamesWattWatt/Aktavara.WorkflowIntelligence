@@ -373,6 +373,44 @@ public class WorkflowMatcher : IWorkflowMatcher
                 Console.WriteLine($"[Matcher]   No state matched and no initial state found");
             }
         }
+
+        // Validate that detected currentStateName matches a stateId in the workflow
+        if (!string.IsNullOrEmpty(result.CurrentStateName))
+        {
+            ValidateStateNameMatch(workflow, result);
+        }
+    }
+
+    /// <summary>
+    /// Validates that the detected currentStateName matches a stateId when normalized.
+    /// Logs a warning if there's a mismatch, which helps identify state naming inconsistencies.
+    /// </summary>
+    private void ValidateStateNameMatch(WorkflowDefinition workflow, WorkflowMatchResult result)
+    {
+        var normalized = NormalizeStateId(result.CurrentStateName);
+        var stateIds = workflow.States.Select(s => s.StateId).ToList();
+
+        if (!stateIds.Contains(normalized))
+        {
+            _logger.LogWarning(
+                "Warning: detected state {CurrentStateName} (normalised: {Normalized}) does not match any stateId in workflow {WorkflowId}. Available stateIds: {StateIds}",
+                result.CurrentStateName,
+                normalized,
+                workflow.WorkflowId,
+                string.Join(", ", stateIds));
+        }
+    }
+
+    /// <summary>
+    /// Normalizes a state name to match against stateIds using the same logic as the upload handler.
+    /// </summary>
+    private static string NormalizeStateId(string stepId)
+    {
+        return stepId
+            .ToLowerInvariant()
+            .Trim()
+            .Replace(" ", "_")
+            .Replace("-", "_");
     }
 
     /// <summary>
