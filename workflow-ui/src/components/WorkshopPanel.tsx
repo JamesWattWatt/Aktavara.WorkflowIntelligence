@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import type { WorkflowCandidateResult, HelpGuideSection, GuideSuggestion } from '../types/api';
 import { apiClient } from '../services/apiClient';
+import { HelpIcon } from './HelpIcon';
 
 interface WorkshopPanelProps {
   candidate: WorkflowCandidateResult | null;
   workflowId?: string;
+  onOpenHelp?: (key: string) => void;
 }
 
 interface ExportSession {
@@ -28,7 +30,7 @@ interface ExportSession {
   approvedBy: string | null;
 }
 
-export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => {
+export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPanelProps) => {
   const [workflowName, setWorkflowName] = useState(candidate?.workflowName || '');
   const [originalName, setOriginalName] = useState(candidate?.workflowName || '');
   const [nameUnsaved, setNameUnsaved] = useState(false);
@@ -305,41 +307,45 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
         </div>
       )}
 
-      {/* Section 3 - Execution decision */}
+      {/* Section 3 - Execution decision (3-column card layout) */}
       <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
         <h3 className="font-semibold mb-3">Execution Decision</h3>
-        <div className="space-y-3">
+        <div className="flex gap-2">
           {['Guidance only', 'Assisted action', 'Governed execution'].map((option) => (
             <label
               key={option}
-              className="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              className={`flex-1 p-3 border rounded-lg cursor-pointer transition-all ${
+                executionDecision === option
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+              }`}
             >
-              <div className="flex items-start gap-3">
-                <input
-                  type="radio"
-                  name="execution"
-                  value={option}
-                  checked={executionDecision === option}
-                  onChange={(e) => setExecutionDecision(e.target.value)}
-                  className="mt-1 flex-shrink-0"
-                />
-                <div className="flex-1 min-w-0">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="execution"
+                    value={option}
+                    checked={executionDecision === option}
+                    onChange={(e) => setExecutionDecision(e.target.value)}
+                    className="flex-shrink-0"
+                  />
                   <p className="text-sm font-medium">{option}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {option === 'Guidance only' &&
-                      'The assistant provides step-by-step instructions but the user performs all actions manually.'}
-                    {option === 'Assisted action' &&
-                      'The assistant can perform individual steps on behalf of the user with explicit confirmation at each step.'}
-                    {option === 'Governed execution' &&
-                      'The full workflow runs automatically with pre-approved governance rules. Requires Temporal workflow engine integration.'}
-                  </p>
                 </div>
+                <p className="text-xs text-gray-600 dark:text-gray-400">
+                  {option === 'Guidance only' &&
+                    'The assistant provides step-by-step instructions but the user performs all actions manually.'}
+                  {option === 'Assisted action' &&
+                    'The assistant can perform individual steps on behalf of the user with explicit confirmation at each step.'}
+                  {option === 'Governed execution' &&
+                    'The full workflow runs automatically with pre-approved governance rules. Requires Temporal.'}
+                </p>
+                {option === 'Governed execution' && (
+                  <div className="inline-block px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded w-fit">
+                    ⚠️ Additional implementation required
+                  </div>
+                )}
               </div>
-              {option === 'Governed execution' && (
-                <div className="mt-2 ml-7 inline-block px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded">
-                  ⚠️ Implementation required
-                </div>
-              )}
             </label>
           ))}
         </div>
@@ -438,17 +444,22 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
         </div>
       </div>
 
-      {/* Section 6 - Help guide preview */}
-      {loadingGuide ? (
-        <div className="p-3 text-sm text-gray-500 dark:text-gray-400">Loading guide...</div>
-      ) : helpGuide ? (
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-          <h4 className="font-semibold mb-2 text-sm">{helpGuide.heading}</h4>
-          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-            {helpGuide.content}
-          </div>
+      {/* Section 6 - Relevant documentation header + Help guide preview */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="flex items-center gap-2 mb-3">
+          <h3 className="font-semibold">Relevant documentation</h3>
+          {onOpenHelp && <HelpIcon helpKey="discovery-workshop-guide" onOpen={onOpenHelp} />}
         </div>
-      ) : candidate.nextStepHint ? (
+        {loadingGuide ? (
+          <div className="p-3 text-sm text-gray-500 dark:text-gray-400">Loading guide...</div>
+        ) : helpGuide ? (
+          <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+            <h4 className="font-semibold mb-2 text-sm">{helpGuide.heading}</h4>
+            <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              {helpGuide.content}
+            </div>
+          </div>
+        ) : candidate.nextStepHint ? (
         <div className="space-y-3">
           {showSuggestionUI && guideSuggestion ? (
             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -492,6 +503,7 @@ export const WorkshopPanel = ({ candidate, workflowId }: WorkshopPanelProps) => 
           )}
         </div>
       ) : null}
+      </div>
     </div>
   );
 };

@@ -21,7 +21,7 @@ const getGuidanceBadgeColor = (level: string): { bg: string; text: string } => {
 };
 
 export const AnalysisSummary = ({ response, onOpenHelp }: AnalysisSummaryProps) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   if (!response) {
     return null;

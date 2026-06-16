@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { AnalyzeResponse, WorkflowCandidateResult } from './types/api';
 import { LogDropZone } from './components/LogDropZone';
 import { WorkflowList } from './components/WorkflowList';
-import { WorkflowDetail } from './components/WorkflowDetail';
 import { FlowVisualiser } from './components/FlowVisualiser';
 import { WorkshopPanel } from './components/WorkshopPanel';
 import { AnalysisSummary } from './components/AnalysisSummary';
@@ -16,7 +15,6 @@ export function App() {
   const [topLevelTab, setTopLevelTab] = useState<'discovery' | 'library'>('discovery');
   const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<WorkflowCandidateResult | null>(null);
-  const [activeTab, setActiveTab] = useState<'detail' | 'workshop'>('detail');
   const [error, setError] = useState<string | null>(null);
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
@@ -146,77 +144,67 @@ export function App() {
               </div>
             ) : (
               <>
-                {/* Section 1 - Workflow name + Horizontal steps */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50 p-4">
-                  <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    {selectedCandidate.workflowName}
-                  </h2>
-                  <div className="flex items-center gap-2 text-xs mb-3">
-                    <span className="font-semibold text-green-600 dark:text-green-400">
-                      {(selectedCandidate.confidenceScore * 100).toFixed(0)}%
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full font-medium ${
-                      selectedCandidate.confidenceLevel === 'High' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                      selectedCandidate.confidenceLevel === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                      'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                    }`}>
-                      {selectedCandidate.confidenceLevel}
-                    </span>
-                    {selectedCandidate.currentStateName && (
-                      <span className="text-gray-600 dark:text-gray-400">
-                        {selectedCandidate.currentStateName}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">DETECTED STEPS</p>
-                  <FlowVisualiser candidate={selectedCandidate} />
-                </div>
-
-                {/* Section 2 - Evidence & Score (Collapsible) */}
-                <EvidenceSection candidate={selectedCandidate} />
-
-                {/* Section 3 - Workflow Details / Workshop tabs */}
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 flex flex-col min-h-0 flex-1 overflow-hidden">
-                  {/* Tab Bar */}
-                  <div className="flex-shrink-0 flex gap-4 border-b border-gray-200 dark:border-gray-700 px-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setActiveTab('detail')}
-                        className={`py-2 font-medium text-sm border-b-2 transition-colors ${
-                          activeTab === 'detail'
-                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                        }`}
-                      >
-                        Workflow details
-                      </button>
+                {/* Framed column 2: all three sections in one container */}
+                <div style={{
+                  border: '0.5px solid rgba(209, 213, 219, 0.5)',
+                  borderRadius: '0.5rem',
+                  overflow: 'hidden',
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 0,
+                  backgroundColor: 'rgba(249, 250, 251, 0.5)',
+                  color: 'rgb(31, 41, 55)'
+                }} className="dark:bg-gray-800/30 dark:text-gray-100">
+                  {/* Section 1 - Workflow name + subtitle + steps */}
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-base font-bold">
+                        {selectedCandidate.workflowName}
+                      </h2>
                       <HelpIcon helpKey="discovery-workflow-details" onOpen={openHelp} />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setActiveTab('workshop')}
-                        className={`py-2 font-medium text-sm border-b-2 transition-colors ${
-                          activeTab === 'workshop'
-                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                            : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                        }`}
-                      >
-                        Workshop
-                      </button>
-                      <HelpIcon helpKey="discovery-workshop" onOpen={openHelp} />
+                    {/* Subtitle line with confidence, state, and next step */}
+                    <div className="flex items-center gap-3 text-xs mb-3 flex-wrap">
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        {(selectedCandidate.confidenceScore * 100).toFixed(0)}%
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full font-medium ${
+                        selectedCandidate.confidenceLevel === 'High' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                        selectedCandidate.confidenceLevel === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                        'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                      }`}>
+                        {selectedCandidate.confidenceLevel}
+                      </span>
+                      <span className="text-gray-600 dark:text-gray-400">|</span>
+                      {selectedCandidate.currentStateName && (
+                        <>
+                          <span className="text-blue-600 dark:text-blue-400">
+                            Current state: {selectedCandidate.currentStateName}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400">|</span>
+                        </>
+                      )}
+                      {selectedCandidate.nextStepHint && (
+                        <span className="text-amber-600 dark:text-amber-400">
+                          → {selectedCandidate.nextStepHint}
+                        </span>
+                      )}
                     </div>
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">DETECTED STEPS</p>
+                    <FlowVisualiser candidate={selectedCandidate} />
                   </div>
 
-                  {/* Tab Content */}
-                  <div className="flex-1 min-h-0 overflow-y-auto">
-                    {activeTab === 'detail' ? (
-                      <WorkflowDetail candidate={selectedCandidate} />
-                    ) : (
-                      <WorkshopPanel
-                        candidate={selectedCandidate}
-                        workflowId={selectedCandidate.workflowId}
-                      />
-                    )}
+                  {/* Section 2 - Evidence & Score (Collapsible, default collapsed) */}
+                  <EvidenceSection candidate={selectedCandidate} />
+
+                  {/* Section 3 - Workshop (always visible, no tabs) */}
+                  <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
+                    <WorkshopPanel
+                      candidate={selectedCandidate}
+                      workflowId={selectedCandidate.workflowId}
+                      onOpenHelp={openHelp}
+                    />
                   </div>
                 </div>
               </>

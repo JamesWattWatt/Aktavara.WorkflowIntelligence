@@ -6,7 +6,7 @@ interface EvidenceSectionProps {
 }
 
 export function EvidenceSection({ candidate }: EvidenceSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const matchedRulesCount = candidate.matchedRules?.length || 0;
   const totalRulesCount = (candidate.matchedRules?.length || 0) + (candidate.missingRules?.length || 0);

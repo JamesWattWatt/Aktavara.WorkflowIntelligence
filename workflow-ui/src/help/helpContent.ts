@@ -99,6 +99,32 @@ Choose how this workflow should be supported:
 ### Export session
 Downloads a JSON file with the full workshop session — customer name, answered questions, notes, and decision. Use this to build your workflow documentation.`
   },
+  'discovery-workshop-guide': {
+    title: 'Relevant Documentation',
+    content: `## Workflow Step Guides
+
+The Relevant Documentation section displays help content mapped to the current workflow state.
+
+### What appears here
+When a help guide is mapped for the current step, its content appears in this section. This might include:
+- Step-by-step instructions for the user
+- Business rules or validation requirements
+- Common pitfalls and how to avoid them
+- Links to external documentation
+
+### Suggested guides
+If no guide is currently mapped, the system can suggest one based on the matched rules and evidence:
+- Click **"✨ Suggest Guide"** to find relevant documentation
+- Review the suggestion (file and section)
+- Click **"✓ Approve"** to add the mapping
+- Click **"✗ Dismiss"** to skip it
+
+### Editing mappings
+To change the guide mapped to this step, go to the **Library** tab, select the workflow, open the **Guides** tab, and adjust the mapping there.
+
+### Why this matters
+Good guide mappings help users understand what they're doing and why, reducing errors and support requests.`
+  },
   'library-concept': {
     title: 'About the Workflow Library',
     content: `## Workflow Library
