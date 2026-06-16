@@ -428,18 +428,39 @@ async Task<IResult> HandleAnalyzeUpload(
                 try
                 {
                     var workflow = workflows.FirstOrDefault(w => w.WorkflowId == m.WorkflowId);
+                    Console.WriteLine($"[Upload] Workflow: {m.WorkflowId}, CurrentStateName: '{m.CurrentStateName}'");
                     if (workflow?.States != null && !string.IsNullOrEmpty(m.CurrentStateName))
                     {
                         var normalizedStateName = NormalizeStateId(m.CurrentStateName);
+                        Console.WriteLine($"[Upload] Normalized: '{m.CurrentStateName}' → '{normalizedStateName}'");
+                        Console.WriteLine($"[Upload] Available states: {string.Join(", ", workflow.States.Select(s => s.StateId))}");
                         var state = workflow.States.FirstOrDefault(s => s.StateId == normalizedStateName);
-                        if (state?.Metadata?.ContainsKey("workshopQuestions") == true)
+                        if (state != null)
                         {
-                            var questions = state.Metadata["workshopQuestions"];
-                            if (questions is List<string> qList)
+                            Console.WriteLine($"[Upload] ✓ State matched: {state.StateId} (name: {state.Name})");
+                            if (state.Metadata?.ContainsKey("workshopQuestions") == true)
                             {
-                                workshopQuestions = qList;
+                                var questions = state.Metadata["workshopQuestions"];
+                                Console.WriteLine($"[Upload] Metadata contains workshopQuestions: {questions?.GetType().Name}");
+                                if (questions is List<string> qList)
+                                {
+                                    workshopQuestions = qList;
+                                    Console.WriteLine($"[Upload] ✓ Extracted {workshopQuestions.Count} questions");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[Upload] ✗ No workshopQuestions in metadata. Keys: {string.Join(", ", state.Metadata?.Keys.ToList() ?? new List<string>())}");
                             }
                         }
+                        else
+                        {
+                            Console.WriteLine($"[Upload] ✗ State NOT matched for '{normalizedStateName}'");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Upload] ✗ Workflow states null or CurrentStateName empty");
                     }
                 }
                 catch (Exception wsEx)
@@ -563,21 +584,45 @@ async Task<IResult> HandleAnalyzeText(
                 try
                 {
                     var workflow = workflows.FirstOrDefault(w => w.WorkflowId == m.WorkflowId);
+                    Console.WriteLine($"[Text] Workflow: {m.WorkflowId}, CurrentStateName: '{m.CurrentStateName}'");
                     if (workflow?.States != null && !string.IsNullOrEmpty(m.CurrentStateName))
                     {
                         var normalizedStateName = NormalizeStateId(m.CurrentStateName);
+                        Console.WriteLine($"[Text] Normalized: '{m.CurrentStateName}' → '{normalizedStateName}'");
+                        Console.WriteLine($"[Text] Available states: {string.Join(", ", workflow.States.Select(s => s.StateId))}");
                         var state = workflow.States.FirstOrDefault(s => s.StateId == normalizedStateName);
-                        if (state?.Metadata?.ContainsKey("workshopQuestions") == true)
+                        if (state != null)
                         {
-                            var questions = state.Metadata["workshopQuestions"];
-                            if (questions is List<string> qList)
+                            Console.WriteLine($"[Text] ✓ State matched: {state.StateId} (name: {state.Name})");
+                            if (state.Metadata?.ContainsKey("workshopQuestions") == true)
                             {
-                                workshopQuestions = qList;
+                                var questions = state.Metadata["workshopQuestions"];
+                                Console.WriteLine($"[Text] Metadata contains workshopQuestions: {questions?.GetType().Name}");
+                                if (questions is List<string> qList)
+                                {
+                                    workshopQuestions = qList;
+                                    Console.WriteLine($"[Text] ✓ Extracted {workshopQuestions.Count} questions");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[Text] ✗ No workshopQuestions in metadata. Keys: {string.Join(", ", state.Metadata?.Keys.ToList() ?? new List<string>())}");
                             }
                         }
+                        else
+                        {
+                            Console.WriteLine($"[Text] ✗ State NOT matched for '{normalizedStateName}'");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[Text] ✗ Workflow states null or CurrentStateName empty");
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Text] Warning: Failed to extract workshop questions: {ex.Message}");
+                }
 
                 return new WorkflowCandidateResult
                 {
