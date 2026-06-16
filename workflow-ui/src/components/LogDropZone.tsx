@@ -67,6 +67,8 @@ export const LogDropZone = ({ onResult, onError }: LogDropZoneProps) => {
     try {
       const { apiClient } = await import('../services/apiClient');
       const result = await apiClient.uploadLogFile(file);
+      console.log('[DEBUG] API Response:', result);
+      console.log('[DEBUG] First candidate workshopQuestions:', result.workflowCandidates?.[0]?.workshopQuestions);
       onResult(result);
       setSelectedFile(null);
     } catch (err) {

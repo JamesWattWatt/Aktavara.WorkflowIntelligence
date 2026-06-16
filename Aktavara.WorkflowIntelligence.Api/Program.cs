@@ -438,19 +438,14 @@ async Task<IResult> HandleAnalyzeUpload(
                         if (state != null)
                         {
                             Console.WriteLine($"[Upload] ✓ State matched: {state.StateId} (name: {state.Name})");
-                            if (state.Metadata?.ContainsKey("workshopQuestions") == true)
+                            if (state.WorkshopQuestions != null && state.WorkshopQuestions.Count > 0)
                             {
-                                var questions = state.Metadata["workshopQuestions"];
-                                Console.WriteLine($"[Upload] Metadata contains workshopQuestions: {questions?.GetType().Name}");
-                                if (questions is List<string> qList)
-                                {
-                                    workshopQuestions = qList;
-                                    Console.WriteLine($"[Upload] ✓ Extracted {workshopQuestions.Count} questions");
-                                }
+                                workshopQuestions = state.WorkshopQuestions;
+                                Console.WriteLine($"[Upload] ✓ Extracted {workshopQuestions.Count} questions from state");
                             }
                             else
                             {
-                                Console.WriteLine($"[Upload] ✗ No workshopQuestions in metadata. Keys: {string.Join(", ", state.Metadata?.Keys.ToList() ?? new List<string>())}");
+                                Console.WriteLine($"[Upload] ✗ No workshopQuestions on state");
                             }
                         }
                         else
