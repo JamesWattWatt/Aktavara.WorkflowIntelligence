@@ -406,6 +406,32 @@ LLM-driven auto-generation of workshop questions for workflow states during crea
 - Backfill endpoint tested: { updated: 2, states: 6 }
 - All compilation errors resolved
 
+## Prompt 25b: Auto-suggest Guide Mappings (COMPLETE)
+
+Parts A, C, D: Backend implementation for auto-suggesting and backfilling guide mappings
+Part B: Visual distinction in Guides tab showing approved/suggested/none states
+
+**Part B - Guides Tab Visual Distinction (NEW):**
+- Added GET /api/workflows/{id}/guide-mappings endpoint
+- GuidesTab displays three visual states:
+  - **Green dot** - Approved mapping (manually approved)
+  - **Amber dot** - Suggested mapping (auto-generated)
+  - **Grey dot** - No mapping exists
+- For suggested mappings, card displays:
+  - Guide file name, section, and reason
+  - [✓ Approve] [✗ Dismiss] buttons
+- Approve: calls POST /api/help-guides/mapping, updates mapping to approved
+- Dismiss: removes suggestion from display (doesn't write file)
+- Suggest Guide button: available for unmapped states
+- TypeScript types: GuideMapping, WorkflowGuideMappings
+- apiClient method: getWorkflowGuideMappings()
+
+**Status:**
+- ✅ All 215 tests passing
+- ✅ 0 TypeScript errors
+- ✅ Full visual distinction implemented
+- ✅ Approve/Dismiss/Suggest flow working
+
 ## Prompt 25c: Pass Detected User Context Through UI (COMPLETE)
 
 User context tracking for correct API calls in subsequent operations:
