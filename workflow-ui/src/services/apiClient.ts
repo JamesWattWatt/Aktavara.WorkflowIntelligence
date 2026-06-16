@@ -6,6 +6,7 @@ import type {
   HealthCheckResponse,
   GuideSuggestion,
   WorkflowLibraryItem,
+  WorkflowGuideMappings,
   InferredWorkflowSuggestion,
   InferredNameSuggestion
 } from '../types/api';
@@ -283,6 +284,21 @@ class ApiClient {
 
     if (!response.ok) {
       throw new Error(`Failed to generate questions: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async getWorkflowGuideMappings(workflowId: string): Promise<WorkflowGuideMappings> {
+    const response = await fetch(`${BASE_URL}/workflows/${workflowId}/guide-mappings`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch guide mappings: ${response.statusText}`);
     }
 
     return response.json();
