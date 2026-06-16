@@ -19,7 +19,7 @@
 - workflow-ui/ (React UI complete through Prompt 22b)
 
 ## Current status
-- Prompts 1-24d complete
+- Prompts 1-25a complete
 - 215 tests passing, 0 errors
 - API running on http://localhost:5112 with all endpoints functional (including PUT/POST/DELETE workflows)
 - React UI (Vite) running on http://localhost:5173 with full functionality
@@ -361,6 +361,50 @@ Major UI restructuring of Discovery tab from three-column to two-column layout:
 - Cleaner, more scannable layout
 - Evidence and score data more accessible and readable
 - Horizontal flow more intuitive for step sequences
+
+## Prompt 25a: Auto-generate Workshop Questions (COMPLETE)
+
+LLM-driven auto-generation of workshop questions for workflow states during creation, update, and inference.
+
+**Core Service: WorkshopQuestionGenerator**
+- Interface: `IWorkshopQuestionGenerator` (Core/Interfaces)
+- Implementation: `WorkshopQuestionGenerator` (Api/Services)
+- Calls Claude Sonnet 4.6 API with workflow context
+- Generates exactly 3 questions per state
+- Fallback questions on API failure or missing key
+- Questions specific to workflow step, capture edge cases, plain business language
+
+**API Updates:**
+- POST /api/workflows/{id}/generate-questions: on-demand generation
+- Updated InferWorkflowSuggestionAsync: generates questions for inferred states
+- Updated CreateWorkflow/UpdateWorkflow: auto-generate for states with empty workshopQuestions
+- POST /api/workflows/backfill-questions (dev only): backfill existing workflows
+
+**OfflineDiscoveryService:**
+- Made InferWorkflowSuggestionAsync (was synchronous)
+- Injects IWorkshopQuestionGenerator
+- Calls GenerateQuestionsForStatesAsync for each inferred state
+- Questions populated in SuggestedStates before returning suggestion
+
+**React UI (WorkflowEditor.tsx - States Tab):**
+- "Generate all questions" button at top of States tab
+- Per-state "Generate" button with loading spinner
+- Display workshop questions below each state
+- "Edit" button opens textarea for manual editing
+- Questions appear as numbered list
+- All changes saved via existing workflow save flow
+
+**React UI (WorkshopPanel.tsx):**
+- Auto-generates questions once per session when empty
+- Shows loading state "Generating workshop questions..."
+- Uses ref to track if generation attempted for current workflow
+- No explicit user trigger needed
+- Graceful fallback if generation fails
+
+**Test Results:**
+- 215 tests passing (all OfflineDiscoveryServiceTests updated to async)
+- Backfill endpoint tested: { updated: 2, states: 6 }
+- All compilation errors resolved
 
 ## Next prompts
 - Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
