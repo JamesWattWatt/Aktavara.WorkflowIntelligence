@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { WorkflowLibraryItem, WorkflowDefinition, ActivitySignatureRule, WorkflowStateDefinition } from '../types/api';
+import type { WorkflowLibraryItem, WorkflowDefinition, ActivitySignatureRule, WorkflowState } from '../types/api';
 import { apiClient } from '../services/apiClient';
 
 interface WorkflowEditorProps {
@@ -433,31 +433,36 @@ interface StatesTabProps {
 }
 
 function StatesTab({ definition, onChange }: StatesTabProps) {
-  const [states, setStates] = useState<WorkflowStateDefinition[]>(definition.states as any || []);
+  const [states, setStates] = useState<WorkflowState[]>(definition.states || []);
 
   const handleStateChange = (index: number, field: string, value: any) => {
     const newStates = [...states];
     newStates[index] = { ...newStates[index], [field]: value };
     setStates(newStates);
-    onChange({ ...definition, states: newStates as any });
+    onChange({ ...definition, states: newStates });
   };
 
   const handleAddState = () => {
-    const newState: WorkflowStateDefinition = {
+    const newState: WorkflowState = {
       stateId: `state-${Date.now()}`,
-      stateName: 'New State',
+      name: 'New State',
       description: '',
-      isTerminal: false
+      requiredEvidence: [],
+      sequence: states.length,
+      isTerminal: false,
+      nextStateId: null,
+      helpGuideId: '',
+      metadata: {}
     };
     const newStates = [...states, newState];
     setStates(newStates);
-    onChange({ ...definition, states: newStates as any });
+    onChange({ ...definition, states: newStates });
   };
 
   const handleDeleteState = (index: number) => {
     const newStates = states.filter((_, i) => i !== index);
     setStates(newStates);
-    onChange({ ...definition, states: newStates as any });
+    onChange({ ...definition, states: newStates });
   };
 
   return (
@@ -467,8 +472,8 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
           <div className="flex justify-between items-start">
             <input
               type="text"
-              value={state.stateName}
-              onChange={e => handleStateChange(i, 'stateName', e.target.value)}
+              value={state.name}
+              onChange={e => handleStateChange(i, 'name', e.target.value)}
               className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 mr-2"
               placeholder="State name"
             />
@@ -515,12 +520,12 @@ function GuidesTab({ definition }: GuidesTabProps) {
   return (
     <div className="text-sm text-gray-600 dark:text-gray-400">
       <p className="mb-2">No states defined yet. Add states in the States tab to configure guides.</p>
-      {(definition.states as any || []).length === 0 ? (
+      {(definition.states || []).length === 0 ? (
         <p className="text-xs">Create workflow states to map help guides.</p>
       ) : (
-        (definition.states as any || []).map((state: any) => (
+        (definition.states || []).map((state) => (
           <div key={state.stateId} className="mb-3">
-            <p className="font-medium text-gray-900 dark:text-gray-100">{state.stateName}</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100">{state.name}</p>
             <p className="text-xs">No guide mapped</p>
           </div>
         ))
