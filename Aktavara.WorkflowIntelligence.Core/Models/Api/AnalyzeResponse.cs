@@ -15,6 +15,7 @@ public class AnalyzeResponse
     public string GuidanceLevel { get; set; } = string.Empty;
     public string? RecommendedNextStep { get; set; }
     public string ContextNarrative { get; set; } = string.Empty;
+    public string DetectedUser { get; set; } = string.Empty;
     public List<WorkflowCandidateResult> WorkflowCandidates { get; set; } = new();
     public List<SerializableActiveEntity> ActiveEntities { get; set; } = new();
     public List<string> WorkflowHints { get; set; } = new();

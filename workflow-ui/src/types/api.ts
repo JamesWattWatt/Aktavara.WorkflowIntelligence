@@ -9,6 +9,7 @@ export interface AnalyzeResponse {
   guidanceLevel: string;
   recommendedNextStep: string | null;
   contextNarrative: string;
+  detectedUser: string;
   activeEntities: SerializableActiveEntity[];
   workflowHints: string[];
   workflowCandidates: WorkflowCandidateResult[];

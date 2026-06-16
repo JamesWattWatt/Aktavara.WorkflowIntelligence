@@ -15,6 +15,7 @@ export function App() {
   const [topLevelTab, setTopLevelTab] = useState<'discovery' | 'library'>('discovery');
   const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<WorkflowCandidateResult | null>(null);
+  const [detectedUser, setDetectedUser] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function App() {
 
   const handleAnalyzeResult = (response: AnalyzeResponse) => {
     setAnalyzeResponse(response);
+    setDetectedUser(response.detectedUser || null);
     if (response.workflowCandidates.length > 0) {
       setSelectedCandidate(response.workflowCandidates[0]);
     }
@@ -193,6 +195,7 @@ export function App() {
                     <WorkshopPanel
                       candidate={selectedCandidate}
                       workflowId={selectedCandidate.workflowId}
+                      detectedUser={detectedUser}
                       onOpenHelp={openHelp}
                     />
                   </div>

@@ -6,6 +6,7 @@ import { HelpIcon } from './HelpIcon';
 interface WorkshopPanelProps {
   candidate: WorkflowCandidateResult | null;
   workflowId?: string;
+  detectedUser?: string | null;
   onOpenHelp?: (key: string) => void;
 }
 
@@ -30,7 +31,7 @@ interface ExportSession {
   approvedBy: string | null;
 }
 
-export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPanelProps) => {
+export const WorkshopPanel = ({ candidate, workflowId, detectedUser: _detectedUser, onOpenHelp }: WorkshopPanelProps) => {
   const [workflowName, setWorkflowName] = useState(candidate?.workflowName || '');
   const [originalName, setOriginalName] = useState(candidate?.workflowName || '');
   const [nameUnsaved, setNameUnsaved] = useState(false);
