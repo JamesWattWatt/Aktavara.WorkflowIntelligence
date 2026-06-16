@@ -327,17 +327,26 @@ public class WorkflowMatcher : IWorkflowMatcher
         if (workflow.States.Count == 0)
             return;
 
+        Console.WriteLine($"[Matcher] DetermineCurrentState for {workflow.WorkflowId}, events count: {events.Count}");
+        Console.WriteLine($"[Matcher]   Available states: {string.Join(", ", workflow.States.Select(s => s.StateId))}");
+
         // Check each state to see if its evidence requirements are met
         foreach (var state in workflow.States.OrderByDescending(s => s.Sequence))
         {
+            Console.WriteLine($"[Matcher]   Checking state: {state.StateId} (sequence: {state.Sequence})");
+            Console.WriteLine($"[Matcher]     Required evidence: {string.Join(", ", state.RequiredEvidence)}");
+
             var stateMatched = state.RequiredEvidence.All(evidence =>
                 events.Any(e => e.EventType.ToString() == evidence ||
                                e.Evidence.Any(ev => ev.Contains(evidence))));
+
+            Console.WriteLine($"[Matcher]     Matched: {stateMatched}");
 
             if (stateMatched)
             {
                 result.CurrentStateId = state.StateId;
                 result.CurrentStateName = state.Name;
+                Console.WriteLine($"[Matcher]   ✓ State matched: {state.StateId} -> {state.Name}");
 
                 // Set next state
                 if (!state.IsTerminal && !string.IsNullOrEmpty(state.NextStateId))
@@ -357,6 +366,11 @@ public class WorkflowMatcher : IWorkflowMatcher
             {
                 result.CurrentStateId = initialState.StateId;
                 result.CurrentStateName = initialState.Name;
+                Console.WriteLine($"[Matcher]   Using initial state: {initialState.StateId} -> {initialState.Name}");
+            }
+            else
+            {
+                Console.WriteLine($"[Matcher]   No state matched and no initial state found");
             }
         }
     }

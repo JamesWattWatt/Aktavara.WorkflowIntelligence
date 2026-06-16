@@ -555,6 +555,13 @@ async Task<IResult> HandleAnalyzeText(
         logEndTime = events.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
         var context = contextBuilder.BuildContext(events, request.UserName, logStartTime, logEndTime);
         var workflows = workflowLibrary.GetAll();
+
+        Console.WriteLine($"[Text] Loaded {workflows.Count} workflows");
+        foreach (var wf in workflows)
+        {
+            Console.WriteLine($"[Text]   {wf.WorkflowId}: {wf.States.Count} states - {string.Join(", ", wf.States.Select(s => s.StateId))}");
+        }
+
         var matches = matcher.FindMatches(context, workflows);
 
         // Generate packet
