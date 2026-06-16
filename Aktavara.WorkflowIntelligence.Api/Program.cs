@@ -264,11 +264,9 @@ app.MapPost("/api/help-guides/mapping", SaveGuideMapping)
 .ProducesProblem(400);
 
 // Log Anthropic API key status for diagnostics
-var apiKey = builder.Configuration.GetValue<string>("Anthropic:ApiKey");
-var keyStatus = string.IsNullOrEmpty(apiKey)
-    ? "NOT CONFIGURED"
-    : $"{apiKey.Substring(0, Math.Min(10, apiKey.Length))}...[masked]";
-app.Logger.LogInformation("Anthropic API key: {KeyStatus}", keyStatus);
+var apiKey = builder.Configuration["Anthropic:ApiKey"];
+var logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Anthropic API key loaded: {Key}", apiKey?[..10] + "..." ?? "NOT SET");
 
 app.Run();
 
