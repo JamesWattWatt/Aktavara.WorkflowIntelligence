@@ -145,20 +145,10 @@ export function App() {
             ) : (
               <>
                 {/* Framed column 2: all three sections in one container */}
-                <div style={{
-                  border: '0.5px solid rgba(209, 213, 219, 0.5)',
-                  borderRadius: '0.5rem',
-                  overflow: 'hidden',
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  minHeight: 0,
-                  backgroundColor: 'rgba(249, 250, 251, 0.5)',
-                  color: 'rgb(31, 41, 55)'
-                }} className="dark:bg-gray-800/30 dark:text-gray-100">
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 dark:text-gray-100">
                   {/* Section 1 - Workflow name + subtitle + steps */}
                   <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 mb-2">
                       <h2 className="text-base font-bold">
                         {selectedCandidate.workflowName}
                       </h2>

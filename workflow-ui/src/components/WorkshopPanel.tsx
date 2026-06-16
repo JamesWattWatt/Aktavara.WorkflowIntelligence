@@ -437,7 +437,7 @@ export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPan
           />
           <button
             onClick={handleExportSession}
-            className="w-full px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
           >
             ⬇ Export Session JSON
           </button>
