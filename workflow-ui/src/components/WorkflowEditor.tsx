@@ -434,6 +434,10 @@ interface StatesTabProps {
 
 function StatesTab({ definition, onChange }: StatesTabProps) {
   const [states, setStates] = useState<WorkflowState[]>(definition.states || []);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingState, setGeneratingState] = useState<string | null>(null);
+  const [editingQuestions, setEditingQuestions] = useState<string | null>(null);
+  const [editQuestionText, setEditQuestionText] = useState<string>('');
 
   const handleStateChange = (index: number, field: string, value: any) => {
     const newStates = [...states];
@@ -452,6 +456,7 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
       isTerminal: false,
       nextStateId: null,
       helpGuideId: '',
+      workshopQuestions: [],
       metadata: {}
     };
     const newStates = [...states, newState];
@@ -465,21 +470,87 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
     onChange({ ...definition, states: newStates });
   };
 
+  const handleGenerateQuestions = async (index: number) => {
+    if (!definition.workflowId) return;
+
+    try {
+      setGeneratingState(states[index].stateId);
+      const updated = await apiClient.generateWorkflowQuestions(definition.workflowId);
+      const newStates = updated.states || [];
+      setStates(newStates);
+      onChange({ ...definition, states: newStates });
+    } catch (err) {
+      console.error('Error generating questions:', err);
+    } finally {
+      setGeneratingState(null);
+    }
+  };
+
+  const handleGenerateAllQuestions = async () => {
+    if (!definition.workflowId) return;
+
+    try {
+      setGeneratingAll(true);
+      const updated = await apiClient.generateWorkflowQuestions(definition.workflowId);
+      const newStates = updated.states || [];
+      setStates(newStates);
+      onChange({ ...definition, states: newStates });
+    } catch (err) {
+      console.error('Error generating questions:', err);
+    } finally {
+      setGeneratingAll(false);
+    }
+  };
+
+  const startEditingQuestions = (stateId: string, questions: string[] = []) => {
+    setEditingQuestions(stateId);
+    setEditQuestionText(questions.join('\n'));
+  };
+
+  const saveQuestions = (index: number) => {
+    const questions = editQuestionText
+      .split('\n')
+      .map(q => q.trim())
+      .filter(q => q.length > 0);
+
+    const newStates = [...states];
+    newStates[index] = { ...newStates[index], workshopQuestions: questions };
+    setStates(newStates);
+    onChange({ ...definition, states: newStates });
+    setEditingQuestions(null);
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex gap-2">
+        <button
+          onClick={handleGenerateAllQuestions}
+          disabled={generatingAll}
+          className="flex-1 px-3 py-2 bg-blue-600 text-white dark:bg-blue-500 dark:text-gray-900 rounded-lg hover:bg-blue-700 dark:hover:bg-blue-400 text-sm font-medium disabled:opacity-50"
+        >
+          {generatingAll ? 'Generating...' : 'Generate all questions'}
+        </button>
+        <button
+          onClick={handleAddState}
+          className="flex-1 px-3 py-2 border border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm font-medium"
+        >
+          Add state
+        </button>
+      </div>
+
       {states.map((state, i) => (
         <div key={state.stateId} className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg space-y-2">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start gap-2">
             <input
               type="text"
               value={state.name}
               onChange={e => handleStateChange(i, 'name', e.target.value)}
-              className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 mr-2"
+              className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
               placeholder="State name"
             />
             <button
               onClick={() => handleDeleteState(i)}
-              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm"
+              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 text-sm whitespace-nowrap"
             >
               Delete
             </button>
@@ -499,15 +570,67 @@ function StatesTab({ definition, onChange }: StatesTabProps) {
             />
             <span className="text-sm">Is terminal state</span>
           </label>
+
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">Workshop Questions</span>
+              <button
+                onClick={() => handleGenerateQuestions(i)}
+                disabled={generatingState === state.stateId}
+                className="text-sm px-2 py-1 border border-blue-500 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 disabled:opacity-50"
+              >
+                {generatingState === state.stateId ? 'Generating...' : 'Generate'}
+              </button>
+            </div>
+
+            {editingQuestions === state.stateId ? (
+              <div className="space-y-2">
+                <textarea
+                  value={editQuestionText}
+                  onChange={e => setEditQuestionText(e.target.value)}
+                  placeholder="Enter questions, one per line"
+                  rows={3}
+                  className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => saveQuestions(i)}
+                    className="flex-1 px-2 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingQuestions(null)}
+                    className="flex-1 px-2 py-1 bg-gray-400 text-white rounded text-sm hover:bg-gray-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {(state.workshopQuestions && state.workshopQuestions.length > 0) ? (
+                  <>
+                    {state.workshopQuestions.map((q, qi) => (
+                      <p key={qi} className="text-sm text-gray-700 dark:text-gray-300">
+                        {qi + 1}. {q}
+                      </p>
+                    ))}
+                    <button
+                      onClick={() => startEditingQuestions(state.stateId, state.workshopQuestions)}
+                      className="text-sm px-2 py-1 border border-gray-400 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-700 mt-2"
+                    >
+                      Edit
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">No questions yet</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       ))}
-
-      <button
-        onClick={handleAddState}
-        className="w-full px-3 py-2 border border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm font-medium"
-      >
-        Add state
-      </button>
     </div>
   );
 }

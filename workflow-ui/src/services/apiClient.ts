@@ -268,6 +268,21 @@ class ApiClient {
 
     return response.json();
   }
+
+  async generateWorkflowQuestions(id: string): Promise<WorkflowDefinition> {
+    const response = await fetch(`${BASE_URL}/workflows/${id}/generate-questions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate questions: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 }
 
 export const apiClient = new ApiClient();

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { WorkflowCandidateResult, HelpGuideSection, GuideSuggestion } from '../types/api';
 import { apiClient } from '../services/apiClient';
 import { HelpIcon } from './HelpIcon';
@@ -47,6 +47,8 @@ export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPan
   const [guideSuggestion, setGuideSuggestion] = useState<GuideSuggestion | null>(null);
   const [suggestingGuide, setSuggestingGuide] = useState(false);
   const [showSuggestionUI, setShowSuggestionUI] = useState(false);
+  const [generatingQuestions, setGeneratingQuestions] = useState(false);
+  const generatedRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (candidate) {
@@ -58,8 +60,28 @@ export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPan
       if (candidate.nextStepHint && candidate.currentStateName) {
         fetchHelpGuide();
       }
+      // Auto-generate questions if empty (once per session)
+      if ((!candidate.workshopQuestions || candidate.workshopQuestions.length === 0) && generatedRef.current !== candidate.workflowId) {
+        generateQuestionsIfEmpty(candidate.workflowId);
+        generatedRef.current = candidate.workflowId;
+      }
     }
   }, [candidate]);
+
+  const generateQuestionsIfEmpty = async (workflowId: string) => {
+    try {
+      setGeneratingQuestions(true);
+      await apiClient.generateWorkflowQuestions(workflowId);
+      // Refresh the workflow to get updated questions
+      const workflow = await apiClient.getWorkflow(workflowId);
+      // Note: The candidate object won't be updated directly, but the next time
+      // the parent refreshes data, it will have the new questions
+    } catch (error) {
+      console.error('Error generating questions:', error);
+    } finally {
+      setGeneratingQuestions(false);
+    }
+  };
 
   const fetchWorkflowStatus = async () => {
     if (!candidate?.workflowId) return;
@@ -299,6 +321,13 @@ export const WorkshopPanel = ({ candidate, workflowId, onOpenHelp }: WorkshopPan
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      ) : generatingQuestions ? (
+        <div className="border-b border-gray-200 dark:border-gray-700 pb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-700 dark:text-blue-400">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin">⏳</div>
+            Generating workshop questions...
           </div>
         </div>
       ) : (

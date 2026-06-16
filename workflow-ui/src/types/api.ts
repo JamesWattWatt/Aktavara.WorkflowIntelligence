@@ -83,6 +83,7 @@ export interface WorkflowState {
   isTerminal: boolean;
   nextStateId: string | null;
   helpGuideId: string;
+  workshopQuestions?: string[];
   metadata: Record<string, unknown>;
 }
 
