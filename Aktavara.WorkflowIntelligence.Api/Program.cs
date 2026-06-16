@@ -51,6 +51,20 @@ builder.Services.AddHttpClient<IntelligentHelpGuideMatcher>();
 builder.Services.AddScoped<IWorkshopQuestionGenerator, WorkshopQuestionGenerator>();
 builder.Services.AddHttpClient<WorkshopQuestionGenerator>();
 
+// Chat services
+builder.Services.AddSingleton<ChatSessionStore>();
+builder.Services.AddHttpClient<AnthropicChatProvider>();
+var chatProvider = builder.Configuration.GetValue<string>("ChatLlm:Provider") ?? "Anthropic";
+switch (chatProvider.ToLower())
+{
+    case "mock":
+        builder.Services.AddScoped<IChatLlmProvider, MockChatProvider>();
+        break;
+    default:
+        builder.Services.AddScoped<IChatLlmProvider, AnthropicChatProvider>();
+        break;
+}
+
 // Add CORS for React UI and localhost development
 builder.Services.AddCors(options =>
 {
@@ -270,6 +284,41 @@ app.MapPost("/api/help-guides/mapping", SaveGuideMapping)
 .WithDescription("Save a help guide mapping for a workflow step")
 .Produces(200)
 .ProducesProblem(400);
+
+// Chat endpoints
+app.MapPost("/api/chat", PostChat)
+.WithName("PostChat")
+.WithOpenApi()
+.WithDescription("Send a chat message and get a response with workflow context")
+.Produces<ChatResponse>(200)
+.ProducesProblem(400);
+
+app.MapGet("/api/chat/{sessionId}", GetChat)
+.WithName("GetChat")
+.WithOpenApi()
+.WithDescription("Retrieve a chat session with full message history")
+.Produces<ChatSession>(200)
+.Produces(404);
+
+app.MapPost("/api/chat/{sessionId}/save", SaveChatSession)
+.WithName("SaveChatSession")
+.WithOpenApi()
+.WithDescription("Save a chat session to disk")
+.Produces<object>(200)
+.ProducesProblem(400);
+
+app.MapDelete("/api/chat/{sessionId}", DeleteChatSession)
+.WithName("DeleteChatSession")
+.WithOpenApi()
+.WithDescription("Delete a chat session from memory")
+.Produces(204)
+.Produces(404);
+
+app.MapGet("/api/chat/sessions/list", ListChatSessions)
+.WithName("ListChatSessions")
+.WithOpenApi()
+.WithDescription("List all active chat sessions")
+.Produces<List<object>>(200);
 
 // Log Anthropic API key status for diagnostics
 var apiKey = builder.Configuration["Anthropic:ApiKey"];
@@ -1618,6 +1667,178 @@ async Task AutoSuggestGuideMapingsForWorkflow(
             logger.LogError(ex, "Error auto-suggesting guide mapping for state {StateId}", state.StateId);
         }
     }
+}
+
+async Task<IResult> PostChat(
+    ChatRequest request,
+    ChatSessionStore sessionStore,
+    IChatLlmProvider llmProvider,
+    IActivityLogParser parser,
+    IActivityEventNormalizer normalizer,
+    IWorkflowMatcher matcher,
+    IActivityContextBuilder contextBuilder,
+    IWorkflowLibrary workflowLibrary,
+    IConfiguration config,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(request.Message))
+            return Results.BadRequest(new { error = "Message cannot be empty" });
+
+        var session = sessionStore.GetOrCreateSession(request.SessionId);
+
+        // Re-analyze if log content provided
+        if (!string.IsNullOrWhiteSpace(request.LogContent))
+        {
+            var rawEntries = parser.Parse(request.LogContent);
+            var events = normalizer.Normalize(rawEntries);
+            var userName = request.UserName;
+            var timeWindowMinutes = config.GetValue<int>("WorkflowIntelligence:TimeWindowMinutes", 30);
+            var logEndTime = events.Count > 0 ? events.Max(e => e.Timestamp) : DateTime.UtcNow;
+            var windowStart = logEndTime.AddMinutes(-timeWindowMinutes);
+
+            if (events.Count > 0)
+            {
+                events = events.Where(e => e.Timestamp >= windowStart && e.Timestamp <= logEndTime).ToList();
+            }
+
+            if (string.IsNullOrEmpty(userName) && events.Count > 0)
+            {
+                userName = events.GroupBy(e => e.UserName)
+                    .OrderByDescending(g => g.Count())
+                    .FirstOrDefault()?.Key;
+            }
+
+            var logStartTime = events.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            logEndTime = events.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            var context = contextBuilder.BuildContext(events, userName, logStartTime, logEndTime);
+            var workflows = workflowLibrary.GetAll();
+            var matches = matcher.FindMatches(context, workflows);
+
+            // For now, just take the top match
+            var topMatch = matches.FirstOrDefault();
+            if (topMatch != null)
+            {
+                session.AnalyzeResponse = new AnalyzeResponse
+                {
+                    SessionId = session.SessionId,
+                    FileName = "chat-upload",
+                    TotalEntries = rawEntries.Count,
+                    TotalEvents = events.Count,
+                    CurrentState = topMatch.CurrentStateName ?? "Unknown",
+                    ContextNarrative = context?.Summary ?? "User activity detected",
+                    DetectedUser = userName ?? "unknown",
+                    WorkflowCandidates = new()
+                };
+            }
+        }
+
+        // Build system prompt from context
+        var systemPrompt = config.GetValue<string>("ChatLlm:SystemPromptTemplate") ??
+            "You are a workflow guidance assistant for Aktavara.";
+
+        if (session.AnalyzeResponse != null)
+        {
+            var confidencePercent = (session.AnalyzeResponse.WorkflowCandidates?.FirstOrDefault()?.ConfidenceScore * 100).ToString() ?? "0";
+            systemPrompt = systemPrompt
+                .Replace("{contextNarrative}", session.AnalyzeResponse.ContextNarrative ?? "")
+                .Replace("{workflowName}", session.AnalyzeResponse.WorkflowCandidates?.FirstOrDefault()?.WorkflowName ?? "Unknown")
+                .Replace("{confidence}", Math.Round((session.AnalyzeResponse.WorkflowCandidates?.FirstOrDefault()?.ConfidenceScore * 100) ?? 0).ToString());
+        }
+
+        // Add user message to session
+        var userMessage = new ChatMessage { Role = "user", Content = request.Message };
+        sessionStore.AddMessage(session.SessionId, userMessage);
+
+        // Get LLM response
+        var reply = await llmProvider.CompleteAsync(session.Messages, systemPrompt);
+
+        // Add assistant response to session
+        var assistantMessage = new ChatMessage { Role = "assistant", Content = reply };
+        sessionStore.AddMessage(session.SessionId, assistantMessage);
+
+        var response = new ChatResponse
+        {
+            SessionId = session.SessionId,
+            Reply = reply,
+            ToolsUsed = new(),
+            WorkflowContext = session.AnalyzeResponse?.WorkflowCandidates?.FirstOrDefault(),
+            Sources = new()
+        };
+
+        return Results.Ok(response);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error in chat endpoint");
+        return Results.BadRequest(new { error = "Error processing chat request" });
+    }
+}
+
+IResult GetChat(string sessionId, ChatSessionStore sessionStore)
+{
+    var session = sessionStore.GetSession(sessionId);
+    if (session == null)
+        return Results.NotFound(new { error = "Session not found" });
+
+    return Results.Ok(session);
+}
+
+async Task<IResult> SaveChatSession(
+    string sessionId,
+    ChatSessionStore sessionStore,
+    IConfiguration config,
+    ILogger<Program> logger)
+{
+    try
+    {
+        var session = sessionStore.GetSession(sessionId);
+        if (session == null)
+            return Results.NotFound(new { error = "Session not found" });
+
+        var sessionsPath = config.GetValue<string>("ChatLlm:SessionsPath") ?? "chat-sessions/";
+        Directory.CreateDirectory(sessionsPath);
+
+        var fileName = $"{session.SessionId}-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+        var filePath = Path.Combine(sessionsPath, fileName);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(session,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(filePath, json);
+
+        logger.LogInformation("Saved chat session to {FilePath}", filePath);
+        return Results.Ok(new { path = filePath });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error saving chat session");
+        return Results.BadRequest(new { error = "Error saving session" });
+    }
+}
+
+IResult DeleteChatSession(string sessionId, ChatSessionStore sessionStore)
+{
+    var session = sessionStore.GetSession(sessionId);
+    if (session == null)
+        return Results.NotFound(new { error = "Session not found" });
+
+    sessionStore.RemoveSession(sessionId);
+    return Results.NoContent();
+}
+
+IResult ListChatSessions(ChatSessionStore sessionStore)
+{
+    var sessions = sessionStore.GetAllSessions();
+    var summary = sessions.Select(s => new
+    {
+        sessionId = s.SessionId,
+        createdAt = s.CreatedAt,
+        messageCount = s.Messages.Count,
+        hasAnalysis = s.AnalyzeResponse != null
+    }).ToList();
+
+    return Results.Ok(summary);
 }
 
 static string NormalizeStateId(string stepId)
