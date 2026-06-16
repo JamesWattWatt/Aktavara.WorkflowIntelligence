@@ -9,4 +9,5 @@ public class AnalyzeTextRequest
     public string UserName { get; set; } = string.Empty;
     public int TimeWindowMinutes { get; set; } = 30;
     public string? UserQuestion { get; set; }
+    public bool AutoDetectUser { get; set; } = true;
 }

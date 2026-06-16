@@ -59,6 +59,12 @@ public class WorkflowStateDefinition
     public Dictionary<string, object> Metadata { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets the list of workshop questions to ask when this state is reached.
+    /// Used to guide users through workflow qualification and refinement.
+    /// </summary>
+    public List<string> WorkshopQuestions { get; set; } = new();
+
+    /// <summary>
     /// Determines whether this state has all required evidence present.
     /// </summary>
     /// <param name="evidenceAvailable">The set of evidence event types available.</param>

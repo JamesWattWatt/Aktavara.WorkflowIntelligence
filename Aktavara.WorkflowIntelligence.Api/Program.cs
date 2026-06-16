@@ -533,27 +533,72 @@ async Task<IResult> HandleAnalyzeText(
         if (string.IsNullOrWhiteSpace(request.LogContent))
             return Results.BadRequest(new { error = "logContent cannot be empty" });
 
-        if (string.IsNullOrWhiteSpace(request.UserName))
-            return Results.BadRequest(new { error = "userName cannot be empty" });
-
         var startTime = DateTime.UtcNow;
 
         // Parse and process
         var rawEntries = parser.Parse(request.LogContent);
         var events = normalizer.Normalize(rawEntries);
+        var userName = request.UserName;
+        var userNameSpecified = !string.IsNullOrEmpty(request.UserName);
 
-        // Filter by time window if needed
+        Console.WriteLine($"[Text] AutoDetectUser={request.AutoDetectUser}, UserName='{request.UserName}', TimeWindowMinutes={request.TimeWindowMinutes}");
+        Console.WriteLine($"[Text] Total events in log: {events.Count}");
+
+        // Determine user and filter events
         DateTime logEndTime = events.Count > 0 ? events.Max(e => e.Timestamp) : DateTime.UtcNow;
-        if (request.TimeWindowMinutes > 0 && events.Count > 0)
+        var windowStart = logEndTime.AddMinutes(-request.TimeWindowMinutes);
+
+        // Step 1: Filter by specified userName if provided
+        if (userNameSpecified)
         {
-            var windowStart = logEndTime.AddMinutes(-request.TimeWindowMinutes);
-            events = events.Where(e => e.UserName == request.UserName && e.Timestamp >= windowStart && e.Timestamp <= logEndTime).ToList();
+            var userEvents = events.Where(e => e.UserName == request.UserName).ToList();
+
+            if (request.TimeWindowMinutes > 0)
+            {
+                userEvents = userEvents.Where(e => e.Timestamp >= windowStart && e.Timestamp <= logEndTime).ToList();
+            }
+
+            if (userEvents.Count == 0)
+            {
+                Console.WriteLine($"[Text] No events found for user '{request.UserName}', falling back to all users in log");
+                events = events;  // Use all events
+                userNameSpecified = false;  // Mark that we didn't find the specified user
+            }
+            else
+            {
+                events = userEvents;
+            }
+        }
+        else
+        {
+            // No userName specified, apply time window only
+            if (request.TimeWindowMinutes > 0 && events.Count > 0)
+            {
+                events = events.Where(e => e.Timestamp >= windowStart && e.Timestamp <= logEndTime).ToList();
+            }
+        }
+
+        // Step 2: Auto-detect user if enabled and we don't have a specified user with matches
+        if (request.AutoDetectUser && !userNameSpecified && events.Count > 0)
+        {
+            var mostActiveUser = events
+                .GroupBy(e => e.UserName)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault()
+                ?.Key;
+
+            if (!string.IsNullOrEmpty(mostActiveUser) && mostActiveUser != userName)
+            {
+                Console.WriteLine($"[Text] AutoDetectUser enabled: using most active user '{mostActiveUser}' with {events.Count(e => e.UserName == mostActiveUser)} events");
+                userName = mostActiveUser;
+                events = events.Where(e => e.UserName == mostActiveUser).ToList();
+            }
         }
 
         // Build context
         var logStartTime = events.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
         logEndTime = events.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
-        var context = contextBuilder.BuildContext(events, request.UserName, logStartTime, logEndTime);
+        var context = contextBuilder.BuildContext(events, userName, logStartTime, logEndTime);
         var workflows = workflowLibrary.GetAll();
 
         Console.WriteLine($"[Text] Loaded {workflows.Count} workflows");
@@ -601,19 +646,14 @@ async Task<IResult> HandleAnalyzeText(
                         if (state != null)
                         {
                             Console.WriteLine($"[Text] ✓ State matched: {state.StateId} (name: {state.Name})");
-                            if (state.Metadata?.ContainsKey("workshopQuestions") == true)
+                            if (state.WorkshopQuestions != null && state.WorkshopQuestions.Count > 0)
                             {
-                                var questions = state.Metadata["workshopQuestions"];
-                                Console.WriteLine($"[Text] Metadata contains workshopQuestions: {questions?.GetType().Name}");
-                                if (questions is List<string> qList)
-                                {
-                                    workshopQuestions = qList;
-                                    Console.WriteLine($"[Text] ✓ Extracted {workshopQuestions.Count} questions");
-                                }
+                                workshopQuestions = state.WorkshopQuestions;
+                                Console.WriteLine($"[Text] ✓ Extracted {workshopQuestions.Count} questions from state");
                             }
                             else
                             {
-                                Console.WriteLine($"[Text] ✗ No workshopQuestions in metadata. Keys: {string.Join(", ", state.Metadata?.Keys.ToList() ?? new List<string>())}");
+                                Console.WriteLine($"[Text] ✗ No workshopQuestions on state");
                             }
                         }
                         else
