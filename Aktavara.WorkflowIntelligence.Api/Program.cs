@@ -430,7 +430,8 @@ async Task<IResult> HandleAnalyzeUpload(
                     var workflow = workflows.FirstOrDefault(w => w.WorkflowId == m.WorkflowId);
                     if (workflow?.States != null && !string.IsNullOrEmpty(m.CurrentStateName))
                     {
-                        var state = workflow.States.FirstOrDefault(s => s.StateId == m.CurrentStateName);
+                        var normalizedStateName = NormalizeStateId(m.CurrentStateName);
+                        var state = workflow.States.FirstOrDefault(s => s.StateId == normalizedStateName);
                         if (state?.Metadata?.ContainsKey("workshopQuestions") == true)
                         {
                             var questions = state.Metadata["workshopQuestions"];
@@ -564,7 +565,8 @@ async Task<IResult> HandleAnalyzeText(
                     var workflow = workflows.FirstOrDefault(w => w.WorkflowId == m.WorkflowId);
                     if (workflow?.States != null && !string.IsNullOrEmpty(m.CurrentStateName))
                     {
-                        var state = workflow.States.FirstOrDefault(s => s.StateId == m.CurrentStateName);
+                        var normalizedStateName = NormalizeStateId(m.CurrentStateName);
+                        var state = workflow.States.FirstOrDefault(s => s.StateId == normalizedStateName);
                         if (state?.Metadata?.ContainsKey("workshopQuestions") == true)
                         {
                             var questions = state.Metadata["workshopQuestions"];
@@ -1104,4 +1106,13 @@ async Task<IResult> DeleteWorkflow(
         logger.LogError(ex, "Error deleting workflow");
         return Results.BadRequest(new { error = "Error deleting workflow" });
     }
+}
+
+static string NormalizeStateId(string stepId)
+{
+    return stepId
+        .ToLowerInvariant()
+        .Trim()
+        .Replace(" ", "_")
+        .Replace("-", "_");
 }
