@@ -75,7 +75,7 @@
     },
     {
       "stateId": "connector_created",
-      "name": "Connector Created and Saved",
+      "name": "Connector Created",
       "description": "A new connector has been created between nodes and saved in the path.",
       "requiredEvidence": [
         "OpenWorkspace",
