@@ -48,6 +48,8 @@ builder.Services.AddScoped<IIntelligentHelpGuideMatcher, IntelligentHelpGuideMat
 builder.Services.AddScoped<IHelpGuideMappingWriter, HelpGuideMappingWriter>();
 builder.Services.AddScoped<IOfflineDiscoveryService, OfflineDiscoveryService>();
 builder.Services.AddHttpClient<IntelligentHelpGuideMatcher>();
+builder.Services.AddScoped<IWorkshopQuestionGenerator, WorkshopQuestionGenerator>();
+builder.Services.AddHttpClient<WorkshopQuestionGenerator>();
 
 // Add CORS for React UI and localhost development
 builder.Services.AddCors(options =>
@@ -142,6 +144,14 @@ app.MapPost("/api/workflows/reload", ReloadWorkflows)
 .Produces<ReloadResponse>(200)
 .ProducesProblem(403);
 
+// Backfill workshop questions endpoint (development only)
+app.MapPost("/api/workflows/backfill-questions", BackfillWorkshopQuestions)
+.WithName("BackfillWorkshopQuestions")
+.WithOpenApi()
+.WithDescription("Backfill workshop questions for all workflows (development only)")
+.Produces<object>(200)
+.ProducesProblem(403);
+
 // Get workflows library endpoint
 app.MapGet("/api/workflows/library", GetWorkflowsLibrary)
 .WithName("GetWorkflowsLibrary")
@@ -179,6 +189,15 @@ app.MapPut("/api/workflows/{id}", UpdateWorkflow)
 .WithOpenApi()
 .WithDescription("Update an existing workflow")
 .Produces<WorkflowLibraryItem>(200)
+.ProducesProblem(400)
+.Produces(404);
+
+// Generate workshop questions for workflow endpoint
+app.MapPost("/api/workflows/{id}/generate-questions", GenerateWorkflowQuestions)
+.WithName("GenerateWorkflowQuestions")
+.WithOpenApi()
+.WithDescription("Generate workshop questions for all states in a workflow")
+.Produces<WorkflowDefinition>(200)
 .ProducesProblem(400)
 .Produces(404);
 
@@ -854,6 +873,82 @@ IResult ReloadWorkflows(
     }
 }
 
+async Task<IResult> BackfillWorkshopQuestions(
+    IWorkflowLibrary workflowLibrary,
+    IWorkshopQuestionGenerator questionGenerator,
+    IHostEnvironment env,
+    ILogger<Program> logger)
+{
+    // Only allow in development mode
+    if (!env.IsDevelopment())
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+
+    try
+    {
+        var workflows = workflowLibrary.GetAll();
+        int workflowsUpdated = 0;
+        int statesUpdated = 0;
+
+        foreach (var workflow in workflows)
+        {
+            bool hasChanges = false;
+
+            if (workflow.States != null && workflow.States.Count > 0)
+            {
+                var riskLevel = workflow.Metadata?.ContainsKey("riskLevel") == true
+                    ? workflow.Metadata["riskLevel"]?.ToString() ?? "Medium"
+                    : "Medium";
+                var tags = workflow.Tags ?? new();
+                var rules = workflow.ActivitySignature?.Select(r => r.Description).ToList() ?? new();
+
+                foreach (var state in workflow.States)
+                {
+                    if (state.WorkshopQuestions == null || state.WorkshopQuestions.Count == 0)
+                    {
+                        try
+                        {
+                            var questions = await questionGenerator.GenerateQuestionsAsync(
+                                workflow.Name,
+                                state.StateId,
+                                state.Name,
+                                state.Description,
+                                rules,
+                                tags,
+                                riskLevel);
+
+                            state.WorkshopQuestions = questions;
+                            statesUpdated++;
+                            hasChanges = true;
+                            logger.LogInformation("Generated {QuestionCount} questions for state {StateId}", questions.Count, state.StateId);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error generating questions for state {StateId}", state.StateId);
+                        }
+                    }
+                }
+
+                if (hasChanges)
+                {
+                    await workflowLibrary.SaveWorkflowAsync(workflow);
+                    workflowsUpdated++;
+                }
+            }
+        }
+
+        return Results.Ok(new
+        {
+            updated = workflowsUpdated,
+            states = statesUpdated
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error backfilling workshop questions");
+        return Results.BadRequest(new { error = "Error backfilling workshop questions" });
+    }
+}
+
 IResult GetHelpGuideSummaries(IHelpGuideStore helpGuideStore)
 {
     var guides = helpGuideStore.GetAll();
@@ -970,7 +1065,7 @@ IResult GetWorkflowsLibrary(IWorkflowLibrary workflowLibrary)
     return Results.Ok(items);
 }
 
-IResult InferWorkflow(
+async Task<IResult> InferWorkflow(
     InferWorkflowRequest request,
     IActivityLogParser parser,
     IActivityEventNormalizer normalizer,
@@ -985,7 +1080,7 @@ IResult InferWorkflow(
         var rawEntries = parser.Parse(request.RawLogContent);
         var events = normalizer.Normalize(rawEntries);
 
-        var suggestion = discoveryService.InferWorkflowSuggestion(events, request.CandidateWorkflowId);
+        var suggestion = await discoveryService.InferWorkflowSuggestionAsync(events, request.CandidateWorkflowId);
 
         return Results.Ok(suggestion);
     }
@@ -1085,6 +1180,7 @@ Suggest a short business-friendly name (3-5 words) and a one-sentence descriptio
 async Task<IResult> CreateWorkflow(
     WorkflowDefinition workflow,
     IWorkflowLibrary workflowLibrary,
+    IWorkshopQuestionGenerator questionGenerator,
     ILogger<Program> logger)
 {
     try
@@ -1098,6 +1194,9 @@ async Task<IResult> CreateWorkflow(
         var success = await workflowLibrary.SaveWorkflowAsync(workflow);
         if (!success)
             return Results.BadRequest(new { error = "Failed to save workflow" });
+
+        // Generate workshop questions for states with empty workshopQuestions
+        await GenerateWorkshopQuestionsForWorkflow(workflow, questionGenerator, workflowLibrary, logger);
 
         var item = new WorkflowLibraryItem
         {
@@ -1129,6 +1228,7 @@ async Task<IResult> UpdateWorkflow(
     string id,
     WorkflowDefinition workflow,
     IWorkflowLibrary workflowLibrary,
+    IWorkshopQuestionGenerator questionGenerator,
     ILogger<Program> logger)
 {
     try
@@ -1145,6 +1245,9 @@ async Task<IResult> UpdateWorkflow(
         var success = await workflowLibrary.SaveWorkflowAsync(workflow);
         if (!success)
             return Results.BadRequest(new { error = "Failed to update workflow" });
+
+        // Generate workshop questions for states with empty workshopQuestions
+        await GenerateWorkshopQuestionsForWorkflow(workflow, questionGenerator, workflowLibrary, logger);
 
         var item = new WorkflowLibraryItem
         {
@@ -1172,6 +1275,32 @@ async Task<IResult> UpdateWorkflow(
     }
 }
 
+async Task<IResult> GenerateWorkflowQuestions(
+    string id,
+    IWorkflowLibrary workflowLibrary,
+    IWorkshopQuestionGenerator questionGenerator,
+    ILogger<Program> logger)
+{
+    try
+    {
+        if (string.IsNullOrEmpty(id))
+            return Results.BadRequest(new { error = "Workflow ID is required" });
+
+        var workflow = workflowLibrary.GetById(id);
+        if (workflow == null)
+            return Results.NotFound(new { error = "Workflow not found" });
+
+        await GenerateWorkshopQuestionsForWorkflow(workflow, questionGenerator, workflowLibrary, logger);
+
+        return Results.Ok(workflow);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error generating questions for workflow {WorkflowId}", id);
+        return Results.BadRequest(new { error = "Error generating questions" });
+    }
+}
+
 async Task<IResult> DeleteWorkflow(
     string id,
     IWorkflowLibrary workflowLibrary,
@@ -1192,6 +1321,54 @@ async Task<IResult> DeleteWorkflow(
     {
         logger.LogError(ex, "Error deleting workflow");
         return Results.BadRequest(new { error = "Error deleting workflow" });
+    }
+}
+
+async Task GenerateWorkshopQuestionsForWorkflow(
+    WorkflowDefinition workflow,
+    IWorkshopQuestionGenerator questionGenerator,
+    IWorkflowLibrary workflowLibrary,
+    ILogger<Program> logger)
+{
+    if (workflow.States == null || workflow.States.Count == 0)
+        return;
+
+    var riskLevel = workflow.Metadata?.ContainsKey("riskLevel") == true
+        ? workflow.Metadata["riskLevel"]?.ToString() ?? "Medium"
+        : "Medium";
+    var tags = workflow.Tags ?? new();
+    var rules = workflow.ActivitySignature?.Select(r => r.Description).ToList() ?? new();
+
+    bool hasChanges = false;
+    foreach (var state in workflow.States)
+    {
+        if (state.WorkshopQuestions == null || state.WorkshopQuestions.Count == 0)
+        {
+            try
+            {
+                var questions = await questionGenerator.GenerateQuestionsAsync(
+                    workflow.Name,
+                    state.StateId,
+                    state.Name,
+                    state.Description,
+                    rules,
+                    tags,
+                    riskLevel);
+
+                state.WorkshopQuestions = questions;
+                logger.LogInformation("Generated {QuestionCount} questions for state {StateId}", questions.Count, state.StateId);
+                hasChanges = true;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error generating questions for state {StateId}", state.StateId);
+            }
+        }
+    }
+
+    if (hasChanges)
+    {
+        await workflowLibrary.SaveWorkflowAsync(workflow);
     }
 }
 

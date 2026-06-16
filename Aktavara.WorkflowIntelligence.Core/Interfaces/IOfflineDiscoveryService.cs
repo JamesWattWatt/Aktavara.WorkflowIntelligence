@@ -12,8 +12,10 @@ public interface IOfflineDiscoveryService
     /// </summary>
     /// <param name="events">Activity events to analyze</param>
     /// <param name="candidateWorkflowId">Optional: workflow ID to check for ambiguity</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Inferred workflow suggestion with rules, states, and metadata</returns>
-    InferredWorkflowSuggestion InferWorkflowSuggestion(
+    Task<InferredWorkflowSuggestion> InferWorkflowSuggestionAsync(
         IEnumerable<ActivityEvent> events,
-        string? candidateWorkflowId = null);
+        string? candidateWorkflowId = null,
+        CancellationToken cancellationToken = default);
 }

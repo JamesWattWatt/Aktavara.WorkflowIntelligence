@@ -14,19 +14,24 @@ public class OfflineDiscoveryServiceTests
 {
     private readonly IOfflineDiscoveryService _discoveryService;
     private readonly Mock<IWorkflowLibrary> _mockWorkflowLibrary;
+    private readonly Mock<IWorkshopQuestionGenerator> _mockQuestionGenerator;
 
     public OfflineDiscoveryServiceTests()
     {
         _mockWorkflowLibrary = new Mock<IWorkflowLibrary>();
+        _mockQuestionGenerator = new Mock<IWorkshopQuestionGenerator>();
+        _mockQuestionGenerator
+            .Setup(x => x.GenerateQuestionsAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<IReadOnlyList<string>>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<string> { "Question 1", "Question 2", "Question 3" });
         var mockLogger = new Mock<ILogger<OfflineDiscoveryService>>();
-        _discoveryService = new OfflineDiscoveryService(_mockWorkflowLibrary.Object, mockLogger.Object);
+        _discoveryService = new OfflineDiscoveryService(_mockWorkflowLibrary.Object, _mockQuestionGenerator.Object, mockLogger.Object);
     }
 
     /// <summary>
     /// Test 1: Infer basic workflow from multiple sessions with consistent pattern
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_BasicSearchAndSave_ReturnsValidSuggestion()
+    public async Task InferWorkflowSuggestion_BasicSearchAndSave_ReturnsValidSuggestion()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -61,7 +66,7 @@ public class OfflineDiscoveryServiceTests
         }
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.NotNull(result);
@@ -75,7 +80,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 2: Detect high risk level when delete operations are present
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithDeleteRecords_RiskLevelHigh()
+    public async Task InferWorkflowSuggestion_WithDeleteRecords_RiskLevelHigh()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -103,7 +108,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.Equal("High", result.SuggestedRiskLevel);
@@ -113,7 +118,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 3: Detect medium risk level with multiple save targets
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithMultipleSaveTargets_RiskLevelMedium()
+    public async Task InferWorkflowSuggestion_WithMultipleSaveTargets_RiskLevelMedium()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -142,7 +147,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.Equal("Medium", result.SuggestedRiskLevel);
@@ -152,7 +157,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 4: Cluster events by sessions correctly (different user breaks sessions)
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithDifferentUsers_DetectsTwoSessions()
+    public async Task InferWorkflowSuggestion_WithDifferentUsers_DetectsTwoSessions()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -179,7 +184,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.Equal(2, result.EvidenceSessions);
@@ -189,7 +194,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 5: Extract multiple record kinds into tags
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithMultipleRecordKinds_TagsIncludeAllKinds()
+    public async Task InferWorkflowSuggestion_WithMultipleRecordKinds_TagsIncludeAllKinds()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -225,7 +230,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.NotEmpty(result.SuggestedTags);
@@ -238,7 +243,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 6: Generate workshop questions for save operations
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithSaveRecords_GeneratesValidationQuestion()
+    public async Task InferWorkflowSuggestion_WithSaveRecords_GeneratesValidationQuestion()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -265,7 +270,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.NotEmpty(result.SuggestedRules);
@@ -277,7 +282,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 7: Calculate confidence threshold based on sequence consistency
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithConsistentSequences_ThresholdInValidRange()
+    public async Task InferWorkflowSuggestion_WithConsistentSequences_ThresholdInValidRange()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -314,7 +319,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.InRange(result.SuggestedThreshold, 0.5, 0.9);
@@ -324,13 +329,13 @@ public class OfflineDiscoveryServiceTests
     /// Test 8: Handle empty event list gracefully
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_EmptyEventList_ReturnsDefaultSuggestion()
+    public async Task InferWorkflowSuggestion_EmptyEventList_ReturnsDefaultSuggestion()
     {
         // Arrange
         var events = new List<ActivityEvent>();
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.NotNull(result);
@@ -343,7 +348,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 9: Deduplicate consecutive identical action sequences
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithConsecutiveDuplicateActions_DeduplicatesInSequence()
+    public async Task InferWorkflowSuggestion_WithConsecutiveDuplicateActions_DeduplicatesInSequence()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -379,7 +384,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         // Sequence should have 2 unique states, not 3
@@ -391,7 +396,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 10: Include workspace kind in tags when present
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithWorkspaceKind_IncludesWorkspaceTypeInTags()
+    public async Task InferWorkflowSuggestion_WithWorkspaceKind_IncludesWorkspaceTypeInTags()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -419,7 +424,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.Contains("PathWorkspace", result.SuggestedTags);
@@ -429,7 +434,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 11: Generate inference notes about sessions and events
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_AnySituation_GeneratesInferenceNotes()
+    public async Task InferWorkflowSuggestion_AnySituation_GeneratesInferenceNotes()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -447,7 +452,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.NotEmpty(result.InferenceNotes);
@@ -458,7 +463,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 12: Support candidate workflow ID for ambiguity detection
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithCandidateWorkflowId_ChecksForAmbiguity()
+    public async Task InferWorkflowSuggestion_WithCandidateWorkflowId_ChecksForAmbiguity()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -497,7 +502,7 @@ public class OfflineDiscoveryServiceTests
         _mockWorkflowLibrary.Setup(lib => lib.GetById("existing-workflow")).Returns(mockWorkflow);
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events, "existing-workflow");
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events, "existing-workflow");
 
         // Assert
         Assert.NotNull(result);
@@ -507,7 +512,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 13: Normalize rule weights to sum to 1.0
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithMultipleRules_WeightsNormalize()
+    public async Task InferWorkflowSuggestion_WithMultipleRules_WeightsNormalize()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -543,7 +548,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         if (result.SuggestedRules.Count > 0)
@@ -557,7 +562,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 14: Set appropriate required/optional flags based on frequency
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_WithVariedFrequencies_SetsRequiredFlags()
+    public async Task InferWorkflowSuggestion_WithVariedFrequencies_SetsRequiredFlags()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -591,7 +596,7 @@ public class OfflineDiscoveryServiceTests
         }
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         var searchRule = result.SuggestedRules.FirstOrDefault(r => r.EventType == EventType.SearchRecords);
@@ -605,7 +610,7 @@ public class OfflineDiscoveryServiceTests
     /// Test 15: Return valid description with proper naming conventions
     /// </summary>
     [Fact]
-    public void InferWorkflowSuggestion_AllSituations_DescriptionHasProperFormat()
+    public async Task InferWorkflowSuggestion_AllSituations_DescriptionHasProperFormat()
     {
         // Arrange
         var now = DateTime.UtcNow;
@@ -632,7 +637,7 @@ public class OfflineDiscoveryServiceTests
         };
 
         // Act
-        var result = _discoveryService.InferWorkflowSuggestion(events);
+        var result = await _discoveryService.InferWorkflowSuggestionAsync(events);
 
         // Assert
         Assert.NotNull(result.SuggestedDescription);

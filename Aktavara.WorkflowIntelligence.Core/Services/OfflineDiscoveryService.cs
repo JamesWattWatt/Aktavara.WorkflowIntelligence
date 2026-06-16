@@ -8,19 +8,23 @@ using System.Text.RegularExpressions;
 public class OfflineDiscoveryService : IOfflineDiscoveryService
 {
     private readonly IWorkflowLibrary _workflowLibrary;
+    private readonly IWorkshopQuestionGenerator _questionGenerator;
     private readonly ILogger<OfflineDiscoveryService> _logger;
 
     public OfflineDiscoveryService(
         IWorkflowLibrary workflowLibrary,
+        IWorkshopQuestionGenerator questionGenerator,
         ILogger<OfflineDiscoveryService> logger)
     {
         _workflowLibrary = workflowLibrary;
+        _questionGenerator = questionGenerator;
         _logger = logger;
     }
 
-    public InferredWorkflowSuggestion InferWorkflowSuggestion(
+    public async Task<InferredWorkflowSuggestion> InferWorkflowSuggestionAsync(
         IEnumerable<ActivityEvent> events,
-        string? candidateWorkflowId = null)
+        string? candidateWorkflowId = null,
+        CancellationToken cancellationToken = default)
     {
         var eventList = events.ToList();
         _logger.LogInformation("Starting inference on {EventCount} events", eventList.Count);
@@ -36,11 +40,13 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
         var variants = DetectVariants(actionSequences, commonSequences.FirstOrDefault() ?? new());
         var riskLevel = InferRiskLevel(eventList);
         var tags = SuggestTags(eventList);
-        var questions = GenerateWorkshopQuestions(variants, rules, eventList, candidateWorkflowId);
         var threshold = CalculateThreshold(actionSequences, rules);
         var notes = GenerateInferenceNotes(sessions.Count, eventList.Count, commonSequences, variants, riskLevel);
 
-        return new InferredWorkflowSuggestion
+        // Generate workshop questions for each state
+        await GenerateQuestionsForStatesAsync("Inferred Workflow", states, rules, tags, riskLevel, cancellationToken);
+
+        var suggestion = new InferredWorkflowSuggestion
         {
             SuggestedName = "Inferred Workflow",
             SuggestedDescription = "Workflow inferred from activity logs",
@@ -54,6 +60,8 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
             EvidenceEvents = eventList.Count,
             InferenceNotes = notes
         };
+
+        return suggestion;
     }
 
     private Dictionary<string, List<ActivityEvent>> ClusterBySessions(List<ActivityEvent> events)
@@ -486,5 +494,42 @@ public class OfflineDiscoveryService : IOfflineDiscoveryService
             .Replace(" ", "-")
             .Replace("_", "-")
             .ToLower();
+    }
+
+    private async Task GenerateQuestionsForStatesAsync(
+        string workflowName,
+        List<WorkflowStateDefinition> states,
+        List<WorkflowSignatureRule> rules,
+        List<string> tags,
+        string riskLevel,
+        CancellationToken cancellationToken)
+    {
+        var matchedRules = rules.Select(r => r.Description).ToList();
+
+        foreach (var state in states)
+        {
+            if (state.WorkshopQuestions == null || state.WorkshopQuestions.Count == 0)
+            {
+                try
+                {
+                    var questions = await _questionGenerator.GenerateQuestionsAsync(
+                        workflowName,
+                        state.StateId,
+                        state.Name,
+                        state.Description,
+                        matchedRules,
+                        tags,
+                        riskLevel,
+                        cancellationToken);
+
+                    state.WorkshopQuestions = questions;
+                    _logger.LogInformation("Generated {QuestionCount} questions for state {StateId}", questions.Count, state.StateId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error generating questions for state {StateId}", state.StateId);
+                }
+            }
+        }
     }
 }
