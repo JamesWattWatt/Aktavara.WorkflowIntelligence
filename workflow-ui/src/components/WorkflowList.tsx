@@ -7,9 +7,9 @@ interface WorkflowListProps {
 }
 
 const getConfidenceColor = (score: number): string => {
-  if (score >= 0.75) return 'bg-green-500';
-  if (score >= 0.5) return 'bg-amber-500';
-  return 'bg-red-500';
+  if (score >= 0.85) return 'bg-[#43A047]';
+  if (score >= 0.55) return 'bg-[#FB8C00]';
+  return 'bg-[#E22A11]';
 };
 
 export const WorkflowList = ({ candidates, onSelect, selectedId }: WorkflowListProps) => {

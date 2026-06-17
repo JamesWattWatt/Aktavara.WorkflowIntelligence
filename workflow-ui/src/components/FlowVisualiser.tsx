@@ -11,7 +11,7 @@ interface StepNode {
   dotColor: 'grey' | 'blue' | 'green' | 'amber';
 }
 
-const getDotColor = (rule: string): 'grey' | 'blue' | 'green' | 'amber' => {
+const getDotColorName = (rule: string): 'grey' | 'blue' | 'green' | 'amber' => {
   const lower = rule.toLowerCase();
   if (lower.includes('search')) return 'grey';
   if (lower.includes('open') || lower.includes('workspace')) return 'blue';
@@ -20,12 +20,12 @@ const getDotColor = (rule: string): 'grey' | 'blue' | 'green' | 'amber' => {
   return 'grey';
 };
 
-const getDotColorClass = (color: 'grey' | 'blue' | 'green' | 'amber'): string => {
+const getDotColorHex = (color: 'grey' | 'blue' | 'green' | 'amber'): string => {
   const map = {
-    grey: 'bg-gray-500',
-    blue: 'bg-blue-500',
-    green: 'bg-green-500',
-    amber: 'bg-amber-500'
+    grey: '#798799',
+    blue: '#2E75D1',
+    green: '#43A047',
+    amber: '#FB8C00'
   };
   return map[color];
 };
@@ -57,12 +57,12 @@ export const FlowVisualiser = ({ candidate }: FlowVisualiserProps) => {
       type: 'matched' as const,
       rule,
       evidence: findMatchingEvidence(rule, candidate.matchedEvidence),
-      dotColor: getDotColor(rule)
+      dotColor: getDotColorName(rule)
     })),
     ...candidate.missingRules.map(rule => ({
       type: 'missing' as const,
       rule,
-      dotColor: getDotColor(rule)
+      dotColor: getDotColorName(rule)
     }))
   ];
 
@@ -75,17 +75,20 @@ export const FlowVisualiser = ({ candidate }: FlowVisualiserProps) => {
             <div
               className={`flex-shrink-0 flex flex-col gap-2 p-2 rounded border min-w-[140px] ${
                 step.type === 'matched'
-                  ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  ? 'border-[#2E75D1] bg-[#2E75D1]/5'
                   : 'border-dashed border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 opacity-60'
               }`}
             >
               <div className="flex items-center gap-2">
-                <div className={`w-2.5 h-2.5 rounded-full ${getDotColorClass(step.dotColor)}`} />
+                <div
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: getDotColorHex(step.dotColor) }}
+                />
                 <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{step.rule}</p>
               </div>
               <span className={`text-xs font-semibold px-1.5 py-0.5 rounded w-fit ${
                 step.type === 'matched'
-                  ? 'bg-blue-200 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                  ? 'bg-[#2E75D1]/20 text-[#2E75D1]'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
               }`}>
                 {step.type === 'matched' ? '✓ Matched' : '✗ Missing'}

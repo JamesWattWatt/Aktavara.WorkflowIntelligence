@@ -1,55 +1,55 @@
 @import "tailwindcss";
 
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Brand */
+  --color-brand-primary: #2E75D1;
+  --color-brand-secondary: #8CB3E6;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  /* Icons - Light */
+  --color-icon-primary: #535E6D;
+  --color-icon-secondary: #798799;
+  --color-icon-disabled: #82878C;
+  --color-icon-error: #A21515;
+  --color-icon-light: #F5F5F5;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  /* Alerts */
+  --color-alert-fatal: #B20000;
+  --color-alert-critical: #E22A11;
+  --color-alert-major: #FB8C00;
+  --color-alert-minor: #FDD835;
+  --color-alert-degraded: #00ACC1;
+  --color-alert-info: #417ABB;
+  --color-alert-other: #B17F35;
+  --color-alert-unknown: #8E24AA;
+  --color-alert-normal: #43A047;
+
+  /* Typography */
+  --font-h1: 400 2.75em/1.2 'Noto Sans', sans-serif;
+  --font-h2: 400 2.25em/1.24 'Noto Sans', sans-serif;
+  --font-h3: 400 1.75em/1.24 'Noto Sans', sans-serif;
+  --font-h4: 400 1.50em/1.32 'Noto Sans', sans-serif;
+  --font-h5: 700 1.25em/1.32 'Noto Sans', sans-serif;
+  --font-h6: 700 1em/1.36 'Noto Sans', sans-serif;
+  --font-body1: 400 1em/1.48 'Noto Sans', sans-serif;
+  --font-body2: 400 0.875em/1.4 'Noto Sans', sans-serif;
+  --font-body3: 400 0.8125em/1.2 'Noto Sans', sans-serif;
+
+  font-family: 'Noto Sans', sans-serif;
   color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+.dark {
+  --color-brand-primary: #8CB3E6;
+  --color-brand-secondary: #2E75D1;
+  --color-icon-primary: #E0E3E8;
+  --color-icon-secondary: #9C9FA3;
+  --color-icon-disabled: #82878C;
+  --color-icon-error: #EC6969;
+  --color-icon-light: #52575E;
 }
 
 #root {

@@ -97,7 +97,7 @@ export function App() {
             style={{
               color: topLevelTab === 'discovery' ? '#ffffff' : 'rgba(255,255,255,0.75)',
               backgroundColor: topLevelTab === 'discovery' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              borderBottom: topLevelTab === 'discovery' ? '2px solid #ffffff' : '2px solid transparent'
+              borderBottom: topLevelTab === 'discovery' ? '2px solid #8CB3E6' : '2px solid transparent'
             }}
             title="Discovery tab"
           >
@@ -109,7 +109,7 @@ export function App() {
             style={{
               color: topLevelTab === 'library' ? '#ffffff' : 'rgba(255,255,255,0.75)',
               backgroundColor: topLevelTab === 'library' ? 'rgba(255,255,255,0.05)' : 'transparent',
-              borderBottom: topLevelTab === 'library' ? '2px solid #ffffff' : '2px solid transparent'
+              borderBottom: topLevelTab === 'library' ? '2px solid #8CB3E6' : '2px solid transparent'
             }}
             title="Library tab"
           >
@@ -232,9 +232,9 @@ export function App() {
                         {(selectedCandidate.confidenceScore * 100).toFixed(0)}%
                       </span>
                       <span className={`px-2 py-0.5 rounded-full font-medium ${
-                        selectedCandidate.confidenceLevel === 'High' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
-                        selectedCandidate.confidenceLevel === 'Medium' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
-                        'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                        selectedCandidate.confidenceLevel === 'High' ? 'bg-[#43A047]/10 text-[#43A047]' :
+                        selectedCandidate.confidenceLevel === 'Medium' ? 'bg-[#FB8C00]/10 text-[#FB8C00]' :
+                        'bg-[#E22A11]/10 text-[#E22A11]'
                       }`}>
                         {selectedCandidate.confidenceLevel}
                       </span>
