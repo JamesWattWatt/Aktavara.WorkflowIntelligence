@@ -11,6 +11,7 @@ interface ChatPanelProps {
   logFileName: string | null;
   onSessionCreated: (sessionId: string) => void;
   onOpenHelp?: (key: string) => void;
+  onDebugInfoCaptured?: (debugInfo: { systemPrompt?: string; inputTokens?: number; outputTokens?: number; responseTimeMs?: number; guideReferences?: string[] }) => void;
 }
 
 // Configure marked for safe parsing
@@ -58,7 +59,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   analyzeResponse,
   logFileName,
   onSessionCreated,
-  onOpenHelp
+  onOpenHelp,
+  onDebugInfoCaptured
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -229,6 +231,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                     : msg
                 )
               );
+
+              // Capture debug info from final event
+              if (data.debug && onDebugInfoCaptured) {
+                onDebugInfoCaptured({
+                  systemPrompt: data.debug.systemPrompt,
+                  inputTokens: data.debug.inputTokens,
+                  outputTokens: data.debug.outputTokens,
+                  responseTimeMs: data.debug.responseTimeMs
+                });
+              }
             }
           } catch (e) {
             // Ignore JSON parse errors for incomplete chunks

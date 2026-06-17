@@ -10,11 +10,12 @@ import { HelpIcon } from './components/HelpIcon';
 import { HelpPanel } from './components/HelpPanel';
 import { EvidenceSection } from './components/EvidenceSection';
 import { ChatPanel } from './components/ChatPanel';
+import { DebugPanel } from './components/DebugPanel';
 import { helpContent } from './help/helpContent';
 import enghouseLogo from './assets/enghouse-logo.svg';
 
 export function App() {
-  const [topLevelTab, setTopLevelTab] = useState<'discovery' | 'library'>('discovery');
+  const [topLevelTab, setTopLevelTab] = useState<'discovery' | 'library' | 'ai-assistant'>('discovery');
   const [analyzeResponse, setAnalyzeResponse] = useState<AnalyzeResponse | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<WorkflowCandidateResult | null>(null);
   const [detectedUser, setDetectedUser] = useState<string | null>(null);
@@ -22,22 +23,14 @@ export function App() {
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
-  const [chatPanelOpen, setChatPanelOpen] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{
+    systemPrompt?: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    responseTimeMs?: number;
+    guideReferences?: string[];
+  } | null>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
-
-  const toggleChatPanel = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const scrollTop = contentScrollRef.current?.scrollTop;
-    setChatPanelOpen(prev => !prev);
-    // Wait for layout reflow to complete before restoring scroll
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (contentScrollRef.current && scrollTop !== undefined) {
-          contentScrollRef.current.scrollTop = scrollTop;
-        }
-      });
-    });
-  };
 
   const openHelp = (key: string) => {
     setHelpPanelKey(key);
@@ -60,7 +53,8 @@ export function App() {
     }
     setError(null);
     setChatSessionId(null);
-    setChatPanelOpen(true);
+    setDebugInfo(null);
+    setTopLevelTab('ai-assistant');
   };
 
   const handleError = (error: Error) => {
@@ -112,6 +106,26 @@ export function App() {
             )}
           </button>
           <button
+            onClick={() => setTopLevelTab('ai-assistant')}
+            className="relative h-12 px-4 text-xs font-medium transition-colors flex items-center rounded text-white/75 hover:text-white hover:bg-white/10"
+            title="AI Assistant tab"
+          >
+            <span className="flex items-center gap-1.5 text-white" style={{ fontSize: '14px' }}>
+              <i className="ti ti-brain" aria-hidden="true" style={{ fontSize: '16px' }} />
+              AI Assistant
+            </span>
+            {topLevelTab === 'ai-assistant' && (
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '16px',
+                right: '16px',
+                height: '2px',
+                backgroundColor: 'white'
+              }} />
+            )}
+          </button>
+          <button
             onClick={() => setTopLevelTab('library')}
             className="relative h-12 px-4 text-xs font-medium transition-colors flex items-center rounded text-white/75 hover:text-white hover:bg-white/10"
             title="Workflow Library tab"
@@ -137,7 +151,11 @@ export function App() {
         <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {/* Help Icon */}
           <button
-            onClick={() => openHelp(topLevelTab === 'discovery' ? 'discovery-concept' : 'library-concept')}
+            onClick={() => openHelp(
+              topLevelTab === 'discovery' ? 'discovery-concept' :
+              topLevelTab === 'ai-assistant' ? 'discovery-concept' :
+              'library-concept'
+            )}
             className="h-8 w-8 flex items-center justify-center rounded transition-colors"
             style={{
               color: '#ffffff',
@@ -150,30 +168,14 @@ export function App() {
           >
             ?
           </button>
-
-          {/* Chat Button (Discovery tab only) */}
-          {topLevelTab === 'discovery' && analyzeResponse && (
-            <button
-              type="button"
-              onClick={toggleChatPanel}
-              className="h-8 px-3 rounded flex items-center gap-2 font-medium transition-colors text-white text-xs"
-              style={{
-                backgroundColor: chatPanelOpen ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = chatPanelOpen ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'}
-              title={chatPanelOpen ? 'Close chat panel' : 'Open chat panel'}
-            >
-              <span>💬</span>
-              <span>AI Assistant Demo</span>
-            </button>
-          )}
         </div>
       </header>
 
       {/* Main Content - Starts immediately below header */}
       {topLevelTab === 'discovery' ? (
-        <div className={`w-full flex flex-1 gap-6 min-h-0 px-6 py-6 overflow-hidden ${chatPanelOpen ? 'flex-row' : 'flex-row'}`}>
+        <div className="w-full flex flex-1 gap-6 min-h-0 px-6 py-6 overflow-hidden"
+             ref={contentScrollRef}
+             style={{ overflowAnchor: 'none' }}>
           {/* Left Column - Fixed 280px */}
           <div className="w-[280px] flex-shrink-0 flex flex-col gap-4 min-h-0">
             <div className="flex-shrink-0">
@@ -202,12 +204,8 @@ export function App() {
             </div>
           </div>
 
-          {/* Middle Column - Content area (flex-1 when chat open) */}
-          <div
-            ref={contentScrollRef}
-            className={chatPanelOpen ? 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto' : 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto'}
-            style={{ overflowAnchor: 'none' }}
-          >
+          {/* Middle Column - Content area */}
+          <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto" style={{ overflowAnchor: 'none' }}>
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
                 <div className="text-center text-gray-500 dark:text-gray-400">
@@ -289,17 +287,56 @@ export function App() {
               </div>
             )}
           </div>
+        </div>
+      ) : topLevelTab === 'ai-assistant' ? (
+        <div className="w-full flex flex-1 gap-6 min-h-0 px-6 py-6 overflow-hidden">
+          {/* Left Column - Log Drop Zone + Chat */}
+          <div className="w-[380px] flex-shrink-0 flex flex-col gap-4 min-h-0">
+            <div className="flex-shrink-0">
+              <LogDropZone onResult={handleAnalyzeResult} onError={handleError} />
+            </div>
 
-          {/* Right Column - Chat Panel (resizable, slides in) */}
-          {chatPanelOpen && (
-            <ChatPanel
-              sessionId={chatSessionId}
+            {error && (
+              <div className="flex-shrink-0 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            {/* Chat Panel - always visible in AI Assistant tab */}
+            {analyzeResponse && (
+              <div className="flex-1 min-h-0">
+                <ChatPanel
+                  sessionId={chatSessionId}
+                  analyzeResponse={analyzeResponse}
+                  logFileName={analyzeResponse?.fileName || null}
+                  onSessionCreated={setChatSessionId}
+                  onOpenHelp={openHelp}
+                  onDebugInfoCaptured={setDebugInfo}
+                />
+              </div>
+            )}
+
+            {!analyzeResponse && (
+              <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[200px]">
+                <div className="text-center text-gray-500 dark:text-gray-400 text-sm">
+                  <p>Drop a log file to start chatting</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Debug Panel */}
+          <div className="flex-1 min-h-0">
+            <DebugPanel
               analyzeResponse={analyzeResponse}
-              logFileName={analyzeResponse?.fileName || null}
-              onSessionCreated={setChatSessionId}
-              onOpenHelp={openHelp}
+              selectedCandidate={selectedCandidate}
+              systemPrompt={debugInfo?.systemPrompt}
+              inputTokens={debugInfo?.inputTokens}
+              outputTokens={debugInfo?.outputTokens}
+              responseTimeMs={debugInfo?.responseTimeMs}
+              guideReferences={debugInfo?.guideReferences}
             />
-          )}
+          </div>
         </div>
       ) : (
         <div className="flex-1 min-h-0">

@@ -29,4 +29,34 @@ public class ChatResponse
     /// Guide sections or resources referenced
     /// </summary>
     public List<string> Sources { get; set; } = new();
+
+    /// <summary>
+    /// System prompt sent to LLM
+    /// </summary>
+    public string? SystemPrompt { get; set; }
+
+    /// <summary>
+    /// Input tokens used by the LLM
+    /// </summary>
+    public int InputTokens { get; set; }
+
+    /// <summary>
+    /// Output tokens used by the LLM
+    /// </summary>
+    public int OutputTokens { get; set; }
+
+    /// <summary>
+    /// Response time in milliseconds
+    /// </summary>
+    public long ResponseTimeMs { get; set; }
+
+    /// <summary>
+    /// Which help guide sections were included
+    /// </summary>
+    public List<string> GuideReferences { get; set; } = new();
+
+    /// <summary>
+    /// The detected workflow from analysis
+    /// </summary>
+    public WorkflowCandidateResult? DetectedWorkflow { get; set; }
 }

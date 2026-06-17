@@ -250,4 +250,10 @@ export interface ChatResponse {
   toolsUsed: string[];
   workflowContext: string | null;
   sources: string[];
+  systemPrompt?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  responseTimeMs?: number;
+  guideReferences?: string[];
+  detectedWorkflow?: WorkflowCandidateResult;
 }

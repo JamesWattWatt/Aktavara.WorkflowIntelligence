@@ -69,4 +69,72 @@ public class MockChatProvider : IChatLlmProvider
             await Task.Delay(50, cancellationToken);
         }
     }
+
+    public Task<(string Response, LlmDebugInfo DebugInfo)> CompleteWithDebugAsync(
+        List<ChatMessage> messages,
+        string systemPrompt,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock provider with debug responding to chat");
+
+        var lastUserMessage = messages
+            .Where(m => m.Role == "user")
+            .LastOrDefault()?.Content ?? "Hello";
+
+        var response = lastUserMessage.ToLower() switch
+        {
+            var s when s.Contains("next") => "Based on the workflow context, your next step should be to save the configuration and verify the changes.",
+            var s when s.Contains("help") => "I can help you with workflow guidance. Ask me about the current step, what to do next, or how to troubleshoot issues.",
+            var s when s.Contains("error") => "Common issues with this workflow include incomplete data and network timeouts. Try verifying your input and retrying.",
+            _ => "I'm here to help with your Aktavara workflow. What would you like to know?"
+        };
+
+        var debugInfo = new LlmDebugInfo
+        {
+            SystemPrompt = systemPrompt,
+            InputTokens = 100,
+            OutputTokens = 50,
+            ResponseTimeMs = 150
+        };
+
+        return Task.FromResult((response, debugInfo));
+    }
+
+    public async Task<LlmDebugInfo> StreamWithDebugAsync(
+        List<ChatMessage> messages,
+        string systemPrompt,
+        Func<string, Task> onDelta,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Mock provider streaming with debug");
+
+        var lastUserMessage = messages
+            .Where(m => m.Role == "user")
+            .LastOrDefault()?.Content ?? "Hello";
+
+        var response = lastUserMessage.ToLower() switch
+        {
+            var s when s.Contains("next") => "Based on the workflow context, your next step should be to save the configuration and verify the changes.",
+            var s when s.Contains("help") => "I can help you with workflow guidance. Ask me about the current step, what to do next, or how to troubleshoot issues.",
+            var s when s.Contains("error") => "Common issues with this workflow include incomplete data and network timeouts. Try verifying your input and retrying.",
+            _ => "I'm here to help with your Aktavara workflow. What would you like to know?"
+        };
+
+        // Stream words one at a time with 50ms delay
+        var words = response.Split(' ');
+        foreach (var word in words)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            await onDelta(word + " ");
+            await Task.Delay(50, cancellationToken);
+        }
+
+        return new LlmDebugInfo
+        {
+            SystemPrompt = systemPrompt,
+            InputTokens = 100,
+            OutputTokens = 50,
+            ResponseTimeMs = 150
+        };
+    }
 }

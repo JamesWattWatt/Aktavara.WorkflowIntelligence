@@ -1927,7 +1927,7 @@ async Task StreamChat(
         try
         {
             var messageContent = "";
-            await llmProvider.StreamAsync(session.Messages, systemPrompt, async (delta) =>
+            var debugInfo = await llmProvider.StreamWithDebugAsync(session.Messages, systemPrompt, async (delta) =>
             {
                 messageContent += delta;
                 await httpContext.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta, done = false })}\n\n");
@@ -1937,8 +1937,21 @@ async Task StreamChat(
             // Update the assistant message with full content
             sessionStore.AddMessage(session.SessionId, new ChatMessage { Role = "assistant", Content = messageContent });
 
-            // Send done event
-            await httpContext.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta = "", done = true, sessionId = session.SessionId })}\n\n");
+            // Send done event with debug info
+            var donePayload = new
+            {
+                delta = "",
+                done = true,
+                sessionId = session.SessionId,
+                debug = new
+                {
+                    inputTokens = debugInfo.InputTokens,
+                    outputTokens = debugInfo.OutputTokens,
+                    responseTimeMs = debugInfo.ResponseTimeMs,
+                    systemPrompt = debugInfo.SystemPrompt
+                }
+            };
+            await httpContext.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(donePayload)}\n\n");
             await httpContext.Response.Body.FlushAsync();
         }
         catch (OperationCanceledException)
