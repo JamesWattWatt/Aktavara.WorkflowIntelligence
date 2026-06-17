@@ -1066,6 +1066,78 @@ LLM-generated contextual follow-up questions after each response in AI Assistant
 ✅ Build successful
 ✅ Prompt 28b 100% COMPLETE
 
+## AI Assistant - Follow-up Questions Strategy
+
+**Current Implementation: Option B — MVP Inline Generation**
+
+LLM generates follow-up questions inline in the response using a `FOLLOW_UPS:` JSON marker at the end of each message. This is a pragmatic MVP solution:
+- Simple to implement and maintain
+- Works within existing single LLM call per message
+- No additional latency or API costs
+- Sufficient for demo and early-stage usage
+- Questions appear immediately after response
+
+**Characteristics:**
+- 3 follow-up questions per response (max 8 words each)
+- Parsed from final streamed content via regex
+- Automatically removed from displayed message (clean UI)
+- Contextual to the immediate response
+- Static fallback when chat empty (4 questions)
+
+**Future Optimisation Options (Low Priority)**
+
+Consider these enhancements when moving to production with real customer usage data:
+
+1. **Option A: Lightweight Follow-up Service**
+   - Separate, smaller LLM call after each response (e.g., claude-3-haiku)
+   - More targeted follow-up generation
+   - Can be optimised for speed and cost
+   - Trade-off: additional latency (~500ms per response)
+
+2. **Semantic Similarity Matching**
+   - Match follow-ups against workshop questions already in workflow library
+   - Ensures suggestions align with qualification methodology
+   - Reuses existing question inventory
+   - Better for structured workflows with predefined paths
+
+3. **User Behaviour Tracking**
+   - Log which follow-up chips get clicked
+   - Surface high-engagement questions first
+   - Learn user preferences per workflow type
+   - Personalisation based on role/expertise level
+
+4. **Context-Aware State-Based Suggestions**
+   - If current state = "path_saved" → suggest validation questions
+   - If current state = "node_modified" → suggest configuration questions
+   - If workflow confidence = "low" → suggest clarification questions
+   - Ties suggestions to detected workflow state machine
+
+5. **Workshop Question Integration**
+   - Link suggested follow-ups to existing workshop questions
+   - When user clicks follow-up, pre-populate workshop notes
+   - Ensures consistency between chat guidance and formal qualification
+   - Improves handoff to structured workflow approval process
+
+6. **Multi-turn Context Awareness**
+   - Follow-ups that build on conversation history, not just last response
+   - Track topics already explored in this session
+   - Avoid repetitive suggestions
+   - Create coherent conversation narrative
+
+**Implementation Recommendation**
+
+Keep Option B for now. It balances simplicity with functionality:
+- MVP is feature-complete and production-ready
+- No external dependencies or complex parsing
+- Graceful fallback if LLM doesn't include follow-ups
+- Easy to A/B test against future options
+
+Revisit when:
+- Real customer usage data available
+- Usage patterns show which questions resonate
+- Performance metrics show impact on engagement
+- Business case justifies additional complexity/cost
+
 ## Next prompts
 - Prompt 28c: Additional refinements or new features
 
