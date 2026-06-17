@@ -235,8 +235,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 const followUpMatch = cleanContent.match(/FOLLOW_UPS:\s*(\[.*?\])/s);
                 if (followUpMatch) {
                   parsedFollowUps = JSON.parse(followUpMatch[1]);
-                  // Remove the FOLLOW_UPS line from displayed content
-                  cleanContent = cleanContent.replace(/FOLLOW_UPS:.*$/s, '').trim();
+                  // Remove the FOLLOW_UPS line completely from displayed content
+                  cleanContent = cleanContent
+                    .replace(/FOLLOW_UPS:\s*\[.*?\]/s, '')
+                    .trimEnd();
                 }
               } catch (e) {
                 // If parsing fails, just show the content as-is
