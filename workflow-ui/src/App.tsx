@@ -69,8 +69,8 @@ export function App() {
 
   return (
     <div className="min-h-screen w-full min-w-[1200px] flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* NRM-Style Header - Dark Navy, 48px */}
-      <header className="sticky top-0 z-20 w-full h-12 flex items-center px-4 gap-4" style={{ backgroundColor: '#1a3a5c' }}>
+      {/* NRM-Style Header - Brand Primary Blue, 48px */}
+      <header className="sticky top-0 z-20 w-full h-12 flex items-center px-4 gap-4" style={{ backgroundColor: '#2E75D1' }}>
         {/* Logo */}
         <img
           src={enghouseLogo}
@@ -95,25 +95,29 @@ export function App() {
             onClick={() => setTopLevelTab('discovery')}
             className={`h-12 px-4 text-xs font-medium transition-colors flex items-center rounded gap-1.5 ${
               topLevelTab === 'discovery'
-                ? 'underline decoration-white decoration-2 underline-offset-4 text-white'
-                : 'text-white/75 hover:text-white no-underline hover:bg-white/10'
+                ? 'text-white'
+                : 'text-white/75 hover:text-white hover:bg-white/10'
             }`}
             title="Workflow Discovery tab"
           >
-            <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: '16px' }} />
-            Workflow Discovery
+            <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+            <span className={topLevelTab === 'discovery' ? 'underline decoration-white decoration-2 underline-offset-4' : ''}>
+              Workflow Discovery
+            </span>
           </button>
           <button
             onClick={() => setTopLevelTab('library')}
             className={`h-12 px-4 text-xs font-medium transition-colors flex items-center rounded gap-1.5 ${
               topLevelTab === 'library'
-                ? 'underline decoration-white decoration-2 underline-offset-4 text-white'
-                : 'text-white/75 hover:text-white no-underline hover:bg-white/10'
+                ? 'text-white'
+                : 'text-white/75 hover:text-white hover:bg-white/10'
             }`}
             title="Workflow Library tab"
           >
-            <i className="ti ti-books" aria-hidden="true" style={{ fontSize: '16px' }} />
-            Workflow Library
+            <i className="ti ti-books" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+            <span className={topLevelTab === 'library' ? 'underline decoration-white decoration-2 underline-offset-4' : ''}>
+              Workflow Library
+            </span>
           </button>
         </div>
 
