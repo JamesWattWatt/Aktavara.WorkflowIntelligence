@@ -452,7 +452,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 <div
                   className="chat-message-prose text-gray-900 dark:text-gray-100"
                   dangerouslySetInnerHTML={{
-                    __html: renderMarkdown(msg.content)
+                    __html: renderMarkdown(splitContent(msg.content).display)
                   }}
                 >
                   {/* Content rendered above */}
