@@ -101,7 +101,14 @@ export function App() {
               Workflow Discovery
             </span>
             {topLevelTab === 'discovery' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '16px',
+                right: '16px',
+                height: '2px',
+                backgroundColor: 'white'
+              }} />
             )}
           </button>
           <button
@@ -114,7 +121,14 @@ export function App() {
               Workflow Library
             </span>
             {topLevelTab === 'library' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white" />
+              <div style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '16px',
+                right: '16px',
+                height: '2px',
+                backgroundColor: 'white'
+              }} />
             )}
           </button>
         </div>
