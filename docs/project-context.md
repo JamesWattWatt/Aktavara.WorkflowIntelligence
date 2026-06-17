@@ -914,6 +914,75 @@ Full header redesign matching Aktavara NRM application style with Enghouse brand
 - ✅ Layout adjusted for header-relative sizing
 - ✅ Prompt 27a 100% COMPLETE
 
+## Prompt 28a: AI Assistant Demo Tab & Debug Panel (COMPLETE)
+
+Comprehensive redesign moving chat functionality to a dedicated third top-level tab with advanced debugging capabilities.
+
+**Navigation Changes:**
+- Added third nav item "AI Assistant" with ti-brain icon between Discovery and Library
+- Updated topLevelTab state to handle 3 options: 'discovery' | 'library' | 'ai-assistant'
+- Removed chat toggle button from header (chat now lives in AI Assistant tab)
+- Help icon context-aware for all three tabs
+
+**AI Assistant Tab Layout:**
+- Left column (380px fixed): LogDropZone + ChatPanel
+- Right column (flex-1): New DebugPanel component
+- Auto-opens when file uploaded from any tab
+- ChatPanel captures log context automatically
+
+**DebugPanel Component (5 Collapsible Sections):**
+1. Activity context (expanded) - detected user, total events, current state, time window, top 3 active entities
+2. Workflow matching (expanded) - matched workflow name, confidence %, level badge, score breakdown table, matched/missing rules
+3. System prompt preview (collapsed) - full system prompt in monospace, copy-to-clipboard button
+4. LLM call details (expanded) - provider/model, input tokens, output tokens, total tokens, response time (ms)
+5. Guide references (collapsed) - list of help sections included with approval status
+
+**Backend API Changes:**
+- Extended ChatResponse model with debug fields:
+  - SystemPrompt: string
+  - InputTokens: int
+  - OutputTokens: int
+  - ResponseTimeMs: long
+  - GuideReferences: List<string>
+  - DetectedWorkflow: WorkflowCandidateResult
+- Updated IChatLlmProvider interface with new methods:
+  - CompleteWithDebugAsync(): returns (response, LlmDebugInfo)
+  - StreamWithDebugAsync(): returns LlmDebugInfo after streaming
+  - LlmDebugInfo class holds token counts and response time
+- Updated AnthropicChatProvider to:
+  - Parse usage info from Anthropic API response
+  - Capture input_tokens, output_tokens from streaming events
+  - Measure response time for all requests
+- Updated MockChatProvider to implement debug methods (100 input, 50 output tokens)
+- StreamChat endpoint now emits debug info in final SSE event with format:
+  ```json
+  { "done": true, "sessionId": "...", "debug": { "inputTokens": 100, "outputTokens": 50, "responseTimeMs": 1234, "systemPrompt": "..." } }
+  ```
+
+**Frontend Integration:**
+- ChatPanel onDebugInfoCaptured callback passes debug data to App state
+- DebugPanel receives analyzeResponse and selectedCandidate for activity/workflow sections
+- Debug data persists across messages in same session
+- System prompt section shows exact prompt sent to LLM
+
+**User Experience:**
+- Drop file → auto-navigates to AI Assistant tab
+- Chat and debugging context visible side-by-side
+- No interruption to Discovery tab workflow
+- All debug data optional (graceful degradation if missing)
+
+**Verification:**
+- ✅ Third nav item "AI Assistant" visible with ti-brain icon
+- ✅ Clicking opens two-column layout
+- ✅ Drop log → chat session created with context
+- ✅ Chat messages → debug panel updates with workflow match, tokens, response time
+- ✅ Discovery tab no longer has chat panel or toggle button
+- ✅ System prompt visible in collapsed section with copy button
+- ✅ All 215 tests passing
+- ✅ 0 TypeScript errors
+- ✅ Build successful
+- ✅ Prompt 28a 100% COMPLETE
+
 ## Completed Prompts
 - ✅ Prompt 25a: Auto-generate Workshop Questions
 - ✅ Prompt 25b: Auto-suggest Guide Mappings (Parts A-E complete)
@@ -924,9 +993,10 @@ Full header redesign matching Aktavara NRM application style with Enghouse brand
 - ✅ Prompt 27a: NRM-style header redesign, Enghouse logo, left-aligned nav
 - ✅ Prompt 27b: Aktavara NRM design system, brand colors, Noto Sans typography
 - ✅ Prompt 27c: Header nav icons, text-decoration underline, updated labels
+- ✅ Prompt 28a: AI Assistant tab, debug panel, move chat out of Discovery
 
 ## Next prompts
-- Prompt 27d: Additional UI refinements or workflow enhancements
+- Prompt 28b: Additional refinements or new features
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
