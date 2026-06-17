@@ -589,14 +589,111 @@ builder.Services.AddScoped<IChatLlmProvider>(sp =>
 - ✅ Configuration-driven provider selection
 - ✅ Prompt 26a 100% COMPLETE
 
+## Prompt 26b: Chat UI Panel (COMPLETE)
+
+Conversational chat interface for Discovery tab as collapsible right panel.
+
+**Layout:**
+- 3-column when chat open: left 280px (candidates) | center flex-1 (workflow) | right 360px (chat)
+- 2-column when chat closed: left 280px | right flex-1
+- Chat toggle button (💬 Chat) positioned on middle column, relative to content
+- Smooth slide-in/out transition via conditional rendering
+
+**ChatPanel Component (src/components/ChatPanel.tsx - 256 lines):**
+
+Props:
+- sessionId: string | null (current session)
+- analyzeResponse: AnalyzeResponse | null (workflow context)
+- logFileName: string | null (for context indicator)
+- onSessionCreated: (sessionId: string) => void (session callback)
+
+Features:
+1. **Message Thread**
+   - User messages: right-aligned blue bubbles
+   - Assistant messages: left-aligned grey bubbles
+   - Auto-scrolling to latest message
+   - Message timestamps (HH:MM format)
+   - Tool badges showing MCP tools used (e.g., [detect_current_task])
+   - Loading indicator (typing...) during API call
+
+2. **Suggested Questions**
+   - Context-aware: based on workflow currentState
+   - Generic fallback if no workflow detected
+   - Clickable chips that send message on click
+   - 4 suggested questions per context
+   - Workflow-specific examples: PathSaved, NodeModified, ConnectorCreated
+
+3. **Input Area**
+   - Auto-expanding textarea (max 4 lines / 96px)
+   - Send button (disabled when loading or empty)
+   - Enter key to send (Shift+Enter for newline)
+   - Placeholder: "Type your question..."
+
+4. **Session Controls**
+   - New conversation: deletes current session, clears UI
+   - Save session: downloads session JSON to browser
+   - Load session: file picker to load saved .json
+   - Message counter: "5 messages · 2 tools used"
+
+5. **Context Indicator**
+   - Green dot + filename if log loaded: "Context: log20260610.txt"
+   - Amber dot + text if no log: "No log loaded — drop a file for context-aware responses"
+
+**App.tsx Integration:**
+- New state: chatSessionId (string | null), chatPanelOpen (boolean)
+- handleAnalyzeResult: opens chat panel, clears session on new upload
+- onSessionCreated callback: stores sessionId for subsequent messages
+- Pass analyzeResponse and fileName to ChatPanel
+- Pass logFileName from analyzeResponse.fileName
+
+**API Client (src/services/apiClient.ts):**
+- sendChatMessage(request: ChatRequest): Promise<ChatResponse>
+- getChatSession(sessionId: string): Promise<ChatSession>
+- saveChatSession(sessionId: string): Promise<{ path: string }>
+- deleteChatSession(sessionId: string): Promise<void>
+
+**TypeScript Types (src/types/api.ts):**
+- ChatMessage: role, content, timestamp, toolsUsed[]
+- ChatSession: sessionId, createdAt, lastActivityAt, messages[], logFileName, analyzeResponse
+- ChatRequest: sessionId?, message, logContent?, userName?, userQuestion?
+- ChatResponse: sessionId, reply, toolsUsed[], workflowContext, sources[]
+
+**Styling:**
+- Dark theme (slate-800 panel, blue-600 buttons)
+- Message bubbles with padding and rounded corners
+- Responsive textarea with overflow handling
+- Sticky session controls at top
+- Scrollable message area with flex layout
+- Minimal, clean design consistent with discovery UI
+
+**Testing:**
+- ✅ 0 TypeScript errors (npx tsc --noEmit)
+- ✅ React build successful (vite build)
+- ✅ Chat API integration verified
+- ✅ Message history tested with workflow context
+- ✅ Session management tested (create, retrieve, save, delete)
+- ✅ Suggested questions display correctly
+- ✅ Context indicator shows/hides based on log state
+
+**Status:**
+- ✅ ChatPanel component implemented (256 lines)
+- ✅ App.tsx wired for chat panel state and layout
+- ✅ API client methods fully typed
+- ✅ Chat panel opens on log upload
+- ✅ Session persistence working
+- ✅ Suggested questions context-aware
+- ✅ Full integration with backend chat endpoints
+- ✅ Prompt 26b 100% COMPLETE
+
 ## Completed Prompts
 - ✅ Prompt 25a: Auto-generate Workshop Questions
 - ✅ Prompt 25b: Auto-suggest Guide Mappings (Parts A-E complete)
 - ✅ Prompt 25c: Pass Detected User Context Through UI
 - ✅ Prompt 26a: Chat API endpoint, LLM provider strategy, session management
+- ✅ Prompt 26b: Chat UI panel, message thread, suggested questions
 
 ## Next prompts
-- Prompt 26b: Chat UI panel (React integration, message display, send button)
+- Prompt 26c: Chat panel styling refinements & edge cases
 - Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
 - Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
 
