@@ -78,10 +78,30 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
     try {
       setLoading(true);
+
+      // Build context from analyzeResponse
+      let logContent: string | undefined;
+      if (analyzeResponse) {
+        const topCandidate = analyzeResponse.workflowCandidates?.[0];
+        const contextInfo = {
+          contextNarrative: analyzeResponse.contextNarrative,
+          detectedUser: analyzeResponse.detectedUser,
+          fileName: analyzeResponse.fileName,
+          currentState: analyzeResponse.currentState,
+          topWorkflowCandidate: topCandidate ? {
+            workflowId: topCandidate.workflowId,
+            workflowName: topCandidate.workflowName,
+            confidenceScore: topCandidate.confidenceScore,
+            currentStateName: topCandidate.currentStateName
+          } : null
+        };
+        logContent = JSON.stringify(contextInfo);
+      }
+
       const request = {
         sessionId: session?.sessionId,
         message: text,
-        logContent: analyzeResponse ? JSON.stringify(analyzeResponse) : undefined,
+        logContent,
         userName: analyzeResponse?.detectedUser
       };
 

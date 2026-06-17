@@ -80,14 +80,14 @@
       "NextStateId": "path_saved",
       "HelpGuideId": "guide-connector-created",
       "Sequence": 1,
-      "IsTerminal": false,
+      "IsTerminal": true,
       "Metadata": {
         "detectedRecordKind": "Connector"
       },
       "WorkshopQuestions": [
-        "Do you need to configure connector properties (type, attributes)?",
-        "Should you allocate any tags or labels to this connector?",
-        "Are there any validation rules or constraints to apply?"
+        "When a new connector is added to a path, who needs to be notified or give approval before the path is considered ready to use \u2014 or can the person making the change save it and move on without any sign-off?",
+        "Are there situations where adding a connector to a path needs to be undone or reversed shortly after saving \u2014 for example, if the wrong path was modified or the connector details were entered incorrectly?",
+        "When searching for the path you want to modify, what information do you typically use to find it \u2014 for example, a name, a reference number, or the nodes it connects \u2014 and do you ever run into situations where multiple paths look similar and it\u0027s hard to pick the right one?"
       ]
     },
     {
@@ -112,9 +112,9 @@
       ]
     },
     {
-      "StateId": "state-1781608366925",
+      "StateId": "path_edited",
       "Name": "Path Edited",
-      "Description": "the user has edited the path. ",
+      "Description": "The user has edited the path with changes pending.",
       "RequiredEvidence": [],
       "NextStateId": null,
       "HelpGuideId": "",

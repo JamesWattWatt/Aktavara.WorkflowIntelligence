@@ -70,28 +70,46 @@ export function App() {
           </div>
         </div>
 
-        {/* Top-level tabs */}
-        <div className="flex gap-4 border-b border-gray-200 dark:border-gray-800 px-6">
-          <button
-            onClick={() => setTopLevelTab('discovery')}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              topLevelTab === 'discovery'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            Discovery
-          </button>
-          <button
-            onClick={() => setTopLevelTab('library')}
-            className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-              topLevelTab === 'library'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            Library
-          </button>
+        {/* Top-level tabs and controls */}
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 px-6">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setTopLevelTab('discovery')}
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                topLevelTab === 'discovery'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              Discovery
+            </button>
+            <button
+              onClick={() => setTopLevelTab('library')}
+              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                topLevelTab === 'library'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+            >
+              Library
+            </button>
+          </div>
+
+          {/* Chat button in header (Discovery tab only) */}
+          {topLevelTab === 'discovery' && analyzeResponse && (
+            <button
+              onClick={() => setChatPanelOpen(!chatPanelOpen)}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+                chatPanelOpen
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+              title={chatPanelOpen ? 'Close chat panel' : 'Open chat panel'}
+            >
+              <span>💬</span>
+              <span>{chatPanelOpen ? 'Hide Chat' : 'Chat'}</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -151,14 +169,6 @@ export function App() {
               </div>
             ) : (
               <div className="relative">
-                {/* Chat toggle button */}
-                <button
-                  onClick={() => setChatPanelOpen(!chatPanelOpen)}
-                  className="absolute -right-14 top-0 z-10 px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition whitespace-nowrap"
-                  title={chatPanelOpen ? 'Close chat' : 'Open chat'}
-                >
-                  💬 Chat
-                </button>
 
                 {/* Framed column 2: all three sections in one container */}
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 dark:text-gray-100">
