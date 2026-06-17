@@ -314,7 +314,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div
       ref={panelRef}
-      className="flex flex-col h-full bg-white dark:bg-gray-900 border-l border-t border-gray-200 dark:border-gray-700 rounded-lg relative"
+      className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg relative"
       style={{ width: `${panelWidth}px` }}
     >
       {/* Drag Handle */}
