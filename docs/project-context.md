@@ -727,6 +727,66 @@ Token-by-token response streaming for real-time chat feedback:
 - ✅ 0 TypeScript errors, build successful
 - ✅ Prompt 26c 100% COMPLETE
 
+## Prompt 27c: Header Nav Icons and Underline Fix (COMPLETE)
+
+Navigation refinements with Tabler icons and proper text underlines:
+
+**Updated Navigation Labels:**
+- "Discovery" → "Workflow Discovery"
+- "Library" → "Workflow Library"
+
+**Nav Item Icons (Tabler):**
+- Workflow Discovery: ti-radar-2 icon (search/discovery)
+- Workflow Library: ti-books icon (book/library collection)
+- Icon size: 16px
+- Icon color: matches text color (white when active, 75% white when inactive)
+- Gap between icon and text: 6px (gap-1.5)
+
+**Underline Styling Fix:**
+- Changed from border-bottom to text-decoration-based underline
+- Active state:
+  * text-decoration: underline
+  * text-decoration-color: white
+  * text-decoration-thickness: 2px
+  * text-underline-offset: 4px
+  * Underline sits directly below text, not at bottom of header bar
+- Inactive state: no underline
+
+**Nav Item Spacing:**
+- Horizontal padding: 16px (px-4)
+- Icon-to-text gap: 6px (gap-1.5)
+- Vertical centering: h-12 (48px) with flex items-center
+- Hover state: rgba(255,255,255,0.1) background with rounded corners
+- Border radius: 4px (rounded)
+
+**Text Color States:**
+- Active: white (#ffffff) with text-decoration underline
+- Inactive: rgba(255,255,255,0.75)
+- Hover: transitions to white
+
+**Implementation Details:**
+- Added Tabler icons CSS from CDN (cdn.jsdelivr.net)
+- Used Tailwind classes for text-decoration utilities
+- Flex layout for icon + text alignment
+- Aria-hidden on icons for accessibility
+
+**Verification:**
+- ✅ "Workflow Discovery" with radar/search icon visible
+- ✅ "Workflow Library" with books icon visible
+- ✅ Active item shows white text with underline below text
+- ✅ Inactive items show muted white text without underline
+- ✅ Icons match text color at all times
+- ✅ Hover background highlight works on both items
+- ✅ 0 TypeScript errors
+- ✅ Build successful
+
+**Status:**
+- ✅ Nav labels updated (user-visible only)
+- ✅ Tabler icons integrated
+- ✅ Underline styling fixed (text-decoration instead of border)
+- ✅ Spacing and hover states refined
+- ✅ Prompt 27c 100% COMPLETE
+
 ## Prompt 27b: Aktavara NRM Design System (COMPLETE)
 
 Complete brand design system implementation with Noto Sans typography and official Aktavara NRM colors:
@@ -863,9 +923,10 @@ Full header redesign matching Aktavara NRM application style with Enghouse brand
 - ✅ Prompt 26c: Streaming responses (SSE), scroll isolation fixes
 - ✅ Prompt 27a: NRM-style header redesign, Enghouse logo, left-aligned nav
 - ✅ Prompt 27b: Aktavara NRM design system, brand colors, Noto Sans typography
+- ✅ Prompt 27c: Header nav icons, text-decoration underline, updated labels
 
 ## Next prompts
-- Prompt 27c: Additional UI refinements or workflow enhancements
+- Prompt 27d: Additional UI refinements or workflow enhancements
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
