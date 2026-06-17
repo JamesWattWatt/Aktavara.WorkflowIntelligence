@@ -93,27 +93,35 @@ export function App() {
         <div className="flex items-center gap-0 ml-8">
           <button
             onClick={() => setTopLevelTab('discovery')}
-            className={`h-12 px-4 text-xs font-medium transition-colors flex items-center rounded gap-1.5 ${
-              topLevelTab === 'discovery'
-                ? 'text-white underline decoration-white decoration-2 underline-offset-4'
-                : 'text-white/75 hover:text-white hover:bg-white/10'
-            }`}
+            className="h-12 px-4 text-xs font-medium transition-colors flex items-center rounded text-white/75 hover:text-white hover:bg-white/10"
             title="Workflow Discovery tab"
           >
-            <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
-            Workflow Discovery
+            <span
+              className={
+                topLevelTab === 'discovery'
+                  ? 'flex items-center gap-1.5 underline decoration-white decoration-2 underline-offset-4 text-white'
+                  : 'flex items-center gap-1.5'
+              }
+            >
+              <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+              Workflow Discovery
+            </span>
           </button>
           <button
             onClick={() => setTopLevelTab('library')}
-            className={`h-12 px-4 text-xs font-medium transition-colors flex items-center rounded gap-1.5 ${
-              topLevelTab === 'library'
-                ? 'text-white underline decoration-white decoration-2 underline-offset-4'
-                : 'text-white/75 hover:text-white hover:bg-white/10'
-            }`}
+            className="h-12 px-4 text-xs font-medium transition-colors flex items-center rounded text-white/75 hover:text-white hover:bg-white/10"
             title="Workflow Library tab"
           >
-            <i className="ti ti-books" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
-            Workflow Library
+            <span
+              className={
+                topLevelTab === 'library'
+                  ? 'flex items-center gap-1.5 underline decoration-white decoration-2 underline-offset-4 text-white'
+                  : 'flex items-center gap-1.5'
+              }
+            >
+              <i className="ti ti-books" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+              Workflow Library
+            </span>
           </button>
         </div>
 
