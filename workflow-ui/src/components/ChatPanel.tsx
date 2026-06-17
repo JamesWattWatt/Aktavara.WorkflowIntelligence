@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { marked } from 'marked';
 import type { AnalyzeResponse, ChatMessage, ChatResponse, ChatSession } from '../types/api';
 import { apiClient } from '../services/apiClient';
 
@@ -8,6 +9,20 @@ interface ChatPanelProps {
   logFileName: string | null;
   onSessionCreated: (sessionId: string) => void;
 }
+
+// Configure marked for safe parsing
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
+
+const renderMarkdown = (content: string): string => {
+  try {
+    return marked(content) as string;
+  } catch {
+    return content;
+  }
+};
 
 const suggestedQuestions = {
   generic: [
@@ -254,13 +269,33 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
+              className={`rounded-lg px-3 py-2 text-sm max-w-sm ${
                 msg.role === 'user'
                   ? 'bg-blue-600 text-white'
                   : 'bg-slate-700 text-slate-100'
               }`}
             >
-              <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              ) : (
+                <div
+                  className="prose prose-invert prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{
+                    __html: renderMarkdown(msg.content)
+                  }}
+                  style={{
+                    color: 'inherit',
+                    '--tw-prose-body': 'rgb(226 232 240)',
+                    '--tw-prose-headings': 'rgb(248 250 252)',
+                    '--tw-prose-links': 'rgb(147 197 253)',
+                    '--tw-prose-bold': 'rgb(248 250 252)',
+                    '--tw-prose-code': 'rgb(226 232 240)',
+                    '--tw-prose-bullets': 'rgb(203 213 225)',
+                  } as React.CSSProperties}
+                >
+                  {/* Content rendered above */}
+                </div>
+              )}
               {msg.toolsUsed.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {msg.toolsUsed.map(tool => (
