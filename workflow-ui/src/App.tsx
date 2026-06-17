@@ -87,7 +87,7 @@ export function App() {
         <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
 
         {/* App Name */}
-        <span className="text-sm font-medium text-white flex-shrink-0">Workflow Intelligence</span>
+        <span className="font-medium text-white flex-shrink-0" style={{ fontSize: '18px' }}>Workflow Intelligence</span>
 
         {/* Navigation Items - Left aligned after app name */}
         <div className="flex items-center gap-0 ml-8">
@@ -96,8 +96,8 @@ export function App() {
             className="relative h-12 px-4 text-xs font-medium transition-colors flex items-center rounded text-white/75 hover:text-white hover:bg-white/10"
             title="Workflow Discovery tab"
           >
-            <span className="flex items-center gap-1.5 text-white">
-              <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+            <span className="flex items-center gap-1.5 text-white" style={{ fontSize: '18px' }}>
+              <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: '20px' }} />
               Workflow Discovery
             </span>
             {topLevelTab === 'discovery' && (
@@ -116,8 +116,8 @@ export function App() {
             className="relative h-12 px-4 text-xs font-medium transition-colors flex items-center rounded text-white/75 hover:text-white hover:bg-white/10"
             title="Workflow Library tab"
           >
-            <span className="flex items-center gap-1.5 text-white">
-              <i className="ti ti-books" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+            <span className="flex items-center gap-1.5 text-white" style={{ fontSize: '18px' }}>
+              <i className="ti ti-books" aria-hidden="true" style={{ fontSize: '20px' }} />
               Workflow Library
             </span>
             {topLevelTab === 'library' && (
