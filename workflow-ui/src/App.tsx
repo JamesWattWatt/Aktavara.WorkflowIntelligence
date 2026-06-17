@@ -297,6 +297,7 @@ export function App() {
               analyzeResponse={analyzeResponse}
               logFileName={analyzeResponse?.fileName || null}
               onSessionCreated={setChatSessionId}
+              onOpenHelp={openHelp}
             />
           )}
         </div>

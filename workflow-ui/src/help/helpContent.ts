@@ -214,5 +214,41 @@ Mark a state as terminal when:
 - The system should stop providing next-step guidance
 
 Only one state should typically be terminal, though complex workflows may have multiple terminal states for different completion paths.`
+  },
+  'chat-panel': {
+    title: 'AI Workflow Assistant',
+    content: `## AI Workflow Assistant
+
+The chat assistant provides intelligent, context-aware guidance based on the activity log you have uploaded.
+
+### What it does
+The assistant analyses the detected workflow patterns from your log file and answers questions in plain English. It knows:
+- Which workflow was detected and its confidence level
+- What step the user is currently at
+- What the recommended next action is
+- Relevant documentation from the Aktavara help guides
+
+### How to use it
+1. Drop an activity log file in the Discovery panel
+2. The assistant automatically loads the workflow context
+3. Ask any question about what the user should do next
+4. Use the suggested questions for common queries
+
+### Suggested questions
+- "What should I do next?"
+- "Explain this workflow step"
+- "How do I add a connector?"
+- "What does the current state mean?"
+
+### Session management
+- **New** — Start a fresh conversation
+- **Save** — Download the conversation as a JSON file
+- **Load** — Reload a previously saved conversation
+
+### Context indicator
+The green dot shows the log file currently loaded as context. Without a log file the assistant provides general Aktavara guidance only.
+
+### LLM provider
+The assistant uses Claude (Anthropic) by default. Your administrator can configure alternative LLM providers including Azure OpenAI for enterprise deployments.`
   }
 };

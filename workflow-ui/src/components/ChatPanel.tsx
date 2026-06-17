@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
 import type { AnalyzeResponse, ChatMessage, ChatSession } from '../types/api';
 import { apiClient } from '../services/apiClient';
+import { HelpIcon } from './HelpIcon';
 import './ChatPanel.css';
 
 interface ChatPanelProps {
@@ -9,6 +10,7 @@ interface ChatPanelProps {
   analyzeResponse: AnalyzeResponse | null;
   logFileName: string | null;
   onSessionCreated: (sessionId: string) => void;
+  onOpenHelp?: (key: string) => void;
 }
 
 // Configure marked for safe parsing
@@ -55,7 +57,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   sessionId,
   analyzeResponse,
   logFileName,
-  onSessionCreated
+  onSessionCreated,
+  onOpenHelp
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -313,7 +316,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div
       ref={panelRef}
-      className="flex flex-col h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 rounded-lg relative"
+      className="flex flex-col h-full bg-white dark:bg-gray-900 border-l border-t border-gray-200 dark:border-gray-700 rounded-lg relative"
       style={{ width: `${panelWidth}px` }}
     >
       {/* Drag Handle */}
@@ -324,12 +327,28 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         }`}
         title="Drag to resize chat panel"
       />
-      {/* Session Controls */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 gap-2">
-        <div className="text-xs text-gray-600 dark:text-gray-400">
-          {messages.length} messages · {toolsUsedCount} tools
+      {/* Chat Panel Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '8px 12px',
+        borderBottom: '1px solid #e5e7eb',
+        backgroundColor: '#f9fafb'
+      }} className="dark:bg-gray-800 dark:border-gray-700">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <i className="ti ti-message-circle"
+            aria-hidden="true"
+            style={{ fontSize: '16px', color: '#2E75D1' }} />
+          <span style={{ fontWeight: 500, fontSize: '14px' }} className="text-gray-900 dark:text-gray-100">
+            AI Assistant
+          </span>
         </div>
-        <div className="flex gap-1">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '11px' }} className="text-gray-600 dark:text-gray-400">
+            {messages.length} messages · {toolsUsedCount} tools
+          </span>
+          {onOpenHelp && <HelpIcon helpKey="chat-panel" onOpen={onOpenHelp} />}
           <button
             onClick={handleNewConversation}
             className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 transition"
