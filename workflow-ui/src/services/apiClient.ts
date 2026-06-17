@@ -8,7 +8,10 @@ import type {
   WorkflowLibraryItem,
   WorkflowGuideMappings,
   InferredWorkflowSuggestion,
-  InferredNameSuggestion
+  InferredNameSuggestion,
+  ChatRequest,
+  ChatResponse,
+  ChatSession
 } from '../types/api';
 
 const BASE_URL = '/api';
@@ -302,6 +305,65 @@ class ApiClient {
     }
 
     return response.json();
+  }
+
+  async sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+    const response = await fetch(`${BASE_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to send chat message: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async getChatSession(sessionId: string): Promise<ChatSession> {
+    const response = await fetch(`${BASE_URL}/chat/${sessionId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch chat session: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async saveChatSession(sessionId: string): Promise<{ path: string }> {
+    const response = await fetch(`${BASE_URL}/chat/${sessionId}/save`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to save chat session: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    const response = await fetch(`${BASE_URL}/chat/${sessionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete chat session: ${response.statusText}`);
+    }
   }
 }
 

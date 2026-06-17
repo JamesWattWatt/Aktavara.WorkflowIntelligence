@@ -9,6 +9,7 @@ import { LibraryPage } from './components/LibraryPage';
 import { HelpIcon } from './components/HelpIcon';
 import { HelpPanel } from './components/HelpPanel';
 import { EvidenceSection } from './components/EvidenceSection';
+import { ChatPanel } from './components/ChatPanel';
 import { helpContent } from './help/helpContent';
 
 export function App() {
@@ -19,6 +20,8 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
+  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
   const openHelp = (key: string) => {
     setHelpPanelKey(key);
@@ -40,6 +43,8 @@ export function App() {
       setSelectedCandidate(response.workflowCandidates[0]);
     }
     setError(null);
+    setChatSessionId(null);
+    setChatPanelOpen(true);
   };
 
   const handleError = (error: Error) => {
@@ -92,7 +97,7 @@ export function App() {
 
       {/* Main Content - Flush with left edge */}
       {topLevelTab === 'discovery' ? (
-        <div className="w-full flex flex-1 gap-6 py-6 min-h-0 px-6">
+        <div className={`w-full flex flex-1 gap-6 py-6 min-h-0 px-6 ${chatPanelOpen ? 'flex-row' : 'flex-row'}`}>
           {/* Left Column - Fixed 280px */}
           <div className="w-[280px] flex-shrink-0 flex flex-col gap-4 min-h-0">
             <div className="flex-shrink-0">
@@ -121,8 +126,8 @@ export function App() {
             </div>
           </div>
 
-          {/* Right Column - Flex-1 fills remaining space */}
-          <div className="flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto">
+          {/* Middle Column - Content area (flex-1 when chat open) */}
+          <div className={chatPanelOpen ? 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto' : 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto'}>
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
                 <div className="text-center text-gray-500 dark:text-gray-400">
@@ -145,7 +150,16 @@ export function App() {
                 </div>
               </div>
             ) : (
-              <>
+              <div className="relative">
+                {/* Chat toggle button */}
+                <button
+                  onClick={() => setChatPanelOpen(!chatPanelOpen)}
+                  className="absolute -right-14 top-0 z-10 px-2 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition whitespace-nowrap"
+                  title={chatPanelOpen ? 'Close chat' : 'Open chat'}
+                >
+                  💬 Chat
+                </button>
+
                 {/* Framed column 2: all three sections in one container */}
                 <div className="flex-1 flex flex-col min-h-0 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/30 dark:text-gray-100">
                   {/* Section 1 - Workflow name + subtitle + steps */}
@@ -200,9 +214,21 @@ export function App() {
                     />
                   </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
+
+          {/* Right Column - Chat Panel (360px, slides in) */}
+          {chatPanelOpen && (
+            <div className="w-[360px] flex-shrink-0 h-full min-h-0 flex flex-col">
+              <ChatPanel
+                sessionId={chatSessionId}
+                analyzeResponse={analyzeResponse}
+                logFileName={analyzeResponse?.fileName || null}
+                onSessionCreated={setChatSessionId}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex-1 min-h-0">

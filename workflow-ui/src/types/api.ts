@@ -211,3 +211,35 @@ export interface InferredNameSuggestion {
   suggestedDescription: string;
   alternativeNames: string[];
 }
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;
+  toolsUsed: string[];
+}
+
+export interface ChatSession {
+  sessionId: string;
+  createdAt: string;
+  lastActivityAt: string;
+  messages: ChatMessage[];
+  logFileName: string | null;
+  analyzeResponse: AnalyzeResponse | null;
+}
+
+export interface ChatRequest {
+  sessionId?: string;
+  message: string;
+  logContent?: string;
+  userName?: string;
+  userQuestion?: string;
+}
+
+export interface ChatResponse {
+  sessionId: string;
+  reply: string;
+  toolsUsed: string[];
+  workflowContext: string | null;
+  sources: string[];
+}
