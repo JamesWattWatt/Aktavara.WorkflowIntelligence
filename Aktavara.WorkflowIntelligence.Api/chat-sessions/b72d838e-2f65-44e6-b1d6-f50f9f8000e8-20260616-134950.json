@@ -1,0 +1,38 @@
+{
+  "SessionId": "b72d838e-2f65-44e6-b1d6-f50f9f8000e8",
+  "CreatedAt": "2026-06-16T13:49:36.1324832Z",
+  "LastActivityAt": "2026-06-16T13:49:50.6575014Z",
+  "Messages": [
+    {
+      "Role": "user",
+      "Content": "What should I do next?",
+      "Timestamp": "2026-06-16T13:49:36.2181842Z",
+      "ToolsUsed": []
+    },
+    {
+      "Role": "assistant",
+      "Content": "# Workflow Guidance\n\nIt looks like there\u0027s **no detected activity** for your current session, so I don\u0027t have enough context to provide specific workflow guidance right now.\n\n## Here\u0027s what you can do:\n\n### Get Started\n- **Log into the Aktavara platform** and begin working on a specific task\n- **Navigate to your dashboard** to see pending items, alerts, or assignments\n\n### Common Starting Points in Aktavara:\n1. **Network Monitoring** \u2013 Check for active alerts or incidents that need attention\n2. **Device Management** \u2013 Review device status or configuration tasks\n3. **Reporting** \u2013 Generate or review network performance reports\n4. **Ticket/Issue Queue** \u2013 Address any open tickets assigned to you\n\n### Tips to Help Me Guide You Better:\n- **Start performing actions** in the platform so I can detect your workflow\n- **Tell me what you\u0027re trying to accomplish** and I can provide step-by-step guidance\n\n---\n\n\uD83D\uDCA1 *Is there a specific task or workflow you\u0027re working on? Just describe it and I\u0027ll do my best to help guide you through the next steps!*",
+      "Timestamp": "2026-06-16T13:49:43.0499581Z",
+      "ToolsUsed": []
+    }
+  ],
+  "LogFileName": null,
+  "AnalyzeResponse": {
+    "SessionId": "b72d838e-2f65-44e6-b1d6-f50f9f8000e8",
+    "FileName": "chat-upload",
+    "ParsedAt": "2026-06-16T13:49:36.2168932Z",
+    "TotalEntries": 0,
+    "TotalEvents": 0,
+    "DurationMs": 0,
+    "CurrentState": "Unknown",
+    "GuidanceLevel": "",
+    "RecommendedNextStep": null,
+    "ContextNarrative": "No activity for TestUser in this time window",
+    "DetectedUser": "TestUser",
+    "WorkflowCandidates": [],
+    "ActiveEntities": [],
+    "WorkflowHints": [],
+    "SemanticMatches": [],
+    "Ambiguity": null
+  }
+}
