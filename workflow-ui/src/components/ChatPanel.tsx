@@ -227,24 +227,34 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             if (data.done) {
               finalSessionId = data.sessionId;
 
-              // Parse follow-up questions from the response
-              let cleanContent = streamContent;
+              // Extract follow-up questions first, then strip from content
               let parsedFollowUps: string[] = [];
+              let cleanContent = streamContent;
 
               try {
-                const followUpMatch = cleanContent.match(/FOLLOW_UPS:\s*(\[.*?\])/s);
+                // Extract FOLLOW_UPS JSON array
+                const followUpMatch = streamContent.match(/FOLLOW_UPS:\s*(\[[\s\S]*?\])/);
                 if (followUpMatch) {
-                  parsedFollowUps = JSON.parse(followUpMatch[1]);
-                  // Remove the FOLLOW_UPS line completely from displayed content
-                  cleanContent = cleanContent
-                    .replace(/FOLLOW_UPS:\s*\[.*?\]/s, '')
-                    .trimEnd();
+                  try {
+                    parsedFollowUps = JSON.parse(followUpMatch[1]);
+                  } catch (parseErr) {
+                    console.debug('Failed to parse follow-ups JSON:', parseErr);
+                  }
                 }
+
+                // Strip FOLLOW_UPS line completely from display
+                // Use [\s\S]*? to match content including newlines reliably
+                cleanContent = streamContent
+                  .replace(/FOLLOW_UPS:\s*\[[\s\S]*?\]/g, '')
+                  .replace(/\n\s*$/, '') // Remove trailing newlines
+                  .trimEnd();
               } catch (e) {
-                // If parsing fails, just show the content as-is
-                console.debug('Failed to parse follow-ups:', e);
+                // If anything fails, show the content as-is
+                console.debug('Failed to process follow-ups:', e);
+                cleanContent = streamContent;
               }
 
+              // Update the message with clean content
               setMessages(prev =>
                 prev.map((msg, idx) =>
                   idx === prev.length - 1
