@@ -75,7 +75,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     : suggestedQuestions.generic;
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages]);
 
   useEffect(() => {
@@ -371,7 +371,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0" style={{ overflowAnchor: 'none' }}>
         {messages.length === 0 && (
           <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
             <p>Start a conversation</p>

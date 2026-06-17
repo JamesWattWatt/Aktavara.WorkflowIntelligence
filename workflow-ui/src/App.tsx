@@ -28,10 +28,13 @@ export function App() {
     e.preventDefault();
     const scrollTop = contentScrollRef.current?.scrollTop;
     setChatPanelOpen(prev => !prev);
+    // Wait for layout reflow to complete before restoring scroll
     requestAnimationFrame(() => {
-      if (contentScrollRef.current) {
-        contentScrollRef.current.scrollTop = scrollTop ?? 0;
-      }
+      requestAnimationFrame(() => {
+        if (contentScrollRef.current && scrollTop !== undefined) {
+          contentScrollRef.current.scrollTop = scrollTop;
+        }
+      });
     });
   };
 
@@ -161,6 +164,7 @@ export function App() {
           <div
             ref={contentScrollRef}
             className={chatPanelOpen ? 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto' : 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto'}
+            style={{ overflowAnchor: 'none' }}
           >
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
