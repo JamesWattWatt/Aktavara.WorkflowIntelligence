@@ -296,9 +296,8 @@ app.MapPost("/api/chat", PostChat)
 app.MapPost("/api/chat/stream", StreamChat)
 .WithName("StreamChat")
 .WithOpenApi()
-.WithDescription("Send a chat message and stream the response as Server-Sent Events")
-.Produces(200)
-.ProducesProblem(400);
+.WithDescription("Send a chat message and stream the response as Server-Sent Events");
+
 
 app.MapGet("/api/chat/{sessionId}", GetChat)
 .WithName("GetChat")
@@ -1807,7 +1806,7 @@ async Task<IResult> PostChat(
     }
 }
 
-async Task<IResult> StreamChat(
+async Task StreamChat(
     ChatRequest request,
     ChatSessionStore sessionStore,
     IChatLlmProvider llmProvider,
@@ -1823,7 +1822,11 @@ async Task<IResult> StreamChat(
     try
     {
         if (string.IsNullOrWhiteSpace(request.Message))
-            return Results.BadRequest(new { error = "Message cannot be empty" });
+        {
+            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await httpContext.Response.WriteAsJsonAsync(new { error = "Message cannot be empty" });
+            return;
+        }
 
         var session = sessionStore.GetOrCreateSession(request.SessionId);
 
@@ -1921,30 +1924,41 @@ async Task<IResult> StreamChat(
         sessionStore.AddMessage(session.SessionId, assistantMessage);
 
         // Stream response
-        await using (var writer = new StreamWriter(httpContext.Response.Body))
+        try
         {
             var messageContent = "";
             await llmProvider.StreamAsync(session.Messages, systemPrompt, async (delta) =>
             {
                 messageContent += delta;
-                await writer.WriteLineAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta, done = false })}");
-                await writer.FlushAsync();
+                await httpContext.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta, done = false })}\n\n");
+                await httpContext.Response.Body.FlushAsync();
             }, httpContext.RequestAborted);
 
             // Update the assistant message with full content
             sessionStore.AddMessage(session.SessionId, new ChatMessage { Role = "assistant", Content = messageContent });
 
             // Send done event
-            await writer.WriteLineAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta = "", done = true, sessionId = session.SessionId })}");
-            await writer.FlushAsync();
+            await httpContext.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta = "", done = true, sessionId = session.SessionId })}\n\n");
+            await httpContext.Response.Body.FlushAsync();
         }
-
-        return Results.Ok();
+        catch (OperationCanceledException)
+        {
+            logger.LogInformation("Chat stream cancelled by client");
+        }
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "Error in chat stream endpoint");
-        return Results.BadRequest(new { error = "Error processing chat stream" });
+        try
+        {
+            var errorJson = System.Text.Json.JsonSerializer.Serialize(new { error = ex.Message, done = true });
+            await httpContext.Response.WriteAsync($"data: {errorJson}\n\n");
+            await httpContext.Response.Body.FlushAsync();
+        }
+        catch
+        {
+            // Response already committed, can't write error
+        }
     }
 }
 
