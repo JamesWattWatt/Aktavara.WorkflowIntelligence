@@ -311,8 +311,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     input.click();
   };
 
-  const toolsUsedCount = messages.reduce((acc, msg) => acc + msg.toolsUsed.length, 0);
-
   return (
     <div
       ref={panelRef}
@@ -328,26 +326,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         title="Drag to resize chat panel"
       />
       {/* Chat Panel Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '8px 12px',
-        borderBottom: '1px solid #e5e7eb',
-        backgroundColor: '#f9fafb'
-      }} className="dark:bg-gray-800 dark:border-gray-700">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 min-h-[44px]">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <i className="ti ti-message-circle"
             aria-hidden="true"
             style={{ fontSize: '16px', color: '#2E75D1' }} />
-          <span style={{ fontWeight: 500, fontSize: '14px' }} className="text-gray-900 dark:text-gray-100">
+          <span className="font-medium text-sm whitespace-nowrap text-gray-900 dark:text-gray-100">
             AI Assistant
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11px' }} className="text-gray-600 dark:text-gray-400">
-            {messages.length} messages · {toolsUsedCount} tools
-          </span>
+        <div className="flex items-center gap-1 flex-shrink-0">
           {onOpenHelp && <HelpIcon helpKey="chat-panel" onOpen={onOpenHelp} />}
           <button
             onClick={handleNewConversation}
