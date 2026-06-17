@@ -70,15 +70,15 @@ export function App() {
   return (
     <div className="min-h-screen w-full min-w-[1200px] flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       {/* NRM-Style Header - Dark Navy, 48px */}
-      <header className="sticky top-0 z-20 w-full h-12 flex items-center px-4 gap-6" style={{ backgroundColor: '#1a3a5c' }}>
+      <header className="sticky top-0 z-20 w-full h-12 flex items-center px-4 gap-4" style={{ backgroundColor: '#1a3a5c' }}>
         {/* Logo */}
         <img
           src={enghouseLogo}
           alt="Enghouse"
           style={{
-            filter: 'brightness(0) invert(1)',
             height: '28px',
-            width: 'auto'
+            width: 'auto',
+            filter: 'brightness(0) invert(1)'
           }}
           className="flex-shrink-0"
         />
@@ -89,11 +89,8 @@ export function App() {
         {/* App Name */}
         <span className="text-sm font-medium text-white flex-shrink-0">Workflow Intelligence</span>
 
-        {/* Navigation Spacer */}
-        <div className="flex-1" />
-
-        {/* Navigation Items */}
-        <div className="flex items-center gap-0">
+        {/* Navigation Items - Left aligned after app name */}
+        <div className="flex items-center gap-0 ml-8">
           <button
             onClick={() => setTopLevelTab('discovery')}
             className="h-12 px-4 text-xs font-medium text-white transition-colors flex items-center"
@@ -121,7 +118,7 @@ export function App() {
         </div>
 
         {/* Right-side Controls */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {/* Help Icon */}
           <button
             onClick={() => openHelp(topLevelTab === 'discovery' ? 'discovery-concept' : 'library-concept')}
