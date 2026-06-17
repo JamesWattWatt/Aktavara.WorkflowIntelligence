@@ -68,6 +68,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const [session, setSession] = useState<ChatSession | null>(null);
   const [panelWidth, setPanelWidth] = useState(360);
   const [isDragging, setIsDragging] = useState(false);
+  const [followUps, setFollowUps] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -138,6 +139,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     try {
       setStreaming(true);
       setInput('');
+      setFollowUps([]);
 
       const topCandidate = analyzeResponse?.workflowCandidates?.[0];
       const currentSessionId = session?.sessionId;
@@ -224,13 +226,35 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
             if (data.done) {
               finalSessionId = data.sessionId;
+
+              // Parse follow-up questions from the response
+              let cleanContent = streamContent;
+              let parsedFollowUps: string[] = [];
+
+              try {
+                const followUpMatch = cleanContent.match(/FOLLOW_UPS:\s*(\[.*?\])/s);
+                if (followUpMatch) {
+                  parsedFollowUps = JSON.parse(followUpMatch[1]);
+                  // Remove the FOLLOW_UPS line from displayed content
+                  cleanContent = cleanContent.replace(/FOLLOW_UPS:.*$/s, '').trim();
+                }
+              } catch (e) {
+                // If parsing fails, just show the content as-is
+                console.debug('Failed to parse follow-ups:', e);
+              }
+
               setMessages(prev =>
                 prev.map((msg, idx) =>
                   idx === prev.length - 1
-                    ? { ...msg, content: streamContent }
+                    ? { ...msg, content: cleanContent }
                     : msg
                 )
               );
+
+              // Set follow-up questions if found
+              if (parsedFollowUps.length > 0) {
+                setFollowUps(parsedFollowUps);
+              }
 
               // Capture and emit debug info from final SSE event
               if (data.debug && onDebugUpdate) {
@@ -287,6 +311,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     setSession(null);
     setMessages([]);
     setInput('');
+    setFollowUps([]);
   };
 
   const handleSaveSession = async () => {
@@ -462,8 +487,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Questions */}
-      {messages.length === 0 && (
+      {/* Suggested Questions - Static or Follow-ups */}
+      {messages.length === 0 ? (
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 border-t">
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Suggested questions:</p>
           <div className="flex flex-wrap gap-1">
@@ -478,7 +503,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             ))}
           </div>
         </div>
-      )}
+      ) : followUps.length > 0 ? (
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 border-t">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Follow-up questions:</p>
+          <div className="flex flex-wrap gap-2">
+            {followUps.map((q, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSendMessage(q)}
+                className="text-xs px-3 py-1.5 rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-400 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Input Area */}
       <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
