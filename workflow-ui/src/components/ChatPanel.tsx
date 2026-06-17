@@ -28,6 +28,23 @@ const renderMarkdown = (content: string): string => {
   }
 };
 
+// Split content at FOLLOW_UPS marker before markdown rendering
+const splitContent = (content: string) => {
+  const marker = content.indexOf('FOLLOW_UPS:');
+  if (marker === -1) return { display: content, followUps: [] };
+
+  const displayPart = content.substring(0, marker).trimEnd();
+  const followUpsPart = content.substring(marker);
+
+  try {
+    const match = followUpsPart.match(/\[[\s\S]*?\]/);
+    const questions = match ? JSON.parse(match[0]) : [];
+    return { display: displayPart, followUps: questions };
+  } catch {
+    return { display: displayPart, followUps: [] };
+  }
+};
+
 const suggestedQuestions = {
   generic: [
     'What am I doing right now?',
@@ -191,8 +208,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
       let finalSessionId = currentSessionId;
       let firstToken = true;
-      let fullContent = ''; // Keep full content with FOLLOW_UPS for parsing
-      let displayContent = ''; // Keep clean content for rendering
+      let streamContent = '';
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -215,18 +231,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             }
 
             if (data.delta) {
-              // Accumulate full content (includes FOLLOW_UPS for later parsing)
-              fullContent += data.delta;
+              streamContent += data.delta;
 
-              // Strip FOLLOW_UPS from delta BEFORE adding to display content
-              const cleanDelta = data.delta.replace(/FOLLOW_UPS:[\s\S]*$/, '');
-              displayContent += cleanDelta;
+              // Split content at FOLLOW_UPS marker BEFORE rendering
+              const { display } = splitContent(streamContent);
 
-              // Update message with clean content ONLY (no FOLLOW_UPS for markdown parser)
+              // Update message with only the display part (no FOLLOW_UPS)
               setMessages(prev =>
                 prev.map((msg, idx) =>
                   idx === prev.length - 1
-                    ? { ...msg, content: displayContent + ' ▊' }
+                    ? { ...msg, content: display + ' ▊' }
                     : msg
                 )
               );
@@ -235,34 +249,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             if (data.done) {
               finalSessionId = data.sessionId;
 
-              // Extract follow-up questions from fullContent
-              let parsedFollowUps: string[] = [];
+              // Split content to get both display part and follow-ups
+              const { display: finalDisplay, followUps: parsedFollowUps } = splitContent(streamContent);
 
-              try {
-                // Extract FOLLOW_UPS JSON array from full content
-                const followUpMatch = fullContent.match(/FOLLOW_UPS:\s*(\[[\s\S]*?\])/);
-                if (followUpMatch) {
-                  try {
-                    parsedFollowUps = JSON.parse(followUpMatch[1]);
-                  } catch (parseErr) {
-                    console.debug('Failed to parse follow-ups JSON:', parseErr);
-                  }
-                }
-              } catch (e) {
-                console.debug('Failed to extract follow-ups:', e);
-              }
-
-              // Final cleanup of display content
-              const finalDisplayContent = displayContent
-                .replace(/FOLLOW_UPS:\s*\[[\s\S]*?\]/g, '')
-                .replace(/\n\s*$/, '')
-                .trimEnd();
-
-              // Update the message with final clean content
+              // Update message with final clean content (no FOLLOW_UPS)
               setMessages(prev =>
                 prev.map((msg, idx) =>
                   idx === prev.length - 1
-                    ? { ...msg, content: finalDisplayContent }
+                    ? { ...msg, content: finalDisplay }
                     : msg
                 )
               );
