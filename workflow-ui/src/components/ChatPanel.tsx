@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
-import type { AnalyzeResponse, ChatMessage, ChatResponse, ChatSession } from '../types/api';
+import type { AnalyzeResponse, ChatMessage, ChatSession } from '../types/api';
 import { apiClient } from '../services/apiClient';
 import './ChatPanel.css';
 
@@ -59,7 +59,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [session, setSession] = useState<ChatSession | null>(null);
   const [panelWidth, setPanelWidth] = useState(360);
   const [isDragging, setIsDragging] = useState(false);
@@ -67,6 +67,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const dragStartX = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const currentState = analyzeResponse?.currentState || 'Unknown';
   const questionsToShow = analyzeResponse
@@ -130,12 +131,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     if (!text.trim()) return;
 
     try {
-      setLoading(true);
+      setStreaming(true);
+      setInput('');
 
       const topCandidate = analyzeResponse?.workflowCandidates?.[0];
+      const currentSessionId = session?.sessionId;
 
       const request = {
-        sessionId: session?.sessionId,
+        sessionId: currentSessionId,
         message: text,
         userName: analyzeResponse?.detectedUser,
         workflowContext: analyzeResponse?.contextNarrative,
@@ -148,14 +151,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         } : undefined
       };
 
-      const response: ChatResponse = await apiClient.sendChatMessage(request);
-
-      // Create new session if this is the first message
-      if (!session?.sessionId) {
-        onSessionCreated(response.sessionId);
-      }
-
-      // Add user message
+      // Add user message immediately
       const userMessage: ChatMessage = {
         role: 'user',
         content: text,
@@ -163,25 +159,103 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
         toolsUsed: []
       };
 
-      // Add assistant message
+      // Create empty assistant message that will be filled by streaming
       const assistantMessage: ChatMessage = {
         role: 'assistant',
-        content: response.reply,
+        content: '...',
         timestamp: new Date().toISOString(),
-        toolsUsed: response.toolsUsed || []
+        toolsUsed: []
       };
 
       setMessages(prev => [...prev, userMessage, assistantMessage]);
-      setInput('');
 
-      // Reload session to get updated data
-      const updatedSession = await apiClient.getChatSession(response.sessionId);
-      setSession(updatedSession);
+      // Setup abort controller for cancellation
+      abortControllerRef.current = new AbortController();
+
+      // Stream response
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal: abortControllerRef.current.signal
+      });
+
+      if (!response.body) throw new Error('Response body is empty');
+
+      let finalSessionId = currentSessionId;
+      let firstToken = true;
+      let streamContent = '';
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+
+          try {
+            const data = JSON.parse(line.substring(6));
+
+            if (firstToken && data.delta) {
+              firstToken = false;
+            }
+
+            if (data.delta) {
+              streamContent += data.delta;
+              setMessages(prev =>
+                prev.map((msg, idx) =>
+                  idx === prev.length - 1
+                    ? { ...msg, content: streamContent + ' ▊' }
+                    : msg
+                )
+              );
+            }
+
+            if (data.done) {
+              finalSessionId = data.sessionId;
+              setMessages(prev =>
+                prev.map((msg, idx) =>
+                  idx === prev.length - 1
+                    ? { ...msg, content: streamContent }
+                    : msg
+                )
+              );
+            }
+          } catch (e) {
+            // Ignore JSON parse errors for incomplete chunks
+          }
+        }
+      }
+
+      // Create new session if this is the first message
+      if (!currentSessionId && finalSessionId) {
+        onSessionCreated(finalSessionId);
+        setSession({ sessionId: finalSessionId } as ChatSession);
+      } else if (finalSessionId) {
+        // Reload session to get updated data
+        const updatedSession = await apiClient.getChatSession(finalSessionId);
+        setSession(updatedSession);
+      }
     } catch (err) {
-      console.error('Failed to send message:', err);
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Failed to send message:', err);
+        setMessages(prev => prev.slice(0, -1)); // Remove the incomplete message
+      }
     } finally {
-      setLoading(false);
+      setStreaming(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleCancelStream = () => {
+    abortControllerRef.current?.abort();
+    setStreaming(false);
   };
 
   const handleNewConversation = async () => {
@@ -356,10 +430,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             </div>
           </div>
         ))}
-        {loading && (
+        {streaming && messages[messages.length - 1]?.role === 'user' && (
           <div className="flex justify-start">
-            <div className="bg-slate-700 text-slate-100 rounded-lg px-3 py-2">
-              <span className="text-sm">typing...</span>
+            <div className="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-2">
+              <span className="text-sm">...</span>
             </div>
           </div>
         )}
@@ -392,23 +466,35 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && !e.shiftKey && !streaming) {
                 e.preventDefault();
                 handleSendMessage(input);
               }
             }}
-            placeholder="Type your question..."
+            placeholder={streaming ? "Waiting for response..." : "Type your question..."}
             className="flex-1 px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none overflow-hidden max-h-24 border border-gray-200 dark:border-gray-700"
             rows={1}
-            disabled={loading}
+            disabled={streaming}
           />
-          <button
-            onClick={() => handleSendMessage(input)}
-            disabled={!input.trim() || loading}
-            className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition"
-          >
-            Send
-          </button>
+          {streaming ? (
+            <button
+              type="button"
+              onClick={handleCancelStream}
+              className="px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
+              title="Cancel streaming"
+            >
+              ✕
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSendMessage(input)}
+              disabled={!input.trim()}
+              className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium transition"
+            >
+              Send
+            </button>
+          )}
         </div>
       </div>
     </div>
