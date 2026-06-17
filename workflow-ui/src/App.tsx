@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import type { AnalyzeResponse, WorkflowCandidateResult } from './types/api';
+import type { AnalyzeResponse, WorkflowCandidateResult, ChatDebugInfo } from './types/api';
 import { LogDropZone } from './components/LogDropZone';
 import { WorkflowList } from './components/WorkflowList';
 import { FlowVisualiser } from './components/FlowVisualiser';
@@ -23,13 +23,7 @@ export function App() {
   const [helpPanelOpen, setHelpPanelOpen] = useState(false);
   const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<{
-    systemPrompt?: string;
-    inputTokens?: number;
-    outputTokens?: number;
-    responseTimeMs?: number;
-    guideReferences?: string[];
-  } | null>(null);
+  const [debugInfo, setDebugInfo] = useState<ChatDebugInfo | null>(null);
   const contentScrollRef = useRef<HTMLDivElement>(null);
 
   const openHelp = (key: string) => {
@@ -311,7 +305,7 @@ export function App() {
                   logFileName={analyzeResponse?.fileName || null}
                   onSessionCreated={setChatSessionId}
                   onOpenHelp={openHelp}
-                  onDebugInfoCaptured={setDebugInfo}
+                  onDebugUpdate={setDebugInfo}
                 />
               </div>
             )}
@@ -330,11 +324,7 @@ export function App() {
             <DebugPanel
               analyzeResponse={analyzeResponse}
               selectedCandidate={selectedCandidate}
-              systemPrompt={debugInfo?.systemPrompt}
-              inputTokens={debugInfo?.inputTokens}
-              outputTokens={debugInfo?.outputTokens}
-              responseTimeMs={debugInfo?.responseTimeMs}
-              guideReferences={debugInfo?.guideReferences}
+              debugInfo={debugInfo}
             />
           </div>
         </div>

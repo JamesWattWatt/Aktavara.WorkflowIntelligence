@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
-import type { AnalyzeResponse, ChatMessage, ChatSession } from '../types/api';
+import type { AnalyzeResponse, ChatMessage, ChatSession, ChatDebugInfo } from '../types/api';
 import { apiClient } from '../services/apiClient';
 import { HelpIcon } from './HelpIcon';
 import './ChatPanel.css';
@@ -11,7 +11,7 @@ interface ChatPanelProps {
   logFileName: string | null;
   onSessionCreated: (sessionId: string) => void;
   onOpenHelp?: (key: string) => void;
-  onDebugInfoCaptured?: (debugInfo: { systemPrompt?: string; inputTokens?: number; outputTokens?: number; responseTimeMs?: number; guideReferences?: string[] }) => void;
+  onDebugUpdate?: (debugInfo: ChatDebugInfo) => void;
 }
 
 // Configure marked for safe parsing
@@ -60,7 +60,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   logFileName,
   onSessionCreated,
   onOpenHelp,
-  onDebugInfoCaptured
+  onDebugUpdate
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -232,13 +232,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 )
               );
 
-              // Capture debug info from final event
-              if (data.debug && onDebugInfoCaptured) {
-                onDebugInfoCaptured({
+              // Capture and emit debug info from final SSE event
+              if (data.debug && onDebugUpdate) {
+                onDebugUpdate({
                   systemPrompt: data.debug.systemPrompt,
                   inputTokens: data.debug.inputTokens,
                   outputTokens: data.debug.outputTokens,
-                  responseTimeMs: data.debug.responseTimeMs
+                  responseTimeMs: data.debug.responseTimeMs,
+                  guideReferences: data.debug.guideReferences,
+                  detectedWorkflow: data.debug.detectedWorkflow,
+                  updatedAt: new Date().toISOString()
                 });
               }
             }

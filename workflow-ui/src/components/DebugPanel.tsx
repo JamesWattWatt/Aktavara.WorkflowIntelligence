@@ -1,24 +1,16 @@
-import React, { useState } from 'react';
-import type { AnalyzeResponse, WorkflowCandidateResult } from '../types/api';
+import React, { useState, useEffect } from 'react';
+import type { AnalyzeResponse, WorkflowCandidateResult, ChatDebugInfo } from '../types/api';
 
 interface DebugPanelProps {
   analyzeResponse: AnalyzeResponse | null;
   selectedCandidate: WorkflowCandidateResult | null;
-  systemPrompt?: string;
-  inputTokens?: number;
-  outputTokens?: number;
-  responseTimeMs?: number;
-  guideReferences?: string[];
+  debugInfo?: ChatDebugInfo | null;
 }
 
 export const DebugPanel: React.FC<DebugPanelProps> = ({
   analyzeResponse,
   selectedCandidate,
-  systemPrompt = '',
-  inputTokens = 0,
-  outputTokens = 0,
-  responseTimeMs = 0,
-  guideReferences = []
+  debugInfo
 }) => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     activity: true,
@@ -27,6 +19,23 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
     llmDetails: true,
     guides: false
   });
+
+  const [showUpdateFlash, setShowUpdateFlash] = useState(false);
+
+  // Show visual indicator when debug info updates
+  useEffect(() => {
+    if (debugInfo?.updatedAt) {
+      setShowUpdateFlash(true);
+      const timer = setTimeout(() => setShowUpdateFlash(false), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [debugInfo?.updatedAt]);
+
+  const systemPrompt = debugInfo?.systemPrompt ?? '';
+  const inputTokens = debugInfo?.inputTokens ?? 0;
+  const outputTokens = debugInfo?.outputTokens ?? 0;
+  const responseTimeMs = debugInfo?.responseTimeMs ?? 0;
+  const guideReferences = debugInfo?.guideReferences ?? [];
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => ({
@@ -42,8 +51,24 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
-        <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">Debug & Insights</h3>
+      <div className={`px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0 transition-all ${
+        showUpdateFlash ? 'ring-2 ring-green-400 bg-green-50/50 dark:bg-green-900/20' : ''
+      }`}>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">Debug & Insights</h3>
+          {debugInfo?.updatedAt && (
+            <span className="text-xs text-gray-600 dark:text-gray-400">
+              {showUpdateFlash ? (
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                  Updated just now
+                </span>
+              ) : (
+                'Ready'
+              )}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Sections */}

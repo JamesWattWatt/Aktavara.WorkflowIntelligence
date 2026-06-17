@@ -244,6 +244,16 @@ export interface ChatRequest {
   };
 }
 
+export interface ChatDebugInfo {
+  systemPrompt?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  responseTimeMs?: number;
+  guideReferences?: string[];
+  detectedWorkflow?: WorkflowCandidateResult;
+  updatedAt?: string;
+}
+
 export interface ChatResponse {
   sessionId: string;
   reply: string;
