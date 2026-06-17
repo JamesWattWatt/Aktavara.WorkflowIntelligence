@@ -11,6 +11,7 @@ import { HelpPanel } from './components/HelpPanel';
 import { EvidenceSection } from './components/EvidenceSection';
 import { ChatPanel } from './components/ChatPanel';
 import { helpContent } from './help/helpContent';
+import enghouseLogo from './assets/enghouse-logo.svg';
 
 export function App() {
   const [topLevelTab, setTopLevelTab] = useState<'discovery' | 'library'>('discovery');
@@ -68,70 +69,98 @@ export function App() {
 
   return (
     <div className="min-h-screen w-full min-w-[1200px] flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      {/* Fixed Header - Full width, flush left */}
-      <header className="sticky top-0 z-20 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        <div className="flex items-center justify-between mb-3 px-6 py-4">
-          <div>
-            <h1 className="text-2xl font-bold">Aktavara Workflow Intelligence</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {topLevelTab === 'discovery' ? 'Discovery & Workshop Interface' : 'Workflow Library Management'}
-              </p>
-              <HelpIcon
-                helpKey={topLevelTab === 'discovery' ? 'discovery-concept' : 'library-concept'}
-                onOpen={openHelp}
-              />
-            </div>
-          </div>
+      {/* NRM-Style Header - Dark Navy, 48px */}
+      <header className="sticky top-0 z-20 w-full h-12 flex items-center px-4 gap-6" style={{ backgroundColor: '#1a3a5c' }}>
+        {/* Logo */}
+        <img
+          src={enghouseLogo}
+          alt="Enghouse"
+          style={{
+            filter: 'brightness(0) invert(1)',
+            height: '28px',
+            width: 'auto'
+          }}
+          className="flex-shrink-0"
+        />
+
+        {/* Divider */}
+        <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+
+        {/* App Name */}
+        <span className="text-sm font-medium text-white flex-shrink-0">Workflow Intelligence</span>
+
+        {/* Navigation Spacer */}
+        <div className="flex-1" />
+
+        {/* Navigation Items */}
+        <div className="flex items-center gap-0">
+          <button
+            onClick={() => setTopLevelTab('discovery')}
+            className="h-12 px-4 text-xs font-medium text-white transition-colors flex items-center"
+            style={{
+              color: topLevelTab === 'discovery' ? '#ffffff' : 'rgba(255,255,255,0.75)',
+              backgroundColor: topLevelTab === 'discovery' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              borderBottom: topLevelTab === 'discovery' ? '2px solid #ffffff' : '2px solid transparent'
+            }}
+            title="Discovery tab"
+          >
+            Discovery
+          </button>
+          <button
+            onClick={() => setTopLevelTab('library')}
+            className="h-12 px-4 text-xs font-medium text-white transition-colors flex items-center"
+            style={{
+              color: topLevelTab === 'library' ? '#ffffff' : 'rgba(255,255,255,0.75)',
+              backgroundColor: topLevelTab === 'library' ? 'rgba(255,255,255,0.05)' : 'transparent',
+              borderBottom: topLevelTab === 'library' ? '2px solid #ffffff' : '2px solid transparent'
+            }}
+            title="Library tab"
+          >
+            Library
+          </button>
         </div>
 
-        {/* Top-level tabs and controls */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 px-6">
-          <div className="flex gap-4">
-            <button
-              onClick={() => setTopLevelTab('discovery')}
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                topLevelTab === 'discovery'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              Discovery
-            </button>
-            <button
-              onClick={() => setTopLevelTab('library')}
-              className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                topLevelTab === 'library'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              Library
-            </button>
-          </div>
+        {/* Right-side Controls */}
+        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+          {/* Help Icon */}
+          <button
+            onClick={() => openHelp(topLevelTab === 'discovery' ? 'discovery-concept' : 'library-concept')}
+            className="h-8 w-8 flex items-center justify-center rounded transition-colors"
+            style={{
+              color: '#ffffff',
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              fontSize: '16px'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'}
+            title="Help"
+          >
+            ?
+          </button>
 
-          {/* Chat button in header (Discovery tab only) */}
+          {/* Chat Button (Discovery tab only) */}
           {topLevelTab === 'discovery' && analyzeResponse && (
             <button
               type="button"
               onClick={toggleChatPanel}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
-                chatPanelOpen
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
+              className="h-8 px-3 rounded flex items-center gap-2 font-medium transition-colors text-white text-xs"
+              style={{
+                backgroundColor: chatPanelOpen ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.25)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = chatPanelOpen ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.15)'}
               title={chatPanelOpen ? 'Close chat panel' : 'Open chat panel'}
             >
               <span>💬</span>
-              <span>{chatPanelOpen ? 'Hide Chat' : 'Chat'}</span>
+              <span>Chat</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* Main Content - Flush with left edge */}
+      {/* Main Content - Starts immediately below header */}
       {topLevelTab === 'discovery' ? (
-        <div className={`w-full flex flex-1 gap-6 py-6 min-h-0 px-6 ${chatPanelOpen ? 'flex-row' : 'flex-row'}`}>
+        <div className={`w-full flex flex-1 gap-6 min-h-0 px-6 py-6 overflow-hidden ${chatPanelOpen ? 'flex-row' : 'flex-row'}`}>
           {/* Left Column - Fixed 280px */}
           <div className="w-[280px] flex-shrink-0 flex flex-col gap-4 min-h-0">
             <div className="flex-shrink-0">

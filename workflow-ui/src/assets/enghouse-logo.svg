@@ -1,0 +1,17 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer circle -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="#05539d" stroke-width="8"/>
+
+  <!-- Inner geometric shape -->
+  <g fill="#05539d">
+    <!-- Left vertical bar -->
+    <rect x="60" y="60" width="15" height="80" rx="2"/>
+    <!-- Top right corner -->
+    <rect x="85" y="60" width="55" height="15" rx="2"/>
+    <!-- Right vertical bar -->
+    <rect x="125" y="60" width="15" height="55" rx="2"/>
+  </g>
+
+  <!-- Light blue accent -->
+  <circle cx="100" cy="100" r="35" fill="none" stroke="#6bb8d4" stroke-width="4"/>
+</svg>
