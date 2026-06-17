@@ -727,6 +727,65 @@ Token-by-token response streaming for real-time chat feedback:
 - ✅ 0 TypeScript errors, build successful
 - ✅ Prompt 26c 100% COMPLETE
 
+## Prompt 27b: Aktavara NRM Design System (COMPLETE)
+
+Complete brand design system implementation with Noto Sans typography and official Aktavara NRM colors:
+
+**Font System:**
+- Google Fonts: Noto Sans (weights 400, 700)
+- Applied throughout entire UI
+- CSS font stacks: body { font-family: 'Noto Sans', sans-serif; }
+
+**Color System (CSS Variables):**
+- Brand: #2E75D1 (primary), #8CB3E6 (secondary)
+- Icons: #535E6D (primary), #798799 (secondary), #82878C (disabled), #A21515 (error)
+- Alerts: #B20000 (fatal), #E22A11 (critical), #FB8C00 (major), #FDD835 (minor), #00ACC1 (degraded), #417ABB (info), #43A047 (normal), #8E24AA (unknown)
+
+**Dark Mode:**
+- Brand colors inverted: primary becomes secondary, vice versa
+- Icon colors adjusted for contrast (lighter tones on dark background)
+
+**Typography Tokens:**
+- h1-h4: weight 400, specific sizes and line heights
+- h5-h6: weight 700
+- body1-body3: weight 400, specific sizes (1em, 0.875em, 0.8125em)
+
+**Applied Color Updates:**
+- Header: Active nav items use brand secondary (#8CB3E6) bottom border
+- Confidence bars: High ≥85% (#43A047), Medium 55-84% (#FB8C00), Low <55% (#E22A11)
+- Confidence badges: Colored backgrounds at 10% opacity matching bars
+- Step dots in FlowVisualiser:
+  * Search: #798799 (grey)
+  * Open/read: #2E75D1 (blue)
+  * Save/write: #43A047 (green)
+  * Modified: #FB8C00 (amber)
+- Matched steps: Blue border and background using brand primary
+
+**Tailwind Integration:**
+- Created tailwind.config.js with extended color palette
+- Brand colors available as Tailwind classes: bg-brand-primary, text-brand-secondary
+- Alert colors: bg-alert-normal, bg-alert-critical, etc.
+- Icon colors: bg-icon-primary, text-icon-secondary, etc.
+
+**Verification:**
+- ✅ Noto Sans font loaded from Google Fonts
+- ✅ CSS custom properties defined in index.css
+- ✅ Dark mode CSS variables configured
+- ✅ Header uses brand secondary for active tabs
+- ✅ Confidence bars use correct alert colors
+- ✅ Step dots use brand colors (grey/blue/green/amber)
+- ✅ Tailwind extended with brand palette
+- ✅ 0 TypeScript errors
+- ✅ Build successful
+
+**Status:**
+- ✅ Noto Sans typography system implemented
+- ✅ Brand and alert colors applied throughout
+- ✅ Confidence levels styled with correct colors
+- ✅ Step visualization uses NRM color scheme
+- ✅ Dark mode colors properly adjusted
+- ✅ Prompt 27b 100% COMPLETE
+
 ## Prompt 27a: NRM-Style Header Redesign (COMPLETE)
 
 Full header redesign matching Aktavara NRM application style with Enghouse branding:
@@ -802,10 +861,11 @@ Full header redesign matching Aktavara NRM application style with Enghouse brand
 - ✅ Prompt 26a: Chat API endpoint, LLM provider strategy, session management
 - ✅ Prompt 26b: Chat UI panel, message thread, suggested questions
 - ✅ Prompt 26c: Streaming responses (SSE), scroll isolation fixes
-- ✅ Prompt 27a: NRM-style header redesign, Enghouse logo
+- ✅ Prompt 27a: NRM-style header redesign, Enghouse logo, left-aligned nav
+- ✅ Prompt 27b: Aktavara NRM design system, brand colors, Noto Sans typography
 
 ## Next prompts
-- Prompt 27b: Additional header refinements or next feature
+- Prompt 27c: Additional UI refinements or workflow enhancements
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
