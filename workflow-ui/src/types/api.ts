@@ -234,6 +234,14 @@ export interface ChatRequest {
   logContent?: string;
   userName?: string;
   userQuestion?: string;
+  workflowContext?: string;
+  activeWorkflow?: {
+    workflowId: string;
+    workflowName: string;
+    confidenceScore: number;
+    currentStateName: string | null;
+    nextStepHint: string | null;
+  };
 }
 
 export interface ChatResponse {

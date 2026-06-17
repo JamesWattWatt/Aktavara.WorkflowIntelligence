@@ -1738,13 +1738,37 @@ async Task<IResult> PostChat(
         var systemPrompt = config.GetValue<string>("ChatLlm:SystemPromptTemplate") ??
             "You are a workflow guidance assistant for Aktavara.";
 
-        if (session.AnalyzeResponse != null)
+        // Use request context if provided (from ChatPanel), otherwise fall back to session analysis
+        var contextNarrative = request.WorkflowContext ?? session.AnalyzeResponse?.ContextNarrative;
+
+        if (!string.IsNullOrEmpty(contextNarrative))
         {
-            var confidencePercent = (session.AnalyzeResponse.WorkflowCandidates?.FirstOrDefault()?.ConfidenceScore * 100).ToString() ?? "0";
+            systemPrompt = $"Current user activity context: {contextNarrative}\n\n{systemPrompt}";
+        }
+
+        // Use ActiveWorkflow from request if provided, otherwise fall back to session analysis
+        string? workflowName = null;
+        double? confidenceScore = null;
+
+        if (request.ActiveWorkflow != null)
+        {
+            workflowName = request.ActiveWorkflow.WorkflowName;
+            confidenceScore = request.ActiveWorkflow.ConfidenceScore;
+        }
+        else if (session.AnalyzeResponse?.WorkflowCandidates?.FirstOrDefault() != null)
+        {
+            var candidate = session.AnalyzeResponse.WorkflowCandidates.FirstOrDefault();
+            workflowName = candidate?.WorkflowName;
+            confidenceScore = candidate?.ConfidenceScore;
+        }
+
+        if (!string.IsNullOrEmpty(workflowName))
+        {
+            var confidence = Math.Round((confidenceScore * 100) ?? 0).ToString();
             systemPrompt = systemPrompt
-                .Replace("{contextNarrative}", session.AnalyzeResponse.ContextNarrative ?? "")
-                .Replace("{workflowName}", session.AnalyzeResponse.WorkflowCandidates?.FirstOrDefault()?.WorkflowName ?? "Unknown")
-                .Replace("{confidence}", Math.Round((session.AnalyzeResponse.WorkflowCandidates?.FirstOrDefault()?.ConfidenceScore * 100) ?? 0).ToString());
+                .Replace("{contextNarrative}", contextNarrative ?? "")
+                .Replace("{workflowName}", workflowName)
+                .Replace("{confidence}", confidence);
         }
 
         // Add user message to session

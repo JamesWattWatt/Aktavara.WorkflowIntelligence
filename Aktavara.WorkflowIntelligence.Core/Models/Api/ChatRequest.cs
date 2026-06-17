@@ -29,4 +29,26 @@ public class ChatRequest
     /// Optional user question for semantic search
     /// </summary>
     public string? UserQuestion { get; set; }
+
+    /// <summary>
+    /// Activity context narrative from workflow analysis
+    /// </summary>
+    public string? WorkflowContext { get; set; }
+
+    /// <summary>
+    /// Active workflow details for system prompt enhancement
+    /// </summary>
+    public ActiveWorkflowInfo? ActiveWorkflow { get; set; }
+}
+
+/// <summary>
+/// Minimal workflow information for chat context
+/// </summary>
+public class ActiveWorkflowInfo
+{
+    public string WorkflowId { get; set; } = string.Empty;
+    public string WorkflowName { get; set; } = string.Empty;
+    public double ConfidenceScore { get; set; }
+    public string? CurrentStateName { get; set; }
+    public string? NextStepHint { get; set; }
 }
