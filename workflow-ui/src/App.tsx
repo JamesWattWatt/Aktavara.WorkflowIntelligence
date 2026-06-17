@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { AnalyzeResponse, WorkflowCandidateResult } from './types/api';
 import { LogDropZone } from './components/LogDropZone';
 import { WorkflowList } from './components/WorkflowList';
@@ -22,6 +22,18 @@ export function App() {
   const [helpPanelKey, setHelpPanelKey] = useState<string | null>(null);
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const [chatPanelOpen, setChatPanelOpen] = useState(false);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
+
+  const toggleChatPanel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const scrollTop = contentScrollRef.current?.scrollTop;
+    setChatPanelOpen(prev => !prev);
+    requestAnimationFrame(() => {
+      if (contentScrollRef.current) {
+        contentScrollRef.current.scrollTop = scrollTop ?? 0;
+      }
+    });
+  };
 
   const openHelp = (key: string) => {
     setHelpPanelKey(key);
@@ -98,7 +110,8 @@ export function App() {
           {/* Chat button in header (Discovery tab only) */}
           {topLevelTab === 'discovery' && analyzeResponse && (
             <button
-              onClick={() => setChatPanelOpen(!chatPanelOpen)}
+              type="button"
+              onClick={toggleChatPanel}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
                 chatPanelOpen
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
@@ -145,7 +158,10 @@ export function App() {
           </div>
 
           {/* Middle Column - Content area (flex-1 when chat open) */}
-          <div className={chatPanelOpen ? 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto' : 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto'}>
+          <div
+            ref={contentScrollRef}
+            className={chatPanelOpen ? 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto' : 'flex-1 flex flex-col gap-4 min-h-0 overflow-y-auto'}
+          >
             {!analyzeResponse ? (
               <div className="flex items-center justify-center border border-gray-200 dark:border-gray-800 rounded-lg p-6 min-h-[300px]">
                 <div className="text-center text-gray-500 dark:text-gray-400">
