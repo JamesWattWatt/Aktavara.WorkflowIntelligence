@@ -293,6 +293,13 @@ app.MapPost("/api/chat", PostChat)
 .Produces<ChatResponse>(200)
 .ProducesProblem(400);
 
+app.MapPost("/api/chat/stream", StreamChat)
+.WithName("StreamChat")
+.WithOpenApi()
+.WithDescription("Send a chat message and stream the response as Server-Sent Events")
+.Produces(200)
+.ProducesProblem(400);
+
 app.MapGet("/api/chat/{sessionId}", GetChat)
 .WithName("GetChat")
 .WithOpenApi()
@@ -1797,6 +1804,147 @@ async Task<IResult> PostChat(
     {
         logger.LogError(ex, "Error in chat endpoint");
         return Results.BadRequest(new { error = "Error processing chat request" });
+    }
+}
+
+async Task<IResult> StreamChat(
+    ChatRequest request,
+    ChatSessionStore sessionStore,
+    IChatLlmProvider llmProvider,
+    IActivityLogParser parser,
+    IActivityEventNormalizer normalizer,
+    IWorkflowMatcher matcher,
+    IActivityContextBuilder contextBuilder,
+    IWorkflowLibrary workflowLibrary,
+    IConfiguration config,
+    ILogger<Program> logger,
+    HttpContext httpContext)
+{
+    try
+    {
+        if (string.IsNullOrWhiteSpace(request.Message))
+            return Results.BadRequest(new { error = "Message cannot be empty" });
+
+        var session = sessionStore.GetOrCreateSession(request.SessionId);
+
+        // Re-analyze if log content provided (same as PostChat)
+        if (!string.IsNullOrWhiteSpace(request.LogContent))
+        {
+            var rawEntries = parser.Parse(request.LogContent);
+            var events = normalizer.Normalize(rawEntries);
+            var userName = request.UserName;
+            var timeWindowMinutes = config.GetValue<int>("WorkflowIntelligence:TimeWindowMinutes", 30);
+            var logEndTime = events.Count > 0 ? events.Max(e => e.Timestamp) : DateTime.UtcNow;
+            var windowStart = logEndTime.AddMinutes(-timeWindowMinutes);
+
+            if (events.Count > 0)
+            {
+                events = events.Where(e => e.Timestamp >= windowStart && e.Timestamp <= logEndTime).ToList();
+            }
+
+            if (string.IsNullOrEmpty(userName) && events.Count > 0)
+            {
+                userName = events.GroupBy(e => e.UserName)
+                    .OrderByDescending(g => g.Count())
+                    .FirstOrDefault()?.Key;
+            }
+
+            var logStartTime = events.FirstOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            logEndTime = events.LastOrDefault()?.Timestamp ?? DateTime.UtcNow;
+            var context = contextBuilder.BuildContext(events, userName, logStartTime, logEndTime);
+            var workflows = workflowLibrary.GetAll();
+            var matches = matcher.FindMatches(context, workflows);
+
+            var topMatch = matches.FirstOrDefault();
+            if (topMatch != null)
+            {
+                session.AnalyzeResponse = new AnalyzeResponse
+                {
+                    SessionId = session.SessionId,
+                    FileName = "chat-upload",
+                    TotalEntries = rawEntries.Count,
+                    TotalEvents = events.Count,
+                    CurrentState = topMatch.CurrentStateName ?? "Unknown",
+                    ContextNarrative = context?.Summary ?? "User activity detected",
+                    DetectedUser = userName ?? "unknown",
+                    WorkflowCandidates = new()
+                };
+            }
+        }
+
+        // Build system prompt from context
+        var systemPrompt = config.GetValue<string>("ChatLlm:SystemPromptTemplate") ??
+            "You are a workflow guidance assistant for Aktavara.";
+
+        var contextNarrative = request.WorkflowContext ?? session.AnalyzeResponse?.ContextNarrative;
+
+        if (!string.IsNullOrEmpty(contextNarrative))
+        {
+            systemPrompt = $"Current user activity context: {contextNarrative}\n\n{systemPrompt}";
+        }
+
+        string? workflowName = null;
+        double? confidenceScore = null;
+
+        if (request.ActiveWorkflow != null)
+        {
+            workflowName = request.ActiveWorkflow.WorkflowName;
+            confidenceScore = request.ActiveWorkflow.ConfidenceScore;
+        }
+        else if (session.AnalyzeResponse?.WorkflowCandidates?.FirstOrDefault() != null)
+        {
+            var candidate = session.AnalyzeResponse.WorkflowCandidates.FirstOrDefault();
+            workflowName = candidate?.WorkflowName;
+            confidenceScore = candidate?.ConfidenceScore;
+        }
+
+        if (!string.IsNullOrEmpty(workflowName))
+        {
+            var confidence = Math.Round((confidenceScore * 100) ?? 0).ToString();
+            systemPrompt = systemPrompt
+                .Replace("{contextNarrative}", contextNarrative ?? "")
+                .Replace("{workflowName}", workflowName)
+                .Replace("{confidence}", confidence);
+        }
+
+        // Add user message to session
+        var userMessage = new ChatMessage { Role = "user", Content = request.Message };
+        sessionStore.AddMessage(session.SessionId, userMessage);
+
+        // Setup SSE response
+        httpContext.Response.ContentType = "text/event-stream";
+        httpContext.Response.Headers.Append("Cache-Control", "no-cache");
+        httpContext.Response.Headers.Append("Connection", "keep-alive");
+
+        // Create empty assistant message
+        var assistantMessage = new ChatMessage { Role = "assistant", Content = "" };
+        sessionStore.AddMessage(session.SessionId, assistantMessage);
+
+        // Stream response
+        await using (var writer = new StreamWriter(httpContext.Response.Body))
+        {
+            var messageContent = "";
+            await llmProvider.StreamAsync(session.Messages, systemPrompt, async (delta) =>
+            {
+                messageContent += delta;
+                await writer.WriteLineAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta, done = false })}");
+                await writer.FlushAsync();
+            }, httpContext.RequestAborted);
+
+            // Update the assistant message with full content
+            sessionStore.AddMessage(session.SessionId, new ChatMessage { Role = "assistant", Content = messageContent });
+
+            // Send done event
+            await writer.WriteLineAsync($"data: {System.Text.Json.JsonSerializer.Serialize(new { delta = "", done = true, sessionId = session.SessionId })}");
+            await writer.FlushAsync();
+        }
+
+        return Results.Ok();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error in chat stream endpoint");
+        return Results.BadRequest(new { error = "Error processing chat stream" });
     }
 }
 
