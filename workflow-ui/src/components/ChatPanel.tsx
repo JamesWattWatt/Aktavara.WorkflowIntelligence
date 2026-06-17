@@ -61,8 +61,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState<ChatSession | null>(null);
+  const [panelWidth, setPanelWidth] = useState(360);
+  const [isDragging, setIsDragging] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragStartX = useRef(0);
 
   const currentState = analyzeResponse?.currentState || 'Unknown';
   const questionsToShow = analyzeResponse
@@ -79,6 +83,39 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 96) + 'px';
     }
   }, [input]);
+
+  const handleDragStart = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStartX.current = e.clientX;
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!panelRef.current) return;
+      const deltaX = e.clientX - dragStartX.current;
+      const currentWidth = panelRef.current.offsetWidth;
+      const newWidth = currentWidth - deltaX;
+
+      if (newWidth >= 280 && newWidth <= 600) {
+        setPanelWidth(newWidth);
+        dragStartX.current = e.clientX;
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   useEffect(() => {
     if (sessionId) {
@@ -200,16 +237,28 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   const toolsUsedCount = messages.reduce((acc, msg) => acc + msg.toolsUsed.length, 0);
 
   return (
-    <div className="flex flex-col h-full bg-slate-800 border-l border-slate-700 rounded-lg">
+    <div
+      ref={panelRef}
+      className="flex flex-col h-full bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 rounded-lg relative"
+      style={{ width: `${panelWidth}px` }}
+    >
+      {/* Drag Handle */}
+      <div
+        onMouseDown={handleDragStart}
+        className={`absolute left-0 top-0 h-full w-1 cursor-col-resize transition-colors ${
+          isDragging ? 'bg-blue-500' : 'bg-transparent hover:bg-blue-400'
+        }`}
+        title="Drag to resize chat panel"
+      />
       {/* Session Controls */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700 gap-2">
-        <div className="text-xs text-slate-300">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 gap-2">
+        <div className="text-xs text-gray-600 dark:text-gray-400">
           {messages.length} messages · {toolsUsedCount} tools
         </div>
         <div className="flex gap-1">
           <button
             onClick={handleNewConversation}
-            className="px-2 py-1 text-xs rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 transition"
             title="Start new conversation"
           >
             New
@@ -217,14 +266,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           <button
             onClick={handleSaveSession}
             disabled={!session}
-            className="px-2 py-1 text-xs rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-200 transition"
+            className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 text-gray-900 dark:text-gray-100 transition"
             title="Save session to file"
           >
             Save
           </button>
           <button
             onClick={handleLoadSession}
-            className="px-2 py-1 text-xs rounded bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
+            className="px-2 py-1 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 transition"
             title="Load saved session"
           >
             Load
@@ -233,14 +282,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* Context Indicator */}
-      <div className="px-4 py-2 border-b border-slate-700">
+      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
         {logFileName ? (
-          <div className="text-xs text-slate-300 flex items-center gap-2">
+          <div className="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
             Context: {logFileName}
           </div>
         ) : (
-          <div className="text-xs text-slate-400 flex items-center gap-2">
+          <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
             No log loaded — drop a file for context-aware responses
           </div>
@@ -250,7 +299,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 && (
-          <div className="text-center text-slate-400 text-sm mt-8">
+          <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
             <p>Start a conversation</p>
           </div>
         )}
@@ -263,20 +312,17 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               className={`rounded-lg px-3 py-2 text-sm max-w-sm ${
                 msg.role === 'user'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700 text-slate-100'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
               }`}
             >
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap">{msg.content}</p>
               ) : (
                 <div
-                  className="chat-message-prose text-slate-100"
+                  className="chat-message-prose text-gray-900 dark:text-gray-100"
                   dangerouslySetInnerHTML={{
                     __html: renderMarkdown(msg.content)
                   }}
-                  style={{
-                    color: 'rgb(226 232 240)',
-                  } as React.CSSProperties}
                 >
                   {/* Content rendered above */}
                 </div>
@@ -286,14 +332,22 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   {msg.toolsUsed.map(tool => (
                     <span
                       key={tool}
-                      className="inline-block px-1.5 py-0.5 text-xs rounded bg-slate-600 text-slate-200"
+                      className={`inline-block px-1.5 py-0.5 text-xs rounded ${
+                        msg.role === 'user'
+                          ? 'bg-blue-700 text-blue-100'
+                          : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      }`}
                     >
                       [{tool}]
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-xs text-slate-300 mt-1">
+              <p className={`text-xs mt-1 ${
+                msg.role === 'user'
+                  ? 'text-blue-100'
+                  : 'text-gray-600 dark:text-gray-400'
+              }`}>
                 {new Date(msg.timestamp).toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit'
@@ -314,14 +368,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
 
       {/* Suggested Questions */}
       {messages.length === 0 && (
-        <div className="px-4 py-3 border-b border-slate-700 border-t">
-          <p className="text-xs text-slate-400 mb-2">Suggested questions:</p>
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 border-t">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Suggested questions:</p>
           <div className="flex flex-wrap gap-1">
             {questionsToShow.map(q => (
               <button
                 key={q}
                 onClick={() => handleSendMessage(q)}
-                className="text-xs px-2 py-1 rounded-full bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-slate-200 transition whitespace-nowrap"
+                className="text-xs px-2 py-1 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition whitespace-nowrap"
               >
                 {q}
               </button>
@@ -331,7 +385,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       )}
 
       {/* Input Area */}
-      <div className="px-4 py-3 border-t border-slate-700">
+      <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
         <div className="flex gap-2">
           <textarea
             ref={textareaRef}
@@ -344,7 +398,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               }
             }}
             placeholder="Type your question..."
-            className="flex-1 px-3 py-2 rounded bg-slate-700 text-slate-100 placeholder-slate-500 text-sm resize-none overflow-hidden max-h-24"
+            className="flex-1 px-3 py-2 rounded bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-sm resize-none overflow-hidden max-h-24 border border-gray-200 dark:border-gray-700"
             rows={1}
             disabled={loading}
           />

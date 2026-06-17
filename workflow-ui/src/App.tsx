@@ -228,16 +228,14 @@ export function App() {
             )}
           </div>
 
-          {/* Right Column - Chat Panel (360px, slides in) */}
+          {/* Right Column - Chat Panel (resizable, slides in) */}
           {chatPanelOpen && (
-            <div className="w-[360px] flex-shrink-0 h-full min-h-0 flex flex-col">
-              <ChatPanel
-                sessionId={chatSessionId}
-                analyzeResponse={analyzeResponse}
-                logFileName={analyzeResponse?.fileName || null}
-                onSessionCreated={setChatSessionId}
-              />
-            </div>
+            <ChatPanel
+              sessionId={chatSessionId}
+              analyzeResponse={analyzeResponse}
+              logFileName={analyzeResponse?.fileName || null}
+              onSessionCreated={setChatSessionId}
+            />
           )}
         </div>
       ) : (
