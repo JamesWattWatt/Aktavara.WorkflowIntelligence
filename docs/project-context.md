@@ -685,17 +685,127 @@ Features:
 - ✅ Full integration with backend chat endpoints
 - ✅ Prompt 26b 100% COMPLETE
 
+## Prompt 26c: SSE Streaming Chat (COMPLETE)
+
+Token-by-token response streaming for real-time chat feedback:
+
+**Backend Changes:**
+- Added StreamAsync method to IChatLlmProvider interface
+- AnthropicChatProvider.StreamAsync: calls Anthropic /v1/messages with stream=true
+  - Reads response as HTTPCompletionOption.ResponseHeadersRead
+  - Uses StreamReader to parse SSE line-by-line
+  - Extracts text from content_block_delta events
+  - Calls onDelta callback for each token
+- MockChatProvider.StreamAsync: simulates streaming with 50ms delays per word
+- POST /api/chat/stream endpoint: SSE handler that streams responses directly to response body
+  - Sets Content-Type: text/event-stream
+  - Writes data: {"delta": "token", "done": false}\n\n for each token
+  - Final event: data: {"delta": "", "done": true, "sessionId": "..."}\n\n
+  - **CRITICAL FIX**: Changed from Task<IResult> to Task (no result wrapping)
+    - Direct response writing (SSE) cannot be mixed with IResult objects
+    - Write directly to httpContext.Response via WriteAsync
+    - Flush after each event with httpContext.Response.Body.FlushAsync
+
+**Frontend Changes:**
+- ChatPanel: ReadableStream + TextDecoder for SSE parsing
+- Streaming state tracks ongoing response
+- Cancel button (✕) appears during streaming, sends abort signal
+- Input disabled during streaming
+- Messages auto-scroll to show new tokens as they arrive
+- scrollIntoView uses block: 'nearest' to prevent page-level scroll
+
+**Scroll Fixes (related - Prompt 26c part 2):**
+- Double requestAnimationFrame in toggleChatPanel for layout reflow timing
+- overflow-anchor: none on main content container to prevent auto-scroll anchoring
+- overflow-anchor: none on chat messages container
+- Chat panel scrolls independently without affecting page scroll
+
+**Status:**
+- ✅ Streaming endpoint fixed (no more crash with Ok() result)
+- ✅ Token-by-token display working in UI
+- ✅ Scroll behavior isolated (chat ↔ page independent)
+- ✅ 0 TypeScript errors, build successful
+- ✅ Prompt 26c 100% COMPLETE
+
+## Prompt 27a: NRM-Style Header Redesign (COMPLETE)
+
+Full header redesign matching Aktavara NRM application style with Enghouse branding:
+
+**Header Design:**
+- Background: #1a3a5c (dark navy blue)
+- Height: 48px
+- Sticky position, full width
+- No rounded corners (full edge-to-edge)
+
+**Layout (left to right):**
+1. Enghouse logo (28px height, white via brightness filter)
+2. Vertical divider (thin, semi-transparent)
+3. "Workflow Intelligence" app name (14px, 500 weight, white)
+4. Flexible spacer
+5. Navigation items: Discovery | Library
+   - Font: 13px, white
+   - Inactive: rgba(255,255,255,0.75)
+   - Active: white with 2px white bottom border
+   - Hover: rgba(255,255,255,0.1) background
+6. Right-side controls:
+   - (?) Help icon (20px, white)
+   - 💬 Chat button (Discovery tab only)
+
+**Removed Elements:**
+- Old white header with h1 "Aktavara Workflow Intelligence"
+- Subtitle "Discovery & Workshop Interface"
+- Tab bar below header (moved into header)
+- Standalone chat toggle button
+- Top padding/whitespace from old header
+
+**Content Area:**
+- Starts immediately below 48px header
+- No additional top padding
+- calc(100vh - 48px) for full viewport coverage
+- Main content flex layout begins at header base
+
+**Assets:**
+- workflow-ui/src/assets/enghouse-logo.svg: Geometric circle logo
+  - Uses #05539d (dark blue) and #6bb8d4 (light blue)
+  - CSS filter brightness(0) invert(1) makes it white
+
+**Integration:**
+- Help icon calls openHelp with context-specific key
+  - Discovery tab: 'discovery-concept'
+  - Library tab: 'library-concept'
+- Chat button wired to toggleChatPanel (Discovery only)
+- Navigation items fully functional (setTopLevelTab)
+
+**Verification:**
+- ✅ Header is dark navy, full width, 48px tall
+- ✅ Logo visible in white at top left
+- ✅ App name displays next to logo
+- ✅ Navigation items in header with underlines
+- ✅ Help and Chat icons on right side
+- ✅ No whitespace gap below header
+- ✅ Content area starts immediately below
+- ✅ 0 TypeScript errors
+- ✅ Build successful
+
+**Status:**
+- ✅ Enghouse logo created and deployed
+- ✅ Header restructured with NRM styling
+- ✅ Navigation moved from tab bar to header
+- ✅ Old elements removed
+- ✅ Layout adjusted for header-relative sizing
+- ✅ Prompt 27a 100% COMPLETE
+
 ## Completed Prompts
 - ✅ Prompt 25a: Auto-generate Workshop Questions
 - ✅ Prompt 25b: Auto-suggest Guide Mappings (Parts A-E complete)
 - ✅ Prompt 25c: Pass Detected User Context Through UI
 - ✅ Prompt 26a: Chat API endpoint, LLM provider strategy, session management
 - ✅ Prompt 26b: Chat UI panel, message thread, suggested questions
+- ✅ Prompt 26c: Streaming responses (SSE), scroll isolation fixes
+- ✅ Prompt 27a: NRM-style header redesign, Enghouse logo
 
 ## Next prompts
-- Prompt 26c: Chat panel styling refinements & edge cases
-- Prompt 25: E2E testing (Playwright, critical user paths, accessibility)
-- Prompt 25: Deployment & hosting (Docker, CI/CD, cloud setup)
+- Prompt 27b: Additional header refinements or next feature
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
