@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
 import type { AnalyzeResponse, ChatMessage, ChatResponse, ChatSession } from '../types/api';
 import { apiClient } from '../services/apiClient';
+import './ChatPanel.css';
 
 interface ChatPanelProps {
   sessionId: string | null;
@@ -269,18 +270,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 <p className="whitespace-pre-wrap">{msg.content}</p>
               ) : (
                 <div
-                  className="prose prose-invert prose-sm max-w-none"
+                  className="chat-message-prose text-slate-100"
                   dangerouslySetInnerHTML={{
                     __html: renderMarkdown(msg.content)
                   }}
                   style={{
-                    color: 'inherit',
-                    '--tw-prose-body': 'rgb(226 232 240)',
-                    '--tw-prose-headings': 'rgb(248 250 252)',
-                    '--tw-prose-links': 'rgb(147 197 253)',
-                    '--tw-prose-bold': 'rgb(248 250 252)',
-                    '--tw-prose-code': 'rgb(226 232 240)',
-                    '--tw-prose-bullets': 'rgb(203 213 225)',
+                    color: 'rgb(226 232 240)',
                   } as React.CSSProperties}
                 >
                   {/* Content rendered above */}

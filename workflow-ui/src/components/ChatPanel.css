@@ -1,0 +1,82 @@
+/* Compact prose styling for chat messages */
+.chat-message-prose {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chat-message-prose h1 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0.5em 0;
+  line-height: 1.2;
+}
+
+.chat-message-prose h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0.4em 0;
+  line-height: 1.2;
+}
+
+.chat-message-prose h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0.3em 0;
+  line-height: 1.2;
+}
+
+.chat-message-prose p {
+  font-size: 13px;
+  margin: 0.3em 0;
+}
+
+.chat-message-prose ul,
+.chat-message-prose ol {
+  font-size: 13px;
+  margin: 0.3em 0;
+  padding-left: 1.5em;
+}
+
+.chat-message-prose li {
+  font-size: 13px;
+  margin: 0.15em 0;
+}
+
+.chat-message-prose strong,
+.chat-message-prose b {
+  font-weight: 600;
+  font-size: inherit;
+}
+
+.chat-message-prose em,
+.chat-message-prose i {
+  font-style: italic;
+  font-size: inherit;
+}
+
+.chat-message-prose code {
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.chat-message-prose pre {
+  font-size: 12px;
+  margin: 0.3em 0;
+  padding: 0.5em;
+}
+
+.chat-message-prose blockquote {
+  font-size: 13px;
+  margin: 0.3em 0;
+  padding-left: 0.75em;
+  border-left: 3px solid currentColor;
+}
+
+.chat-message-prose a {
+  text-decoration: underline;
+  font-size: 13px;
+}
+
+.chat-message-prose hr {
+  margin: 0.5em 0;
+}
