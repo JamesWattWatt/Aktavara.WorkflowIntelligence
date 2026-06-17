@@ -165,7 +165,7 @@ export function App() {
               title={chatPanelOpen ? 'Close chat panel' : 'Open chat panel'}
             >
               <span>💬</span>
-              <span>Chat</span>
+              <span>AI Assistant Demo</span>
             </button>
           )}
         </div>

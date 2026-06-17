@@ -217,7 +217,13 @@ Only one state should typically be terminal, though complex workflows may have m
   },
   'chat-panel': {
     title: 'AI Workflow Assistant',
-    content: `## AI Workflow Assistant
+    content: `The AI Assistant provides a simulation of what AI Assistance will be presented to a user if the example log files were actual recent user activity.
+
+Use it to test the accuracy of the workflow libraries available in the system.
+
+---
+
+## AI Workflow Assistant
 
 The chat assistant provides intelligent, context-aware guidance based on the activity log you have uploaded.
 
