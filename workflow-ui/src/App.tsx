@@ -95,29 +95,25 @@ export function App() {
             onClick={() => setTopLevelTab('discovery')}
             className={`h-12 px-4 text-xs font-medium transition-colors flex items-center rounded gap-1.5 ${
               topLevelTab === 'discovery'
-                ? 'text-white'
+                ? 'text-white underline decoration-white decoration-2 underline-offset-4'
                 : 'text-white/75 hover:text-white hover:bg-white/10'
             }`}
             title="Workflow Discovery tab"
           >
             <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
-            <span className={topLevelTab === 'discovery' ? 'underline decoration-white decoration-2 underline-offset-4' : ''}>
-              Workflow Discovery
-            </span>
+            Workflow Discovery
           </button>
           <button
             onClick={() => setTopLevelTab('library')}
             className={`h-12 px-4 text-xs font-medium transition-colors flex items-center rounded gap-1.5 ${
               topLevelTab === 'library'
-                ? 'text-white'
+                ? 'text-white underline decoration-white decoration-2 underline-offset-4'
                 : 'text-white/75 hover:text-white hover:bg-white/10'
             }`}
             title="Workflow Library tab"
           >
             <i className="ti ti-books" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
-            <span className={topLevelTab === 'library' ? 'underline decoration-white decoration-2 underline-offset-4' : ''}>
-              Workflow Library
-            </span>
+            Workflow Library
           </button>
         </div>
 
