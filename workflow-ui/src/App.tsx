@@ -147,7 +147,7 @@ export function App() {
           <button
             onClick={() => openHelp(
               topLevelTab === 'discovery' ? 'discovery-concept' :
-              topLevelTab === 'ai-assistant' ? 'discovery-concept' :
+              topLevelTab === 'ai-assistant' ? 'chat-panel' :
               'library-concept'
             )}
             className="h-8 w-8 flex items-center justify-center rounded transition-colors"
