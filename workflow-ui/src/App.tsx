@@ -103,7 +103,7 @@ export function App() {
                   : 'flex items-center gap-1.5'
               }
             >
-              <i className="ti ti-radar-2" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+              <i className="ti ti-radar-2 no-underline" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
               Workflow Discovery
             </span>
           </button>
@@ -119,7 +119,7 @@ export function App() {
                   : 'flex items-center gap-1.5'
               }
             >
-              <i className="ti ti-books" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
+              <i className="ti ti-books no-underline" aria-hidden="true" style={{ fontSize: 'calc(1em + 2px)' }} />
               Workflow Library
             </span>
           </button>
