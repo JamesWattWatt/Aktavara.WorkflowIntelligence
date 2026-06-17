@@ -995,8 +995,79 @@ Comprehensive redesign moving chat functionality to a dedicated third top-level 
 - ✅ Prompt 27c: Header nav icons, text-decoration underline, updated labels
 - ✅ Prompt 28a: AI Assistant tab, debug panel, move chat out of Discovery
 
+## Prompt 28b: Dynamic Follow-up Question Suggestions (COMPLETE)
+
+LLM-generated contextual follow-up questions after each response in AI Assistant chat.
+
+**Approach: Option B - LLM Includes Suggestions in Response**
+
+**System Prompt Enhancement:**
+- Updated ChatLlm:SystemPromptTemplate in appsettings.json
+- Instructs LLM to append follow-ups in structured format
+- Format: `FOLLOW_UPS: ["question 1", "question 2", "question 3"]`
+- Constraints: max 8 words per question, directly relevant to response
+- Purpose: help user go deeper or take next action
+
+**ChatPanel Implementation:**
+- Added `followUps` state to track current suggestions
+- Streaming parser extracts FOLLOW_UPS line using regex: `/FOLLOW_UPS:\s*(\[.*?\])/s`
+- Parses JSON array from final SSE event
+- Removes FOLLOW_UPS line from displayed message (clean UI)
+- Error handling: gracefully falls back to full content if parsing fails
+- Follow-ups cleared when:
+  - New message sent (prevent stale suggestions)
+  - "New conversation" button clicked (reset to static suggestions)
+
+**UI Rendering:**
+- **Empty chat**: Static suggestions shown (4 questions)
+  - "What am I doing right now?"
+  - "What should I do next?"
+  - "How do I add a connector?"
+  - "Explain this workflow step"
+- **After LLM response**: Follow-up chips (3 questions)
+  - Blue border pill-shaped buttons
+  - Hover state: blue background
+  - Dark mode: blue-700 border, blue-400 text
+  - Clickable: sends chip text as new message
+  - Disappear on new message, reappear with next response
+
+**User Flow:**
+1. Drop log → chat ready with 4 static questions
+2. Click static question or type custom message
+3. LLM response streams in with FOLLOW_UPS appended
+4. ChatPanel parses and removes FOLLOW_UPS line
+5. Follow-up chips appear below last message
+6. Click chip → sent as new message, chips clear
+7. New response arrives with new follow-ups
+8. Questions are contextually relevant to each response
+
+**Fallback & Graceful Degradation:**
+- If follow-up parsing fails: full message shown (no chips)
+- If LLM omits follow-ups: no chips displayed (still works)
+- Static questions always available when chat empty
+- Never breaks functionality due to parsing issues
+
+**Testing:**
+- Follow-up parsing with real Claude responses
+- Contextual relevance of suggestions to response content
+- Fallback when FOLLOW_UPS malformed or missing
+- Static questions shown on empty chat
+- Chips clear on new message
+- New conversation resets to static questions
+
+**Status:**
+✅ System prompt updated with follow-up instructions
+✅ Streaming parser extracts and removes FOLLOW_UPS line
+✅ UI renders follow-up chips contextually
+✅ Static suggestions shown on empty chat
+✅ Follow-ups cleared on new message
+✅ All 215 tests passing
+✅ 0 TypeScript errors
+✅ Build successful
+✅ Prompt 28b 100% COMPLETE
+
 ## Next prompts
-- Prompt 28b: Additional refinements or new features
+- Prompt 28c: Additional refinements or new features
 
 ## Key design rules
 - LLM does not parse, match, or make safety decisions
